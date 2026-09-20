@@ -2,6 +2,8 @@
 
 Aplikasi pengajuan dan persetujuan cuti karyawan (Next.js 14 + Prisma). Mobile-first, berbahasa Indonesia, alur Atasan → HR, kuota, kalender tim, notifikasi, dan laporan.
 
+**Live:** https://cuti-app.vercel.app/
+
 Dokumentasi lengkap (fitur, alur tiap peran, API, deploy): **[cuti-app/README.md](cuti-app/README.md)**
 
 ## Mulai Cepat

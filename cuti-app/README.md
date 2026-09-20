@@ -2,6 +2,8 @@
 
 Aplikasi pengajuan dan persetujuan cuti karyawan berbasis web. Mobile-first, berbahasa Indonesia, dengan alur persetujuan berlapis (Atasan → HR), kuota cuti, kalender tim, notifikasi, dan laporan.
 
+**Live:** https://cuti-app.vercel.app/
+
 ## Tech Stack
 
 - **Framework:** Next.js 14 (App Router) + React 18 + TypeScript
