@@ -6,8 +6,6 @@ import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema } fro
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
 import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 async function aktor() {
   const u = await userDariSesi();
@@ -87,12 +85,22 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
     if (f.size > 2 * 1024 * 1024) return { error: "Lampiran maksimal 2MB" };
     const okType = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
     if (!okType.includes(f.type)) return { error: "Lampiran hanya PDF/JPG/PNG" };
-    const dir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(dir, { recursive: true });
     const ext = f.type === "application/pdf" ? "pdf" : f.type.includes("png") ? "png" : "jpg";
-    const name = `${user.id}-${Date.now()}.${ext}`;
-    await writeFile(path.join(dir, name), Buffer.from(await f.arrayBuffer()));
-    lampiranPath = `/uploads/${name}`;
+    const name = `lampiran/${user.id}-${Date.now()}.${ext}`;
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(name, f, { access: "public" });
+      lampiranPath = blob.url;
+    } else if (process.env.NODE_ENV === "production") {
+      return { error: "Upload lampiran belum dikonfigurasi (BLOB_READ_WRITE_TOKEN kosong)" };
+    } else {
+      const { writeFile, mkdir } = await import("fs/promises");
+      const { default: path } = await import("path");
+      const dir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, name.split("/").pop()!), Buffer.from(await f.arrayBuffer()));
+      lampiranPath = `/uploads/${name.split("/").pop()}`;
+    }
   }
 
   const pemohonDb = await prisma.user.findUnique({ where: { id: user.id } });

@@ -183,13 +183,25 @@ Di Windows gunakan Task Scheduler dengan URL yang sama.
 
 ## Produksi (PostgreSQL)
 
-1. Di `prisma/schema.prisma`: ubah `provider = "postgresql"`.
-2. Di `.env`: `DATABASE_URL="postgresql://user:pass@host:5432/cuti?schema=public"`.
-3. Jalankan:
+Schema sudah `provider = "postgresql"`.
+
+## Deploy ke Vercel
+
+1. Buat database Postgres (Neon / Supabase), salin connection string → `DATABASE_URL`.
+2. Buat Blob Store di dashboard Vercel → salin token → `BLOB_READ_WRITE_TOKEN`.
+3. Import repo GitHub ke Vercel, set environment variables:
+   `DATABASE_URL`, `SESSION_SECRET`, `CRON_SECRET`, `FONNTE_TOKEN` (opsional), `BLOB_READ_WRITE_TOKEN`.
+4. Build command otomatis (`prisma generate && next build`, lihat `vercel.json`).
+5. Setelah deploy pertama, siapkan tabel + seed:
 
 ```bash
-npx prisma db push && npm run db:seed && npm run build && npm start
+DATABASE_URL="postgresql://..." npx prisma db push
+DATABASE_URL="postgresql://..." npm run db:seed
 ```
+
+6. Cron reminder/eskalasi tiap jam otomatis via `vercel.json` (`/api/cron`, auth Bearer = `CRON_SECRET`).
+
+Catatan: tanpa `BLOB_READ_WRITE_TOKEN`, upload lampiran fallback ke `public/uploads/` (hanya untuk dev lokal — di Vercel filesystem read-only sehingga upload gagal).
 
 ## Keamanan
 
