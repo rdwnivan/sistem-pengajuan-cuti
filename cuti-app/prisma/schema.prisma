@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  nama         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("KARYAWAN")
+  jabatan      String?
+  noHp         String?
+  tglMasuk     DateTime @default(now())
+  statusAktif  Boolean  @default(true)
+  atasanId     String?
+  atasan       User?    @relation("AtasanBawahan", fields: [atasanId], references: [id], onDelete: SetNull)
+  bawahan      User[]   @relation("AtasanBawahan")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  pengajuan    Pengajuan[] @relation("Pemohon")
+  approvals    Pengajuan[] @relation("ApproverSaatIni")
+  audit        AuditLog[]
+  kuota        Kuota[]
+  delegasiDari Delegasi[] @relation("DelegasiDari")
+  delegasiKe   Delegasi[] @relation("DelegasiKe")
+  sesi         Sesi[]
+  notifikasi   Notifikasi[]
+}
+
+model JenisCuti {
+  id                   String @id @default(cuid())
+  nama                 String @unique
+  kuota                Int    @default(12)
+  memotongKuotaTahunan Boolean @default(true)
+  lampiranWajib        Boolean @default(false)
+  lampiranWajibJikaLebihDari Int?
+  minHariSebelum       Int    @default(3)
+  butuhMasaKerjaBulan  Int    @default(0)
+  aktif                Boolean @default(true)
+  pengajuan Pengajuan[]
+  daftarKuota Kuota[]
+}
+
+model HariLibur {
+  id         String   @id @default(cuid())
+  tanggal    DateTime @unique
+  keterangan String
+}
+
+model Pengajuan {
+  id              String     @id @default(cuid())
+  pemohonId       String
+  pemohon         User       @relation("Pemohon", fields: [pemohonId], references: [id], onDelete: Restrict)
+  jenisId         String
+  jenis           JenisCuti  @relation(fields: [jenisId], references: [id], onDelete: Restrict)
+  tglMulai        DateTime
+  tglSelesai      DateTime
+  jumlahHariKerja Int
+  alasan          String
+  picPengganti    String?
+  kontakSelamaCuti String?
+  lampiranPath    String?
+  status          String @default("MENUNGGU_ATASAN")
+  catatanApprover String?
+  approverId      String?
+  approver        User?      @relation("ApproverSaatIni", fields: [approverId], references: [id], onDelete: SetNull)
+  reminderCount   Int @default(0)
+  lastReminderAt  DateTime?
+  dieskalasi      Boolean @default(false)
+  eskalasiKeId    String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  riwayat AuditLog[]
+  notifikasi Notifikasi[]
+}
+
+model Kuota {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jenisId  String
+  jenis    JenisCuti @relation(fields: [jenisId], references: [id], onDelete: Cascade)
+  tahun    Int
+  jatah    Int
+  terpakai Int       @default(0)
+  @@unique([userId, jenisId, tahun])
+}
+
+model Delegasi {
+  id         String   @id @default(cuid())
+  dariId     String
+  dari       User     @relation("DelegasiDari", fields: [dariId], references: [id], onDelete: Cascade)
+  keId       String
+  ke         User     @relation("DelegasiKe", fields: [keId], references: [id], onDelete: Cascade)
+  tglMulai   DateTime
+  tglSelesai DateTime
+  aktif      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id          String     @id @default(cuid())
+  pengajuanId String?
+  pengajuan   Pengajuan? @relation(fields: [pengajuanId], references: [id], onDelete: SetNull)
+  aktorId     String?
+  aktor       User?      @relation(fields: [aktorId], references: [id], onDelete: SetNull)
+  aksi        String
+  dariStatus  String?
+  keStatus    String?
+  catatan     String?
+  createdAt   DateTime   @default(now())
+}
+
+model Sesi {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Notifikasi {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pengajuanId String?
+  pengajuan   Pengajuan? @relation(fields: [pengajuanId], references: [id], onDelete: SetNull)
+  kanal       String     @default("APP")
+  judul       String
+  pesan       String
+  dibaca      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+}
