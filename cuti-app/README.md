@@ -199,7 +199,7 @@ DATABASE_URL="postgresql://..." npx prisma db push
 DATABASE_URL="postgresql://..." npm run db:seed
 ```
 
-6. Cron reminder/eskalasi tiap jam otomatis via `vercel.json` (`/api/cron`, auth Bearer = `CRON_SECRET`).
+6. Cron reminder/eskalasi harian otomatis via `vercel.json` (`/api/cron`, auth Bearer = `CRON_SECRET`).
 
 Catatan: tanpa `BLOB_READ_WRITE_TOKEN`, upload lampiran fallback ke `public/uploads/` (hanya untuk dev lokal — di Vercel filesystem read-only sehingga upload gagal).
 
