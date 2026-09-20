@@ -200,4 +200,4 @@ npx prisma db push && npm run db:seed && npm run build && npm start
 
 ## Lisensi
 
-Proyek internal — semua hak dilindungi.
+MIT — lihat [LICENSE](../LICENSE).
