@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword } from "@/lib/auth";
 import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema } from "@/lib/validasi";
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
-import { notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
+import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
 import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
 
 async function aktor() {
@@ -167,6 +167,7 @@ export async function aksiPutusan(_: unknown, fd: FormData) {
         await prisma.pengajuan.update({ where: { id: p.id }, data: { status: "MENUNGGU_HR", catatanApprover: catatan || null, approverId: null } });
         await prisma.auditLog.create({ data: { pengajuanId: p.id, aktorId: user.id, aksi: viaDelegasi ? "DELEGASI_SETUJU" : isEskalasi ? "ESKALASI_SETUJU" : override ? "OVERRIDE_ATASAN_SETUJU" : "ATASAN_SETUJU", dariStatus: p.status, keStatus: "MENUNGGU_HR", catatan: catatan || (override ? "Override HR" : viaDelegasi ? "Via delegasi" : isEskalasi ? "Via eskalasi" : null) } });
         await notifApp(p.pemohonId, "Atasan menyetujui", "Pengajuan diteruskan ke HR untuk verifikasi akhir.", p.id, "APP");
+        await notifyHRMenungguHR(p.id);
       }
     } else if (v.data.aksi === "tolak") {
       await prisma.pengajuan.update({ where: { id: p.id }, data: { status: "DITOLAK", catatanApprover: catatan } });

@@ -67,6 +67,17 @@ export async function notifyPengajuanBaru(pengajuanId: string) {
   }
 }
 
+export async function notifyHRMenungguHR(pengajuanId: string) {
+  const p = await prisma.pengajuan.findUnique({ where: { id: pengajuanId }, include: { pemohon: true, jenis: true } });
+  if (!p || p.status !== "MENUNGGU_HR") return;
+  const tgl = `${fmtTgl(p.tglMulai)}→${fmtTgl(p.tglSelesai)}`;
+  const hrs = await prisma.user.findMany({ where: { role: "HR_ADMIN", statusAktif: true } });
+  for (const h of hrs) {
+    await notifApp(h.id, "Pengajuan menunggu verifikasi HR", `${p.pemohon.nama} - ${p.jenis.nama} ${p.jumlahHariKerja} hari (${tgl})`, p.id, "APP");
+    if (h.noHp) await kirimWA(h.noHp, `*Cuti Anime* - ${p.pemohon.nama} menunggu verifikasi HR (${p.jenis.nama} ${tgl})`);
+  }
+}
+
 export async function notifyKeputusan(pengajuanId: string, keputusan: string, catatan?: string | null) {
   const p = await prisma.pengajuan.findUnique({ where: { id: pengajuanId }, include: { pemohon: true, jenis: true } });
   if (!p) return;
