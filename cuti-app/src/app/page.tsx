@@ -67,12 +67,14 @@ export default async function Dashboard() {
           ))}
         </div>
       </section>
-      {user.role === "HR_ADMIN" && (
-        <section className="grid grid-cols-2 gap-2">
-          <Link href="/persetujuan" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700">Verifikasi HR ({antreanHR})</Link>
-          <Link href="/hr" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700">Kelola HR</Link>
-        </section>
-      )}
+      <section className="grid grid-cols-2 gap-2">
+        <Link href="/cuti/baru" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700">+ Ajukan Cuti</Link>
+        <Link href="/slip-gaji" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700">Slip Gaji</Link>
+        {!atasan && <Link href="/laporan" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-amber-700">Laporan Lapangan</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/persetujuan" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700">Verifikasi HR ({antreanHR})</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/hr/slip-gaji" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-purple-700">Kelola Slip Gaji</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/hr" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700">Kelola HR</Link>}
+      </section>
     </Shell>
   );
 }

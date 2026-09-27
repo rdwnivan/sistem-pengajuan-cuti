@@ -10,7 +10,12 @@ export default async function DelegasiPage() {
   const user = await wajibLogin();
   const atasan = await isAtasan(user.id);
   if (!atasan && user.role !== "HR_ADMIN") redirect("/");
-  const users = await prisma.user.findMany({ where: { statusAktif: true, id: { not: user.id } }, select: { id: true, nama: true, email: true }, orderBy: { nama: "asc" } });
+  const semua = await prisma.user.findMany({ where: { statusAktif: true, id: { not: user.id } }, select: { id: true, nama: true, email: true, role: true }, orderBy: { nama: "asc" } });
+  const barisAtasan = await prisma.user.findMany({ where: { statusAktif: true, atasanId: { not: null } }, select: { atasanId: true }, distinct: ["atasanId"] });
+  const atasanIds = new Set(barisAtasan.map((r) => r.atasanId));
+  const users = user.role === "HR_ADMIN"
+    ? semua.filter((u) => u.role === "HR_ADMIN")
+    : semua.filter((u) => u.role !== "HR_ADMIN" && atasanIds.has(u.id));
   const list = await prisma.delegasi.findMany({ where: { dariId: user.id }, include: { ke: true }, orderBy: { createdAt: "desc" } });
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={true}>

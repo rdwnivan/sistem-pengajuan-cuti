@@ -5,7 +5,7 @@ import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 
 export function UserForm({ initial, atasans, id }: {
   id?: string;
-  initial?: { nama: string; email: string; jabatan?: string | null; noHp?: string | null; tglMasuk: string; role: string; atasanId?: string | null; statusAktif: boolean };
+  initial?: { nama: string; email: string; jabatan?: string | null; noHp?: string | null; tglMasuk: string; role: string; atasanId?: string | null; statusAktif: boolean; gajiPokok?: number; tunjanganTetap?: number };
   atasans: { id: string; nama: string }[];
 }) {
   const [state, action] = useFormState(aksiSimpanUser, { error: "" } as { error?: string });
@@ -36,6 +36,10 @@ export function UserForm({ initial, atasans, id }: {
           {atasans.filter((a) => a.id !== id).map((a) => <option key={a.id} value={a.id}>{a.nama}</option>)}
         </select>
       </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Gaji pokok (Rp)"><input name="gajiPokok" type="number" min="0" defaultValue={initial?.gajiPokok ?? 0} className={inputCls} /></Field>
+        <Field label="Tunjangan tetap (Rp)"><input name="tunjanganTetap" type="number" min="0" defaultValue={initial?.tunjanganTetap ?? 0} className={inputCls} /></Field>
+      </div>
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input type="checkbox" name="statusAktif" defaultChecked={initial?.statusAktif ?? true} /> Akun aktif
       </label>

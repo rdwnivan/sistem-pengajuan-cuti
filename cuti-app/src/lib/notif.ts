@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { fmtTgl } from "./cuti";
+import { kirimWebPush } from "./web-push";
 
 export interface WAAdapter {
   kirim(noHp: string, pesan: string): Promise<{ ok: boolean; info?: string }>;
@@ -44,8 +45,14 @@ export async function kirimWA(noHp: string | null | undefined, pesan: string) {
   return adapter().kirim(norm, pesan);
 }
 
-export async function notifApp(userId: string, judul: string, pesan: string, pengajuanId?: string, kanal = "APP") {
-  await prisma.notifikasi.create({ data: { userId, judul, pesan, pengajuanId: pengajuanId ?? null, kanal } });
+export async function notifApp(userId: string, judul: string, pesan: string, refId?: string, kanal = "APP", tipe: "CUTI" | "LAPORAN" | "SLIP" = "CUTI") {
+  await prisma.notifikasi.create({
+    data: {
+      userId, judul, pesan, kanal, tipe,
+      pengajuanId: tipe === "CUTI" ? refId ?? null : null,
+      laporanId: tipe === "LAPORAN" ? refId ?? null : null,
+    },
+  });
 }
 
 export async function notifyPengajuanBaru(pengajuanId: string) {
@@ -57,11 +64,13 @@ export async function notifyPengajuanBaru(pengajuanId: string) {
     const judul = "Pengajuan cuti baru menunggu Anda";
     const pesan = `${p.pemohon.nama} mengajukan ${p.jenis.nama} ${p.jumlahHariKerja} hari (${tgl}). Alasan: ${p.alasan.slice(0, 120)}`;
     await notifApp(p.approverId, judul, pesan, p.id, "APP");
+    await kirimWebPush(p.approverId, judul, pesan);
     if (appr?.noHp) await kirimWA(appr.noHp, `*Cuti Anime* - ${judul}: ${pesan}`);
   } else if (p.status === "MENUNGGU_HR") {
     const hrs = await prisma.user.findMany({ where: { role: "HR_ADMIN", statusAktif: true } });
     for (const h of hrs) {
       await notifApp(h.id, "Pengajuan menunggu verifikasi HR", `${p.pemohon.nama} - ${p.jenis.nama} ${p.jumlahHariKerja} hari`, p.id, "APP");
+      await kirimWebPush(h.id, "Pengajuan menunggu verifikasi HR", `${p.pemohon.nama} - ${p.jenis.nama} ${p.jumlahHariKerja} hari`);
       if (h.noHp) await kirimWA(h.noHp, `*Cuti Anime* - ${p.pemohon.nama} menunggu verifikasi HR (${p.jenis.nama} ${tgl})`);
     }
   }
@@ -74,6 +83,7 @@ export async function notifyHRMenungguHR(pengajuanId: string) {
   const hrs = await prisma.user.findMany({ where: { role: "HR_ADMIN", statusAktif: true } });
   for (const h of hrs) {
     await notifApp(h.id, "Pengajuan menunggu verifikasi HR", `${p.pemohon.nama} - ${p.jenis.nama} ${p.jumlahHariKerja} hari (${tgl})`, p.id, "APP");
+    await kirimWebPush(h.id, "Pengajuan menunggu verifikasi HR", `${p.pemohon.nama} - ${p.jenis.nama} ${p.jumlahHariKerja} hari (${tgl})`);
     if (h.noHp) await kirimWA(h.noHp, `*Cuti Anime* - ${p.pemohon.nama} menunggu verifikasi HR (${p.jenis.nama} ${tgl})`);
   }
 }
@@ -84,5 +94,6 @@ export async function notifyKeputusan(pengajuanId: string, keputusan: string, ca
   const judul = `Pengajuan Anda: ${keputusan}`;
   const pesan = `${p.jenis.nama} ${p.jumlahHariKerja} hari berstatus ${keputusan}.${catatan ? " Catatan: " + catatan : ""} Cuti baru sah jika DISETUJUI.`;
   await notifApp(p.pemohonId, judul, pesan, p.id, "APP");
+  await kirimWebPush(p.pemohonId, judul, pesan);
   if (p.pemohon.noHp) await kirimWA(p.pemohon.noHp, `*Cuti Anime* - ${pesan}`);
 }

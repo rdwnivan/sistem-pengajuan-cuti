@@ -1,10 +1,12 @@
 "use server";
 import { redirect } from "next/navigation";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema } from "@/lib/validasi";
+import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
+import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema } from "@/lib/validasi";
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
+import { kirimWebPush } from "@/lib/web-push";
 import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
 
 async function aktor() {
@@ -226,6 +228,7 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
     nama: fd.get("nama"), email: fd.get("email"), password: fd.get("password"),
     jabatan: fd.get("jabatan"), noHp: fd.get("noHp"), tglMasuk: fd.get("tglMasuk"),
     role: fd.get("role"), atasanId: fd.get("atasanId"), statusAktif: fd.get("statusAktif"),
+    gajiPokok: fd.get("gajiPokok"), tunjanganTetap: fd.get("tunjanganTetap"),
   });
   if (!v.success) return { error: v.error.issues[0].message };
   const email = v.data.email.toLowerCase().trim();
@@ -235,6 +238,7 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
     nama: v.data.nama.trim(), email, jabatan: v.data.jabatan ?? null, noHp: v.data.noHp ?? null,
     tglMasuk: parseTglInput(v.data.tglMasuk), role: v.data.role, atasanId,
     statusAktif: fd.get("statusAktif") === "on",
+    gajiPokok: v.data.gajiPokok, tunjanganTetap: v.data.tunjanganTetap,
   };
   if (v.data.password) data.passwordHash = await hashPassword(v.data.password);
   try {
@@ -317,9 +321,17 @@ export async function aksiSimpanDelegasi(_: unknown, fd: FormData) {
   const tglMulai = (fd.get("tglMulai") as string) || "";
   const tglSelesai = (fd.get("tglSelesai") as string) || "";
   if (!keId || !tglMulai || !tglSelesai) return { error: "Penerima dan rentang tanggal wajib" };
+  const userAtasan = await isAtasan(user.id);
+  if (user.role !== "HR_ADMIN" && !userAtasan) return { error: "Hanya atasan atau HR yang bisa membuat delegasi" };
   if (keId === user.id) return { error: "Tidak bisa delegasi ke diri sendiri" };
   const target = await prisma.user.findUnique({ where: { id: keId } });
   if (!target || !target.statusAktif) return { error: "Penerima tidak valid" };
+  if (user.role === "HR_ADMIN") {
+    if (target.role !== "HR_ADMIN") return { error: "HR hanya bisa mendelegasikan ke HR lain" };
+  } else {
+    if (target.role === "HR_ADMIN" || !(await isAtasan(target.id)))
+      return { error: "Atasan hanya bisa mendelegasikan ke atasan lain" };
+  }
   if (tglSelesai < tglMulai) return { error: "Tanggal selesai sebelum mulai" };
   await prisma.delegasi.updateMany({ where: { dariId: user.id, aktif: true }, data: { aktif: false } });
   const d = await prisma.delegasi.create({
@@ -350,4 +362,196 @@ export async function aksiUbahPassword(_: unknown, fd: FormData) {
   if (!ok) return { error: "Password lama salah" };
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(baru) } });
   redirect("/profil?ok=1");
+}
+
+const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+async function unggahFoto(fd: FormData, prefix: string): Promise<string | null> {
+  const f = fd.get("lampiran") as File | null;
+  if (!f || f.size === 0) return null;
+  if (f.size > 2 * 1024 * 1024) return "__GAGAL__:Lampiran maksimal 2MB";
+  const okType = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+  if (!okType.includes(f.type)) return "__GAGAL__:Lampiran hanya PDF/JPG/PNG";
+  const ext = f.type === "application/pdf" ? "pdf" : f.type.includes("png") ? "png" : "jpg";
+  const name = `${prefix}/${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(name, f, { access: "public" });
+    return blob.url;
+  }
+  if (process.env.NODE_ENV === "production") return "__GAGAL__:Upload belum dikonfigurasi";
+  const { writeFile, mkdir } = await import("fs/promises");
+  const { default: path } = await import("path");
+  const dir = path.join(process.cwd(), "public", "uploads");
+  await mkdir(dir, { recursive: true });
+  const fileName = name.split("/").pop()!;
+  await writeFile(path.join(dir, fileName), Buffer.from(await f.arrayBuffer()));
+  return `/uploads/${fileName}`;
+}
+
+export async function aksiBuatSlip(_: unknown, fd: FormData) {
+  const admin = await aktor();
+  if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
+  const v = slipSchema.safeParse({
+    userId: fd.get("userId"), tahun: fd.get("tahun"), bulan: fd.get("bulan"),
+    gajiPokok: fd.get("gajiPokok"), tunjangan: fd.get("tunjangan"),
+    potongan: fd.get("potongan"), catatan: fd.get("catatan"),
+  });
+  if (!v.success) return { error: v.error.issues[0].message };
+  const karyawan = await prisma.user.findUnique({ where: { id: v.data.userId } });
+  if (!karyawan || !karyawan.statusAktif) return { error: "Karyawan tidak valid" };
+  const tetap = Number(fd.get("tunjanganTetap") || 0);
+  const tunjanganTotal = tetap + v.data.tunjangan;
+  const gajiBersih = v.data.gajiPokok + tunjanganTotal - v.data.potongan;
+  if (gajiBersih < 0) return { error: "Potongan melebihi gaji (gaji bersih negatif)" };
+  try {
+    await prisma.slipGaji.create({
+      data: {
+        userId: v.data.userId, tahun: v.data.tahun, bulan: v.data.bulan,
+        gajiPokok: v.data.gajiPokok, tunjangan: tunjanganTotal,
+        potongan: v.data.potongan, gajiBersih, catatan: v.data.catatan ?? null,
+      },
+    });
+  } catch {
+    return { error: `Slip ${BULAN_NAMA[v.data.bulan - 1]} ${v.data.tahun} untuk ${karyawan.nama} sudah ada` };
+  }
+  const pesanSlip = `Slip ${BULAN_NAMA[v.data.bulan - 1]} ${v.data.tahun} diterbitkan. Gaji bersih: ${gajiBersih.toLocaleString("id-ID")}.`;
+  await notifApp(v.data.userId, "Slip gaji terbit", pesanSlip, undefined, "APP", "SLIP");
+  await kirimWebPush(v.data.userId, "Slip gaji terbit", pesanSlip);
+  redirect("/hr/slip-gaji");
+}
+
+export async function aksiBatalSlip(fd: FormData) {
+  const admin = await aktor();
+  if (admin.role !== "HR_ADMIN") redirect("/hr/slip-gaji");
+  const id = (fd.get("id") as string) || "";
+  const s = await prisma.slipGaji.findUnique({ where: { id } });
+  if (!s || s.status === "DIBATALKAN") redirect("/hr/slip-gaji");
+  await prisma.slipGaji.update({ where: { id }, data: { status: "DIBATALKAN" } });
+  await prisma.auditLog.create({ data: { aktorId: admin.id, aksi: "SLIP_DIBATALKAN", catatan: `${s.userId} ${s.bulan}/${s.tahun}` } });
+  await notifApp(s.userId, "Slip gaji dibatalkan HR", `Slip ${BULAN_NAMA[s.bulan - 1]} ${s.tahun} dibatalkan. Hubungi HR bila ini tidak sesuai.`, undefined, "APP", "SLIP");
+  await kirimWebPush(s.userId, "Slip gaji dibatalkan HR", `Slip ${BULAN_NAMA[s.bulan - 1]} ${s.tahun} dibatalkan. Hubungi HR bila ini tidak sesuai.`);
+  redirect("/hr/slip-gaji");
+}
+
+export async function aksiSimpanGajiPokok(_: unknown, fd: FormData) {
+  const admin = await aktor();
+  if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
+  const id = (fd.get("id") as string) || "";
+  const pokok = Number(fd.get("gajiPokok") || 0);
+  const tetap = Number(fd.get("tunjanganTetap") || 0);
+  if (!Number.isInteger(pokok) || pokok < 0) return { error: "Gaji pokok tidak valid" };
+  if (!Number.isInteger(tetap) || tetap < 0) return { error: "Tunjangan tetap tidak valid" };
+  await prisma.user.update({ where: { id }, data: { gajiPokok: pokok, tunjanganTetap: tetap } });
+  redirect("/hr/karyawan");
+}
+
+export async function aksiBuatLaporan(_: unknown, fd: FormData) {
+  const user = await aktor();
+  if (user.role === "HR_ADMIN" || (await isAtasan(user.id))) return { error: "Hanya karyawan (bukan atasan/HR) yang bisa membuat laporan" };
+  const v = laporanSchema.safeParse({
+    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"),
+    shift: fd.get("shift"), judul: fd.get("judul"),
+    isi: fd.get("isi"), approverId: fd.get("approverId"),
+  });
+  if (!v.success) return { error: v.error.issues[0].message };
+  const approverId = v.data.approverId || null;
+  if (approverId) {
+    const a = await prisma.user.findUnique({ where: { id: approverId } });
+    if (!a || !a.statusAktif) return { error: "Approver tidak valid" };
+    if (a.role === "HR_ADMIN") return { error: "Laporan lapangan tidak dapat di-approve HR" };
+    if (!(await isAtasan(approverId))) return { error: "Approver laporan wajib atasan" };
+  }
+  const lampiranResult = await unggahFoto(fd, "laporan");
+  if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
+  const l = await prisma.laporanLapangan.create({
+    data: {
+      pembuatId: user.id, approverId, tglLaporan: new Date(v.data.tglLaporan + "T12:00:00"),
+      lokasi: v.data.lokasi, shift: v.data.shift ?? null, judul: v.data.judul,
+      isi: v.data.isi, lampiranPath: lampiranResult ?? null, status: "DRAFT",
+    },
+  });
+  redirect(`/laporan/${l.id}`);
+}
+
+export async function aksiKirimLaporan(fd: FormData): Promise<void> {
+  const user = await aktor();
+  const id = (fd.get("id") as string) || "";
+  const l = await prisma.laporanLapangan.findUnique({ where: { id } });
+  if (!l || l.pembuatId !== user.id) throw new Error("Laporan tidak ditemukan");
+  if (l.status !== "DRAFT") throw new Error("Hanya draf yang bisa dikirim");
+  if (!l.approverId) throw new Error("Approver wajib dipilih");
+  await prisma.laporanLapangan.update({ where: { id }, data: { status: "MENUNGGU" } });
+  await prisma.auditLog.create({ data: { laporanId: id, aktorId: user.id, aksi: "DIKIRIM", keStatus: "MENUNGGU" } });
+  await notifApp(l.approverId!, "Laporan lapangan menunggu Anda", `${user.nama} mengirim laporan "${l.judul}" untuk di-acc.`, id, "APP", "LAPORAN");
+  await kirimWebPush(l.approverId!, "Laporan lapangan menunggu Anda", `${user.nama} mengirim laporan "${l.judul}" untuk di-acc.`);
+  redirect(`/laporan/${id}`);
+}
+
+export async function aksiPutusanLaporan(_: unknown, fd: FormData) {
+  const user = await aktor();
+  const v = putusanLaporanSchema.safeParse({ laporanId: fd.get("laporanId"), aksi: fd.get("aksi"), catatan: fd.get("catatan") });
+  if (!v.success) return { error: v.error.issues[0].message };
+  const l = await prisma.laporanLapangan.findUnique({ where: { id: v.data.laporanId }, include: { pembuat: true } });
+  if (!l) return { error: "Laporan tidak ditemukan" };
+  if (l.approverId !== user.id) return { error: "Anda bukan approver laporan ini" };
+  if (l.status !== "MENUNGGU") return { error: "Laporan tidak dalam status menunggu" };
+  const catatan = (v.data.catatan || "").trim();
+  if ((v.data.aksi === "tolak" || v.data.aksi === "kembalikan") && !catatan) return { error: "Catatan wajib diisi" };
+  let statusBaru = "";
+  let aksiLog = "";
+  if (v.data.aksi === "setuju") { statusBaru = "DISETUJUI"; aksiLog = "DISETUJUI"; }
+  else if (v.data.aksi === "tolak") { statusBaru = "DITOLAK"; aksiLog = "DITOLAK"; }
+  else { statusBaru = "DIKEMBALIKAN"; aksiLog = "DIKEMBALIKAN"; }
+  await prisma.laporanLapangan.update({ where: { id: l.id }, data: { status: statusBaru, catatanApprover: catatan || null } });
+  await prisma.auditLog.create({ data: { laporanId: l.id, aktorId: user.id, aksi: aksiLog, dariStatus: l.status, keStatus: statusBaru, catatan: catatan || null } });
+  await notifApp(l.pembuatId, `Laporan Anda: ${statusBaru}`, `Laporan "${l.judul}" berstatus ${statusBaru}.${catatan ? " Catatan: " + catatan : ""}`, l.id, "APP", "LAPORAN");
+  await kirimWebPush(l.pembuatId, `Laporan Anda: ${statusBaru}`, `Laporan "${l.judul}" berstatus ${statusBaru}.${catatan ? " Catatan: " + catatan : ""}`);
+  redirect(`/laporan/${l.id}`);
+}
+
+export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
+  const user = await aktor();
+  if (user.role === "HR_ADMIN" || (await isAtasan(user.id))) return { error: "Hanya karyawan (bukan atasan/HR) yang bisa merevisi laporan" };
+  const id = (fd.get("id") as string) || "";
+  const l = await prisma.laporanLapangan.findUnique({ where: { id } });
+  if (!l || l.pembuatId !== user.id) return { error: "Laporan tidak ditemukan" };
+  if (!["DITOLAK", "DIKEMBALIKAN"].includes(l.status)) return { error: "Hanya laporan ditolak/dikembalikan yang bisa direvisi" };
+  const v = laporanSchema.safeParse({
+    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"),
+    shift: fd.get("shift"), judul: fd.get("judul"),
+    isi: fd.get("isi"), approverId: fd.get("approverId"),
+  });
+  if (!v.success) return { error: v.error.issues[0].message };
+  const approverId = v.data.approverId || null;
+  if (!approverId) return { error: "Approver wajib dipilih" };
+  const a = await prisma.user.findUnique({ where: { id: approverId } });
+  if (!a || !a.statusAktif) return { error: "Approver tidak valid" };
+  if (a.role === "HR_ADMIN") return { error: "Laporan lapangan tidak dapat di-approve HR" };
+  if (!(await isAtasan(approverId))) return { error: "Approver laporan wajib atasan" };
+  const lampiranResult = await unggahFoto(fd, "laporan");
+  if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
+  await prisma.laporanLapangan.update({
+    where: { id }, data: {
+      tglLaporan: new Date(v.data.tglLaporan + "T12:00:00"), lokasi: v.data.lokasi, shift: v.data.shift ?? null,
+      judul: v.data.judul, isi: v.data.isi, approverId, lampiranPath: lampiranResult ?? l.lampiranPath,
+      status: "MENUNGGU", catatanApprover: null,
+    },
+  });
+  await prisma.auditLog.create({ data: { laporanId: id, aktorId: user.id, aksi: "DIREVISI", dariStatus: l.status, keStatus: "MENUNGGU" } });
+  const pesan = `${user.nama} telah merevisi laporan "${v.data.judul}" dan mengirim ulang untuk di-acc.`;
+  await notifApp(approverId, "Laporan lapangan direvisi", pesan, id, "APP", "LAPORAN");
+  await kirimWebPush(approverId, "Laporan lapangan direvisi", pesan);
+  redirect(`/laporan/${id}`);
+}
+
+export async function aksiBatalLaporan(fd: FormData) {
+  const user = await aktor();
+  const id = (fd.get("id") as string) || "";
+  const l = await prisma.laporanLapangan.findUnique({ where: { id } });
+  if (!l || l.pembuatId !== user.id) redirect("/laporan");
+  if (!["DRAFT", "DITOLAK", "DIKEMBALIKAN"].includes(l.status)) redirect(`/laporan/${id}`);
+  await prisma.laporanLapangan.update({ where: { id }, data: { status: "DIBATALKAN" } });
+  await prisma.auditLog.create({ data: { laporanId: id, aktorId: user.id, aksi: "DIBATALKAN", keStatus: "DIBATALKAN" } });
+  redirect("/laporan");
 }

@@ -26,7 +26,8 @@ export default async function HRHome() {
   const totalUser = await prisma.user.count();
   const cards = [
     { href: "/hr/pengajuan", label: `Semua Pengajuan (${menunggu.length} tertunda)` },
-    { href: "/hr/laporan", label: "Rekap & Ekspor" },
+    { href: "/hr/slip-gaji", label: `Slip Gaji (${totalUser} karyawan)` },
+    { href: "/hr/laporan", label: "Rekap Pengajuan" },
     { href: "/hr/karyawan", label: `Karyawan (${totalUser})` },
     { href: "/hr/jenis", label: "Jenis Cuti" },
     { href: "/hr/libur", label: "Hari Libur" },

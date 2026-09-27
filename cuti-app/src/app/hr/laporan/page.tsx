@@ -6,7 +6,7 @@ export default async function LaporanPage() {
   const user = await wajibHR();
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={true}>
-      <h1 className="text-lg font-bold">Rekap & Ekspor Laporan</h1>
+      <h1 className="text-lg font-bold">Rekap &amp; Ekspor Pengajuan Cuti</h1>
       <form method="get" action="/api/laporan" className="space-y-3 rounded-xl border bg-white p-4">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Dari"><input name="dari" type="date" className={inputCls} /></Field>

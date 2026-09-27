@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { aksiKeluar } from "@/app/actions";
+import { NotificationPermission } from "@/components/NotificationPermission";
 
 export function Shell({ nama, role, isAtasan, children }: { nama: string; role: string; isAtasan: boolean; children: React.ReactNode }) {
   return (
@@ -16,6 +17,9 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
           <button className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold">Keluar</button>
         </form>
       </header>
+      <div className="mb-4">
+        <NotificationPermission />
+      </div>
       <div className="hidden gap-6 md:flex">
         <nav className="w-52 shrink-0 space-y-1">
           <NavLinks role={role} isAtasan={isAtasan} />
@@ -34,9 +38,12 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
 
 function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean; mobile?: boolean }) {
   const items = [
-    { href: "/", label: "Beranda" },
+{ href: "/", label: "Beranda" },
     { href: "/cuti/baru", label: "Ajukan" },
-    ...(isAtasan || role === "HR_ADMIN" ? [{ href: "/persetujuan", label: "Setujui" }, { href: "/kalender", label: "Kalender" }, { href: "/delegasi", label: "Delegasi" }] : []),
+    { href: "/slip-gaji", label: "Slip Gaji" },
+    ...(role !== "HR_ADMIN" && !isAtasan ? [{ href: "/laporan", label: "Laporan" }] : []),
+      ...(isAtasan && role !== "HR_ADMIN" ? [{ href: "/persetujuan", label: "Setujui" }, { href: "/kalender", label: "Kalender" }, { href: "/delegasi", label: "Delegasi" }] : []),
+      ...(role === "HR_ADMIN" ? [{ href: "/delegasi", label: "Delegasi" }] : []),
     { href: "/notifikasi", label: "Notifikasi" },
     ...(role === "HR_ADMIN" ? [{ href: "/hr", label: "HR" }] : [{ href: "/riwayat", label: "Riwayat" }]),
     { href: "/profil", label: "Profil" },

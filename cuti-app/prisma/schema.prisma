@@ -29,7 +29,53 @@ model User {
   delegasiDari Delegasi[] @relation("DelegasiDari")
   delegasiKe   Delegasi[] @relation("DelegasiKe")
   sesi         Sesi[]
-  notifikasi   Notifikasi[]
+   notifikasi   Notifikasi[]
+   gajiPokok    Int?
+   tunjanganTetap Int?
+   slipGaji     SlipGaji[]
+   laporanOwn   LaporanLapangan[] @relation("LaporanPembuat")
+   laporanApprovals LaporanLapangan[] @relation("LaporanApprover")
+   pushSubs     PushSubscription[]
+}
+
+model SlipGaji {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tahun       Int
+  bulan       Int
+  gajiPokok   Int
+  tunjangan   Int      @default(0)
+  potongan    Int      @default(0)
+  gajiBersih  Int
+  catatan     String?
+  status      String   @default("TERBIT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([userId, tahun, bulan])
+  @@index([tahun, bulan])
+}
+
+model LaporanLapangan {
+  id             String   @id @default(cuid())
+  pembuatId      String
+  pembuat        User     @relation("LaporanPembuat", fields: [pembuatId], references: [id], onDelete: Cascade)
+  approverId     String?
+  approver       User?    @relation("LaporanApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  tglLaporan     DateTime
+  lokasi         String
+  shift          String?
+  judul          String
+  isi            String
+  lampiranPath   String?
+  status         String   @default("DRAFT")
+  catatanApprover String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  riwayat        AuditLog[]
+  notifikasi     Notifikasi[]
+  @@index([approverId, status])
+  @@index([pembuatId, createdAt])
 }
 
 model JenisCuti {
@@ -107,6 +153,8 @@ model AuditLog {
   id          String     @id @default(cuid())
   pengajuanId String?
   pengajuan   Pengajuan? @relation(fields: [pengajuanId], references: [id], onDelete: SetNull)
+  laporanId   String?
+  laporan     LaporanLapangan? @relation(fields: [laporanId], references: [id], onDelete: SetNull)
   aktorId     String?
   aktor       User?      @relation(fields: [aktorId], references: [id], onDelete: SetNull)
   aksi        String
@@ -129,11 +177,27 @@ model Notifikasi {
   id          String     @id @default(cuid())
   userId      String
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pengajuanId String?
-  pengajuan   Pengajuan? @relation(fields: [pengajuanId], references: [id], onDelete: SetNull)
-  kanal       String     @default("APP")
-  judul       String
-  pesan       String
-  dibaca      Boolean    @default(false)
-  createdAt   DateTime   @default(now())
+  pengajuanId       String?
+  pengajuan         Pengajuan?       @relation(fields: [pengajuanId], references: [id], onDelete: SetNull)
+  laporanId         String?
+  laporan           LaporanLapangan? @relation(fields: [laporanId], references: [id], onDelete: SetNull)
+  tipe          String   @default("CUTI")
+   kanal             String            @default("APP")
+   judul       String
+   pesan       String
+   dibaca      Boolean    @default(false)
+   createdAt   DateTime   @default(now())
 }
+
+model PushSubscription {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String   @unique
+  p256dh        String
+  auth          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([userId, endpoint])
+}
+

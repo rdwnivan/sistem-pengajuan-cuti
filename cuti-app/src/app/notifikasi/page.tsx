@@ -27,6 +27,7 @@ export default async function NotifikasiPage() {
               <span>{fmtTgl(n.createdAt)} {String(n.createdAt.getHours()).padStart(2, "0")}:{String(n.createdAt.getMinutes()).padStart(2, "0")}</span>
               <span className="flex gap-2">
                 {n.pengajuanId && <Link href={`/cuti/${n.pengajuanId}`} className="font-semibold text-emerald-700">Lihat</Link>}
+                {n.laporanId && <Link href={`/laporan/${n.laporanId}`} className="font-semibold text-amber-700">Lihat</Link>}
                 {!n.dibaca && (
                   <form action={aksiBacaNotif}><input type="hidden" name="id" value={n.id} /><button className="font-semibold text-blue-700">Tandai dibaca</button></form>
                 )}

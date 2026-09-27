@@ -4,6 +4,11 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Safety guard: jangan jalan di production
+  if (process.env.NODE_ENV === "production" && !process.env.SEED_FORCE) {
+    console.log("⚠️  Seed diblokir di production. Set SEED_FORCE=true untuk paksa.");
+    return;
+  }
   await prisma.auditLog.deleteMany();
   await prisma.kuota.deleteMany();
   await prisma.pengajuan.deleteMany();
