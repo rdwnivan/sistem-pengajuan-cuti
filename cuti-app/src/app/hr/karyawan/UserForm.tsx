@@ -3,14 +3,20 @@ import { useFormState } from "react-dom";
 import { aksiSimpanUser } from "@/app/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 
-export function UserForm({ initial, atasans, id }: {
+export function UserForm({ initial, atasans, id, gajiPending }: {
   id?: string;
   initial?: { nama: string; email: string; jabatan?: string | null; noHp?: string | null; tglMasuk: string; role: string; atasanId?: string | null; statusAktif: boolean; gajiPokok?: number; tunjanganTetap?: number };
   atasans: { id: string; nama: string }[];
+  gajiPending?: boolean;
 }) {
   const [state, action] = useFormState(aksiSimpanUser, { error: "" } as { error?: string });
   return (
     <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
+      {gajiPending && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          Perubahan gaji menunggu persetujuan atasan. Cek di /persetujuan atau panel HR.
+        </div>
+      )}
       <input type="hidden" name="id" value={id ?? ""} />
       <Field label="Nama"><input name="nama" required defaultValue={initial?.nama} className={inputCls} /></Field>
       <Field label="Email"><input name="email" type="email" required defaultValue={initial?.email} className={inputCls} /></Field>

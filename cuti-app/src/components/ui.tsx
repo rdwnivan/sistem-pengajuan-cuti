@@ -1,7 +1,7 @@
-import { LABEL_STATUS, LABEL_STATUS_LAPORAN, LABEL_STATUS_SLIP } from "@/lib/cuti";
+import { LABEL_STATUS, LABEL_STATUS_LAPORAN, LABEL_STATUS_SLIP, LABEL_STATUS_GAJI } from "@/lib/cuti";
 
 export function Badge({ status }: { status: string }) {
-  const s = LABEL_STATUS[status] ?? LABEL_STATUS_SLIP[status] ?? LABEL_STATUS_LAPORAN[status] ?? { label: status, cls: "bg-zinc-100 text-zinc-700 border-zinc-300" };
+  const s = LABEL_STATUS[status] ?? LABEL_STATUS_SLIP[status] ?? LABEL_STATUS_LAPORAN[status] ?? LABEL_STATUS_GAJI[status] ?? { label: status, cls: "bg-zinc-100 text-zinc-700 border-zinc-300" };
   return <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>{s.label}</span>;
 }
 

@@ -24,6 +24,7 @@ export default async function HRHome() {
     return sisa >= 0 && sisa <= 3;
   });
   const totalUser = await prisma.user.count();
+  const gajiPending = await prisma.gajiPerubahan.count({ where: { status: "MENUNGGU" } });
   const cards = [
     { href: "/hr/pengajuan", label: `Semua Pengajuan (${menunggu.length} tertunda)` },
     { href: "/hr/slip-gaji", label: `Slip Gaji (${totalUser} karyawan)` },
@@ -32,6 +33,7 @@ export default async function HRHome() {
     { href: "/hr/jenis", label: "Jenis Cuti" },
     { href: "/hr/libur", label: "Hari Libur" },
     { href: "/kalender", label: "Kalender Cuti" },
+    { href: "/persetujuan", label: `Perubahan Gaji Menunggu (${gajiPending})` },
   ];
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={true}>

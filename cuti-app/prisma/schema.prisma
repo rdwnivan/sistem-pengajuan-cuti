@@ -35,7 +35,35 @@ model User {
    slipGaji     SlipGaji[]
    laporanOwn   LaporanLapangan[] @relation("LaporanPembuat")
    laporanApprovals LaporanLapangan[] @relation("LaporanApprover")
-   pushSubs     PushSubscription[]
+    pushSubs     PushSubscription[]
+    gajiPerubahanTarget   GajiPerubahan[] @relation("GajiPerubahanTarget")
+    gajiPerubahanPengaju  GajiPerubahan[] @relation("GajiPerubahanPengaju")
+    gajiPerubahanApprover GajiPerubahan[] @relation("GajiPerubahanApprover")
+    gajiPerubahanPemutus  GajiPerubahan[] @relation("GajiPerubahanPemutus")
+  }
+
+model GajiPerubahan {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation("GajiPerubahanTarget", fields: [userId], references: [id], onDelete: Cascade)
+  gajiPokokLama      Int      @default(0)
+  tunjanganTetapLama Int      @default(0)
+  gajiPokokBaru      Int
+  tunjanganTetapBaru Int
+  alasan             String
+  status             String   @default("MENUNGGU")
+  pengajuId          String
+  pengaju            User     @relation("GajiPerubahanPengaju", fields: [pengajuId], references: [id], onDelete: Restrict)
+  approverId         String
+  approver           User     @relation("GajiPerubahanApprover", fields: [approverId], references: [id], onDelete: Restrict)
+  diputuskanOlehId   String?
+  diputuskanOleh     User?    @relation("GajiPerubahanPemutus", fields: [diputuskanOlehId], references: [id], onDelete: SetNull)
+  catatan            String?
+  decidedAt          DateTime?
+  createdAt          DateTime @default(now())
+  @@index([status])
+  @@index([approverId, status])
+  @@index([userId, createdAt])
 }
 
 model SlipGaji {

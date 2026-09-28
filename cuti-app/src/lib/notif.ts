@@ -45,7 +45,7 @@ export async function kirimWA(noHp: string | null | undefined, pesan: string) {
   return adapter().kirim(norm, pesan);
 }
 
-export async function notifApp(userId: string, judul: string, pesan: string, refId?: string, kanal = "APP", tipe: "CUTI" | "LAPORAN" | "SLIP" = "CUTI") {
+export async function notifApp(userId: string, judul: string, pesan: string, refId?: string, kanal = "APP", tipe: "CUTI" | "LAPORAN" | "SLIP" | "GAJI" = "CUTI") {
   await prisma.notifikasi.create({
     data: {
       userId, judul, pesan, kanal, tipe,

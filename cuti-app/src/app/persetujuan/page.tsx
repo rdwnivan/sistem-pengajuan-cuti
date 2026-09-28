@@ -4,6 +4,7 @@ import { isAtasan, wajibLogin } from "@/lib/auth";
 import { Badge } from "@/components/ui";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
+import { GajiPerubahanCard } from "./GajiPerubahanCard";
 
 export default async function Persetujuan() {
   const user = await wajibLogin();
@@ -49,13 +50,30 @@ export default async function Persetujuan() {
     list = list.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
   }
 
-  const total = list.length + laporanList.length;
+  const gajiList = await prisma.gajiPerubahan.findMany({
+    where: { approverId: user.id, status: "MENUNGGU" },
+    include: { user: true, pengaju: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const total = list.length + laporanList.length + gajiList.length;
 
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={atasan}>
       <h1 className="text-lg font-bold">
         Persetujuan <span className="text-sm font-semibold text-zinc-500">({total} menunggu)</span>
       </h1>
+
+      {gajiList.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-bold text-zinc-600">
+            Perubahan Gaji <span className="font-semibold text-zinc-400">({gajiList.length})</span>
+          </h2>
+          {gajiList.map((g) => (
+            <GajiPerubahanCard key={g.id} g={g} />
+          ))}
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold text-zinc-600">

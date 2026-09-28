@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function NotificationPermission() {
-  const [status, setStatus] = useState<Status>("default");
+  const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,6 +60,7 @@ export function NotificationPermission() {
     }
   }
 
+  if (status === null) return null;
   if (status === "unsupported") return null;
   if (status === "granted") return null;
 

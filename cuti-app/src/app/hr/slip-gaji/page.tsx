@@ -8,12 +8,17 @@ import { SlipForm } from "./SlipForm";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-export default async function HRSlipGaji({ searchParams }: { searchParams: { tahun?: string; bulan?: string; buat?: string } }) {
+export default async function HRSlipGaji({ searchParams }: { searchParams: { tahun?: string; bulan?: string; buat?: string; akun?: string } }) {
   const user = await wajibHR();
   const tahun = Number(searchParams.tahun) || new Date().getFullYear();
   const bulan = searchParams.bulan ? Number(searchParams.bulan) : null;
+  const akun = searchParams.akun || null;
+  const listWhere: { tahun: number; bulan?: number; userId?: string } = { tahun };
+  if (bulan) listWhere.bulan = bulan;
+  if (akun) listWhere.userId = akun;
+
   const list = await prisma.slipGaji.findMany({
-    where: { tahun, ...(bulan ? { bulan } : {}) },
+    where: listWhere,
     include: { user: true },
     orderBy: [{ bulan: "desc" }, { user: { nama: "asc" } }],
   });
@@ -30,6 +35,12 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
       </div>
 
       <form method="get" className="flex flex-wrap items-end gap-2 rounded-xl border bg-white p-3">
+        <label className="text-sm font-semibold">Karyawan
+          <select name="akun" defaultValue={akun ?? ""} className="ml-1 rounded-lg border px-2 py-1.5">
+            <option value="">Semua</option>
+            {karyawan.map((k) => <option key={k.id} value={k.id}>{k.nama}</option>)}
+          </select>
+        </label>
         <label className="text-sm font-semibold">Tahun
           <input name="tahun" type="number" min="2020" max="2099" defaultValue={tahun} className="ml-1 w-24 rounded-lg border px-2 py-1.5" />
         </label>
@@ -40,6 +51,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
           </select>
         </label>
         <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-bold text-white">Filter</button>
+        {(akun || bulan) && <Link href={`/hr/slip-gaji?tahun=${tahun}`} className="rounded-lg border px-3 py-1.5 text-sm font-bold text-zinc-700">Reset</Link>}
         <Link href="/hr/slip-gaji?buat=1" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-bold text-white">+ Terbitkan</Link>
         <span className="ml-auto text-sm font-bold text-emerald-800">Total: Rp {total.toLocaleString("id-ID")}</span>
       </form>
@@ -47,7 +59,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
       {searchParams.buat && <SlipForm karyawan={karyawan} />}
 
       <div className="space-y-2">
-        {list.length === 0 && <p className="rounded-xl border bg-white p-4 text-sm text-zinc-500">Belum ada slip untuk periode ini.</p>}
+        {list.length === 0 && <p className="rounded-xl border bg-white p-4 text-sm text-zinc-500">Belum ada slip untuk filter ini.</p>}
         {list.map((s) => (
           <div key={s.id} className="rounded-xl border bg-white p-3 text-sm">
             <div className="flex items-start justify-between gap-2">

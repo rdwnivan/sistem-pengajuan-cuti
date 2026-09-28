@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { wajibLogin, isAtasan } from "@/lib/auth";
@@ -16,6 +17,7 @@ export default async function LaporanBaruPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-2xl px-3 pb-10 pt-4">
+      <Link href="/laporan" className="mb-3 inline-block text-sm font-semibold text-emerald-700 hover:underline">← Kembali</Link>
       <h1 className="mb-4 text-lg font-bold">{searchParams.edit ? "Revisi Laporan" : "Laporan Baru"}</h1>
       <LaporanForm editId={searchParams.edit} initial={initial} />
     </div>

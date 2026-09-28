@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from "@playwright/test";
 
 export const AKUN = {
+  pimpinan: { email: "pimpinan@anime.id", password: "anime123" },
   hr: { email: "hr@anime.id", password: "anime123" },
   atasan: { email: "atasan1@anime.id", password: "anime123" },
   karyawan: { email: "karyawan1@anime.id", password: "anime123" },

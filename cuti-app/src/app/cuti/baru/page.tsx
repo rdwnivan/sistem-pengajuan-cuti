@@ -1,5 +1,6 @@
 "use client";
 import { useFormState } from "react-dom";
+import { useRouter } from "next/navigation";
 import { aksiAjukan } from "@/app/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 
@@ -9,8 +10,10 @@ export default function BaruPage({ searchParams }: { searchParams: { jenis?: str
 
 function Form({ jenisAwal }: { jenisAwal?: string }) {
   const [state, action] = useFormState(aksiAjukan, { error: "" } as { error?: string });
+  const router = useRouter();
   return (
     <div className="mx-auto max-w-3xl px-3 pb-10 pt-4">
+      <button onClick={() => router.back()} className="mb-3 text-sm font-semibold text-emerald-700 hover:underline">← Kembali</button>
       <h1 className="mb-3 text-lg font-bold">Form Ajukan Cuti</h1>
       <JenisLoader jenisAwal={jenisAwal} state={state} action={action} />
     </div>

@@ -58,6 +58,19 @@ export const putusanLaporanSchema = z.object({
   catatan: z.preprocess((v) => (v == null ? undefined : v), z.string().max(1000).optional()),
 });
 
+export const gajiPerubahanSchema = z.object({
+  userId: z.string().min(1, "Karyawan wajib dipilih"),
+  gajiPokokBaru: z.coerce.number().int().min(0).max(999999999),
+  tunjanganTetapBaru: z.coerce.number().int().min(0).max(999999999),
+  alasan: z.string().min(10, "Alasan perubahan minimal 10 karakter").max(500),
+});
+
+export const putusanGajiSchema = z.object({
+  gajiPerubahanId: z.string().min(1),
+  aksi: z.enum(["setuju", "tolak", "kembalikan"]),
+  catatan: z.preprocess((v) => (v == null ? undefined : v), z.string().max(500).optional()),
+});
+
 export const jenisSchema = z.object({
   nama: z.string().min(3),
   kuota: z.coerce.number().int().min(0).max(365),

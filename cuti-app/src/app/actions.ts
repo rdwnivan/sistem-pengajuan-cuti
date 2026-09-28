@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema } from "@/lib/validasi";
+import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema, putusanGajiSchema, gajiPerubahanSchema } from "@/lib/validasi";
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
@@ -220,6 +220,44 @@ export async function aksiBatal(fd: FormData): Promise<void> {
   redirect("/");
 }
 
+async function ajukanPerubahanGaji(params: {
+  userId: string;
+  pengajuId: string;
+  gajiPokokBaru: number;
+  tunjanganTetapBaru: number;
+  alasan: string;
+}): Promise<{ error?: string }> {
+  const db = await prisma.user.findUnique({ where: { id: params.userId } });
+  if (!db) return { error: "Karyawan tidak valid" };
+  const gajiPokokLama = db.gajiPokok ?? 0;
+  const tunjanganTetapLama = db.tunjanganTetap ?? 0;
+  if (gajiPokokLama === params.gajiPokokBaru && tunjanganTetapLama === params.tunjanganTetapBaru)
+    return { error: "Nilai gaji baru sama dengan gaji saat ini" };
+  const approverId = db.atasanId;
+  if (!approverId) return { error: "Atasan karyawan belum diset, tidak bisa mengajukan perubahan gaji" };
+  const pending = await prisma.gajiPerubahan.findFirst({ where: { userId: params.userId, status: "MENUNGGU" } });
+  if (pending) return { error: "Sudah ada permintaan perubahan gaji yang menunggu persetujuan" };
+  await prisma.gajiPerubahan.create({
+    data: {
+      userId: params.userId,
+      gajiPokokLama,
+      tunjanganTetapLama,
+      gajiPokokBaru: params.gajiPokokBaru,
+      tunjanganTetapBaru: params.tunjanganTetapBaru,
+      alasan: params.alasan,
+      pengajuId: params.pengajuId,
+      approverId,
+    },
+  });
+  await prisma.auditLog.create({
+    data: { aktorId: params.pengajuId, aksi: "GAJI_PERUBAHAN_DIAJUKAN", catatan: `${params.userId}: gajiPokok ${gajiPokokLama}→${params.gajiPokokBaru}, tunjanganTetap ${tunjanganTetapLama}→${params.tunjanganTetapBaru}` },
+  });
+  const pesan = `Perubahan gaji ${db.nama}: pokok ${gajiPokokLama.toLocaleString("id-ID")}→${params.gajiPokokBaru.toLocaleString("id-ID")}, tetap ${tunjanganTetapLama.toLocaleString("id-ID")}→${params.tunjanganTetapBaru.toLocaleString("id-ID")}.`;
+  await notifApp(approverId, "Permintaan perubahan gaji", pesan, undefined, "APP", "GAJI");
+  await kirimWebPush(approverId, "Permintaan perubahan gaji", pesan);
+  return {};
+}
+
 export async function aksiSimpanUser(_: unknown, fd: FormData) {
   const admin = await aktor();
   if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
@@ -238,14 +276,25 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
     nama: v.data.nama.trim(), email, jabatan: v.data.jabatan ?? null, noHp: v.data.noHp ?? null,
     tglMasuk: parseTglInput(v.data.tglMasuk), role: v.data.role, atasanId,
     statusAktif: fd.get("statusAktif") === "on",
-    gajiPokok: v.data.gajiPokok, tunjanganTetap: v.data.tunjanganTetap,
   };
   if (v.data.password) data.passwordHash = await hashPassword(v.data.password);
   try {
-    if (id) await prisma.user.update({ where: { id }, data });
-    else {
+    if (id) {
+      const existing = await prisma.user.findUnique({ where: { id } });
+      if (!existing) return { error: "Karyawan tidak valid" };
+      const gajiChanged = (existing.gajiPokok ?? 0) !== v.data.gajiPokok || (existing.tunjanganTetap ?? 0) !== v.data.tunjanganTetap;
+      if (gajiChanged) {
+        const res = await ajukanPerubahanGaji({
+          userId: id, pengajuId: admin.id,
+          gajiPokokBaru: v.data.gajiPokok, tunjanganTetapBaru: v.data.tunjanganTetap,
+          alasan: "Perubahan gaji oleh HR",
+        });
+        if (res.error) return res;
+      }
+      await prisma.user.update({ where: { id }, data });
+    } else {
       if (!v.data.password) return { error: "Password wajib untuk akun baru" };
-      await prisma.user.create({ data: { ...data, passwordHash: data.passwordHash as string } as Parameters<typeof prisma.user.create>[0]["data"] });
+      await prisma.user.create({ data: { ...data, gajiPokok: v.data.gajiPokok, tunjanganTetap: v.data.tunjanganTetap, passwordHash: data.passwordHash as string } as Parameters<typeof prisma.user.create>[0]["data"] });
     }
   } catch {
     return { error: "Email sudah dipakai" };
@@ -442,8 +491,49 @@ export async function aksiSimpanGajiPokok(_: unknown, fd: FormData) {
   const tetap = Number(fd.get("tunjanganTetap") || 0);
   if (!Number.isInteger(pokok) || pokok < 0) return { error: "Gaji pokok tidak valid" };
   if (!Number.isInteger(tetap) || tetap < 0) return { error: "Tunjangan tetap tidak valid" };
-  await prisma.user.update({ where: { id }, data: { gajiPokok: pokok, tunjanganTetap: tetap } });
+  const alasan = (fd.get("alasan") as string || "").trim();
+  const res = await ajukanPerubahanGaji({
+    userId: id, pengajuId: admin.id,
+    gajiPokokBaru: pokok, tunjanganTetapBaru: tetap,
+    alasan: alasan || "Perubahan gaji langsung oleh HR",
+  });
+  if (res.error) return res;
   redirect("/hr/karyawan");
+}
+
+export async function aksiPutusanPerubahanGaji(_: unknown, fd: FormData) {
+  const user = await aktor();
+  const v = putusanGajiSchema.safeParse({ gajiPerubahanId: fd.get("gajiPerubahanId"), aksi: fd.get("aksi"), catatan: fd.get("catatan") });
+  if (!v.success) return { error: v.error.issues[0].message };
+  const gp = await prisma.gajiPerubahan.findUnique({ where: { id: v.data.gajiPerubahanId }, include: { user: true, pengaju: true } });
+  if (!gp) return { error: "Permintaan tidak ditemukan" };
+  if (gp.approverId !== user.id) return { error: "Anda bukan approver permintaan ini" };
+  if (gp.status !== "MENUNGGU") return { error: "Permintaan sudah diproses" };
+  const catatan = (v.data.catatan || "").trim();
+  if ((v.data.aksi === "tolak" || v.data.aksi === "kembalikan") && !catatan)
+    return { error: "Alasan/catatan wajib diisi" };
+
+  if (v.data.aksi === "setuju") {
+    await prisma.user.update({ where: { id: gp.userId }, data: { gajiPokok: gp.gajiPokokBaru, tunjanganTetap: gp.tunjanganTetapBaru } });
+    await prisma.gajiPerubahan.update({ where: { id: gp.id }, data: { status: "DISETUJUI", diputuskanOlehId: user.id, decidedAt: new Date(), catatan: catatan || null } });
+    await prisma.auditLog.create({ data: { aktorId: user.id, aksi: "GAJI_PERUBAHAN_DISETUJUI", catatan: `${gp.userId}: pokok ${gp.gajiPokokLama}→${gp.gajiPokokBaru}, tetap ${gp.tunjanganTetapLama}→${gp.tunjanganTetapBaru}` } });
+    const pesan = `Perubahan gaji ${gp.user.nama} disetujui.`;
+    await notifApp(gp.pengajuId, "Perubahan gaji disetujui", pesan, undefined, "APP", "GAJI");
+    await kirimWebPush(gp.pengajuId, "Perubahan gaji disetujui", pesan);
+  } else if (v.data.aksi === "tolak") {
+    await prisma.gajiPerubahan.update({ where: { id: gp.id }, data: { status: "DITOLAK", diputuskanOlehId: user.id, decidedAt: new Date(), catatan } });
+    await prisma.auditLog.create({ data: { aktorId: user.id, aksi: "GAJI_PERUBAHAN_DITOLAK", catatan: `${gp.userId}: ditolak` } });
+    const pesan = `Perubahan gaji ${gp.user.nama} ditolak.${catatan ? " Alasan: " + catatan : ""}`;
+    await notifApp(gp.pengajuId, "Perubahan gaji ditolak", pesan, undefined, "APP", "GAJI");
+    await kirimWebPush(gp.pengajuId, "Perubahan gaji ditolak", pesan);
+  } else {
+    await prisma.gajiPerubahan.update({ where: { id: gp.id }, data: { status: "DIKEMBALIKAN", diputuskanOlehId: user.id, decidedAt: new Date(), catatan } });
+    await prisma.auditLog.create({ data: { aktorId: user.id, aksi: "GAJI_PERUBAHAN_DIKEMBALIKAN", catatan: `${gp.userId}: dikembalikan` } });
+    const pesan = `Perubahan gaji ${gp.user.nama} dikembalikan.${catatan ? " Catatan: " + catatan : ""}`;
+    await notifApp(gp.pengajuId, "Perubahan gaji dikembalikan", pesan, undefined, "APP", "GAJI");
+    await kirimWebPush(gp.pengajuId, "Perubahan gaji dikembalikan", pesan);
+  }
+  redirect("/persetujuan");
 }
 
 export async function aksiBuatLaporan(_: unknown, fd: FormData) {

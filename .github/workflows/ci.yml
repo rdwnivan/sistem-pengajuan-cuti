@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
 
+permissions: read-all
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -14,8 +16,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9afb73
+      - uses: actions/setup-node@60edb5dd545a462946e8059114246b68576755c2
         with:
           node-version: 20
           cache: npm
@@ -53,13 +55,12 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/cuti_test
-      SESSION_SECRET: ci-test-session-secret-at-least-32chars
       CRON_SECRET: ci-test-cron-secret-at-least-32-chars!!
       FONNTE_TOKEN: ""
       BLOB_READ_WRITE_TOKEN: ""
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9afb73
+      - uses: actions/setup-node@60edb5dd545a462946e8059114246b68576755c2
         with:
           node-version: 20
           cache: npm

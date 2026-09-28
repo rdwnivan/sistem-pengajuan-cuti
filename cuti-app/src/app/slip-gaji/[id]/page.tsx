@@ -5,6 +5,7 @@ import { wajibLogin } from "@/lib/auth";
 import { Badge } from "@/components/ui";
 import { Shell } from "@/components/shell";
 import { namaBulan } from "@/lib/pdf";
+import { MonthSelector } from "./MonthSelector";
 
 export default async function SlipDetail({ params }: { params: { id: string } }) {
   const user = await wajibLogin();
@@ -13,13 +14,10 @@ export default async function SlipDetail({ params }: { params: { id: string } })
   const allowed = s.userId === user.id || user.role === "HR_ADMIN";
   if (!allowed) notFound();
 
-  const prev = await prisma.slipGaji.findFirst({
-    where: { userId: s.userId, tahun: s.tahun, bulan: { lt: s.bulan }, status: "TERBIT" },
-    orderBy: { bulan: "desc" }, select: { id: true, bulan: true, tahun: true, gajiBersih: true },
-  });
-  const next = await prisma.slipGaji.findFirst({
-    where: { userId: s.userId, tahun: s.tahun, bulan: { gt: s.bulan }, status: "TERBIT" },
-    orderBy: { bulan: "asc" }, select: { id: true, bulan: true, tahun: true, gajiBersih: true },
+  const allSlips = await prisma.slipGaji.findMany({
+    where: { userId: s.userId, status: "TERBIT" },
+    orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
+    select: { id: true, bulan: true, tahun: true },
   });
 
   return (
@@ -46,9 +44,8 @@ export default async function SlipDetail({ params }: { params: { id: string } })
       </div>
       <div className="flex gap-2">
         <a href={`/api/slip/${s.id}`} className="flex-1 rounded-xl bg-emerald-700 py-3 text-center font-bold text-white">Download PDF</a>
-        {prev && <Link href={`/slip-gaji/${prev.id}`} className="rounded-xl border px-3 py-3 text-sm font-semibold">{namaBulan(prev.bulan)} {prev.tahun}</Link>}
-        {next && <Link href={`/slip-gaji/${next.id}`} className="rounded-xl border px-3 py-3 text-sm font-semibold">{namaBulan(next.bulan)} {next.tahun}</Link>}
       </div>
+      <MonthSelector slips={allSlips} currentId={s.id} />
     </div>
   );
 }

@@ -44,6 +44,14 @@ export const LABEL_STATUS_LAPORAN: Record<string, { label: string; cls: string }
   DIBATALKAN: { label: "Dibatalkan", cls: "bg-zinc-200 text-zinc-700 border-zinc-300" },
 };
 
+export const LABEL_STATUS_GAJI: Record<string, { label: string; cls: string }> = {
+  MENUNGGU: { label: "Menunggu Acc", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+  DISETUJUI: { label: "Disetujui", cls: "bg-green-100 text-green-800 border-green-400" },
+  DITOLAK: { label: "Ditolak", cls: "bg-red-100 text-red-800 border-red-300" },
+  DIKEMBALIKAN: { label: "Dikembalikan", cls: "bg-orange-100 text-orange-800 border-orange-300" },
+  DIBATALKAN: { label: "Dibatalkan", cls: "bg-zinc-200 text-zinc-700 border-zinc-300" },
+};
+
 export const LABEL_STATUS: Record<string, { label: string; cls: string }> = {
   MENUNGGU_ATASAN: { label: "Menunggu Atasan", cls: "bg-amber-100 text-amber-800 border-amber-300" },
   MENUNGGU_HR: { label: "Menunggu HR", cls: "bg-blue-100 text-blue-800 border-blue-300" },
