@@ -10,7 +10,7 @@ async function buatLaporan(page: Page, judul: string) {
   await page.getByLabel("Isi laporan").fill("Pekerjaan lapangan berjalan baik, tidak ada kendala berarti.");
   await page.getByLabel("Kirim ke atasan").selectOption({ label: "Atasan Satu (Manajer Operasional)" });
   await page.getByRole("button", { name: "Simpan Laporan" }).click();
-  await page.waitForURL(/\/laporan\/[^/]+$/);
+  await page.waitForURL(/\/laporan\/[a-z0-9]{20,}$/);
   return page.url();
 }
 
