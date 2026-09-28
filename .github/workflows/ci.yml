@@ -16,8 +16,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9afb73
-      - uses: actions/setup-node@60edb5dd545a462946e8059114246b68576755c2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
@@ -59,8 +59,8 @@ jobs:
       FONNTE_TOKEN: ""
       BLOB_READ_WRITE_TOKEN: ""
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9afb73
-      - uses: actions/setup-node@60edb5dd545a462946e8059114246b68576755c2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
