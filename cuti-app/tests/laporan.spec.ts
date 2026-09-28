@@ -8,7 +8,7 @@ async function buatLaporan(page: Page, judul: string) {
   await page.getByLabel("Shift").fill("Pagi");
   await page.getByLabel("Judul laporan").fill(judul);
   await page.getByLabel("Isi laporan").fill("Pekerjaan lapangan berjalan baik, tidak ada kendala berarti.");
-  await page.getByLabel("Kirim ke approver").selectOption({ label: "Atasan Satu (Manajer Operasional)" });
+  await page.getByLabel("Kirim ke atasan").selectOption({ label: "Atasan Satu (Manajer Operasional)" });
   await page.getByRole("button", { name: "Simpan Laporan" }).click();
   await page.waitForURL(/\/laporan\/[^/]+$/);
   return page.url();
@@ -44,20 +44,21 @@ test.describe("Laporan lapangan — buat dan kirim", () => {
 test.describe("Laporan lapangan — hak akses", () => {
   test("atasan melihat antrean laporan", async ({ page }) => {
     await login(page, "atasan");
-    await page.goto("/persetujuan?tipe=laporan");
-    await expect(page.getByRole("heading", { name: "Antrean Acc Laporan Lapangan" }).first()).toBeVisible();
+    await page.goto("/persetujuan");
+    await expect(page.getByRole("heading", { name: /Laporan Lapangan/ }).first()).toBeVisible();
   });
 
   test("karyawan biasa melihat antrean kosong", async ({ page }) => {
     await login(page, "karyawan");
-    await page.goto("/persetujuan?tipe=laporan");
+    await page.goto("/persetujuan");
+    await expect(page.getByText("Tidak ada antrean cuti").first()).toBeVisible();
     await expect(page.getByText("Tidak ada laporan menunggu").first()).toBeVisible();
   });
 
   test("HR melihat antrean kosong (tidak punya akses laporan) QTL", async ({ page }) => {
     await login(page, "hr");
-    await page.goto("/persetujuan?tipe=laporan");
-    await expect(page.getByText("Tidak ada laporan menunggu").first()).toBeVisible();
+    await page.goto("/persetujuan");
+    await expect(page.getByText("Tidak ada antrean cuti").first()).toBeVisible();
   });
 
   test("HR tidak punya menu Acc Laporan di navigasi", async ({ page }) => {
@@ -66,10 +67,10 @@ test.describe("Laporan lapangan — hak akses", () => {
     await expect(page.getByRole("link", { name: "Acc Laporan" })).toHaveCount(0);
   });
 
-  test("atasan punya menu Acc Laporan di navigasi", async ({ page }) => {
+  test("atasan punya menu Setujui di navigasi", async ({ page }) => {
     await login(page, "atasan");
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "Acc Laporan" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Setujui" }).first()).toBeVisible();
   });
 
   test("karyawan tidak bisa buka detail laporan orang lain", async ({ page }) => {
