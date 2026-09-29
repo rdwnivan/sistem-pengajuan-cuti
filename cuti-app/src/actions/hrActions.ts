@@ -17,7 +17,7 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
   if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
   const id = (fd.get("id") as string) || "";
   const v = userSchema.safeParse({
-    nama: fd.get("nama"), email: fd.get("email"), password: fd.get("password"),
+    nama: fd.get("nama"), email: fd.get("email"), nip: (fd.get("nip") as string || "").trim(), password: fd.get("password"),
     jabatan: fd.get("jabatan"), noHp: fd.get("noHp"), tglMasuk: fd.get("tglMasuk"),
     role: fd.get("role"), atasanId: fd.get("atasanId"), statusAktif: fd.get("statusAktif"),
     gajiPokok: fd.get("gajiPokok"), tunjanganTetap: fd.get("tunjanganTetap"),
@@ -26,8 +26,15 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
   const email = v.data.email.toLowerCase().trim();
   const atasanId = v.data.atasanId ?? null;
   if (id && atasanId === id) return { error: "Atasan tidak boleh diri sendiri" };
+  if (id) {
+    const nipDipakai = await prisma.user.findFirst({ where: { nip: v.data.nip, id: { not: id } }, select: { id: true } });
+    if (nipDipakai) return { error: "NIP sudah dipakai karyawan lain" };
+  } else {
+    const nipDipakai = await prisma.user.findFirst({ where: { nip: v.data.nip }, select: { id: true } });
+    if (nipDipakai) return { error: "NIP sudah dipakai karyawan lain" };
+  }
   const data: Record<string, unknown> = {
-    nama: v.data.nama.trim(), email, jabatan: v.data.jabatan ?? null, noHp: v.data.noHp ?? null,
+    nama: v.data.nama.trim(), email, nip: v.data.nip, jabatan: v.data.jabatan ?? null, noHp: v.data.noHp ?? null,
     tglMasuk: parseTglInput(v.data.tglMasuk), role: v.data.role, atasanId,
     statusAktif: fd.get("statusAktif") === "on",
   };
@@ -106,4 +113,30 @@ export async function aksiHapusLibur(fd: FormData) {
   const id = (fd.get("id") as string) || "";
   await prisma.hariLibur.delete({ where: { id } });
   redirect("/hr/libur");
+}
+
+
+export async function aksiSimpanBlok(_: unknown, fd: FormData) {
+  const admin = await aktor();
+  if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
+  const nama = ((fd.get("nama") as string) || "").trim();
+  const keterangan = ((fd.get("keterangan") as string) || "").trim() || null;
+  if (nama.length < 2 || nama.length > 100) return { error: "Nama blok minimal 2 karakter" };
+  try {
+    await prisma.blok.create({ data: { nama, keterangan } });
+  } catch {
+    return { error: "Nama blok sudah ada" };
+  }
+  redirect("/hr/blok");
+}
+
+
+export async function aksiToggleBlok(fd: FormData) {
+  const admin = await aktor();
+  if (admin.role !== "HR_ADMIN") return;
+  const id = (fd.get("id") as string) || "";
+  const b = await prisma.blok.findUnique({ where: { id } });
+  if (!b) redirect("/hr/blok");
+  await prisma.blok.update({ where: { id }, data: { aktif: !b!.aktif } });
+  redirect("/hr/blok");
 }

@@ -62,7 +62,7 @@ export async function GET(req: Request) {
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
     let page = doc.addPage([595, 842]);
     let y = 800;
-    page.drawText("Rekap Pengajuan Cuti - Anime Japan", { x: 50, y, size: 14, font: bold });
+    page.drawText("Rekap Pengajuan Cuti - PT ANIME JAPAN", { x: 50, y, size: 14, font: bold });
     y -= 20;
     page.drawText(`Periode: ${dari ?? "-"} s/d ${sampai ?? "-"} | Status: ${status ?? "semua"} | Total: ${list.length}`, { x: 50, y, size: 9, font });
     y -= 18;

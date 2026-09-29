@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const page = doc.addPage([595, 842]);
   let y = 800;
   const T = (t: string, size = 11, f = font) => { page.drawText(t.slice(0, 90), { x: 50, y, size, font: f }); y -= size + 6; };
-  T("FORMULIR PERMOHONAN CUTI - ANIME JAPAN", 14, bold);
+  T("FORMULIR PERMOHONAN CUTI - PT ANIME JAPAN", 14, bold);
   T(`Status: DISETUJUI`, 11, bold);
   y -= 6;
   T(`Nama: ${p.pemohon.nama}`);

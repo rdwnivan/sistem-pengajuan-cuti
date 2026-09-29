@@ -5,8 +5,8 @@
 
 ## Last Updated
 
-* Date: 2026-09-29
-* Session: Semua P0 selesai — cookie secure + rate limit login + content sniffing upload + CI cleanup
+* Date: 2026-09-30
+* Session: Prototype standar selesai — slip rincian + NIP + TTD, laporan kebun + blok + rekap (semua hijau)
 
 ---
 
@@ -68,11 +68,11 @@ Production — live at https://cuti-app.vercel.app/ (Next 14.2.35)
 
 ## Active Feature
 
-Semua P0 security selesai — cookie secure + rate limit login + content sniffing upload + CI cleanup.
+Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + blok + rekap.
 
 ## Current Task
 
-Selesai. `tsc`/`lint`/`build` PASS. Suite utama 40/40 PASS, rate-limit 2/2 PASS (dijalankan terpisah, worker 1). Belum commit.
+Selesai. `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 24/24 PASS, rate-limit 2/2 PASS. Belum commit.
 
 ## Current Status
 
@@ -341,6 +341,42 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 * Security: `.github/workflows/ci.yml` — action pinning (SHA), `permissions: read-all`, removed unused `SESSION_SECRET`
 * UI: Back button `/cuti/baru`, MonthSelector `/slip-gaji/[id]`, HR slip filter (Karyawan dropdown), notif banner flash fix
 * Verified: `tsc` + `lint` + `build` + 21 E2E tests PASS
+
+## 2026-09-30
+
+* Testing backlog selesai:
+  * Unit (`cuti-app/unit/`, `npm run test:unit`, tsx --test, 0 deps baru): `cuti.test.ts` (hariKerja/bulanMasaKerja), `validasi.test.ts` (9 schema), `rate-limit.test.ts`, `upload.test.ts` (sniffFile spoof) — 56/56 PASS
+  * E2E flows (`playwright.flows.config.ts`, serial worker 1, `npm run test:e2e:flows`): `cuti-flow` (alur penuh + tolak + 2 validasi), `delegasi` (CRUD delegasi + delegated approval serial), `gaji-flow` (HR→atasan→verify), `cron` (401/200-struktur/Bearer), `laporan-acc` (API setuju/tolak/403/400/401 + PDF) — 17/17 PASS
+  * `gaji-perubahan.spec.ts` lama (lemah, race) dihapus diganti `gaji-flow.spec.ts`
+  * CI: step baru "Run flow tests" setelah E2E utama; main config ignore flow specs
+  * Helpers baru di `tests/helpers.ts`: `isoLocal`/`seninDepan`/`sabtuDepan`/`rentangDelegasi` (jangan `toISOString` — mundur 1 hari di WIB), akun atasan2/karyawan3
+* Pelajaran test: kuota Duka/Menikah kecil & permanen → tiap test submit pakai jenis berbeda; `aksiBatalDelegasi` hanya nonaktifkan (baris lama tetap tampil); Shell render children 2× → locator `.first()`; cron.spec baca CRON_SECRET dari `.env` (Playwright worker tidak inherit shell env)
+* Verified: `tsc` + `lint` + `build` + unit 56/56 + E2E 37/37 + flows 17/17 + rate-limit 2/2 PASS
+
+## 2026-09-30 (prototype standar — hasil grilling, 9 keputusan disetujui)
+
+* Slip gaji: header PDF seragam `— PT ANIME JAPAN`; Periode ganda dihapus + nama bulan;
+  NIP (`User.nip`, digit 6-20, unik, wajib di form, seed 100001+); kolom TTD
+  (tanggal + HR + karyawan) di PDF; rincian standar
+  (jabatan/transport/makan + lembur/bonus − PPh21/BPJS Kes/BPJS TK/lainnya)
+  di schema + form + action + daftar HR + detail + PDF.
+* Laporan lapangan: field kebun (blok/kegiatan/jumlahTenagaKerja/hasil/cuaca/lat/lng);
+  dropdown blok (`GET /api/blok`) + tombol GPS (`navigator.geolocation`);
+  multi-foto maks 5 + keterangan (`LaporanFoto`, JPG/PNG only);
+  detail + PDF + JSON API tampilkan semua field baru.
+* Master Blok: model `Blok`, halaman `/hr/blok` (tambah/nonaktifkan), seed 5 blok,
+  link di panel HR.
+* Rekap laporan HR: halaman `/hr/laporan-lapangan` (filter blok/kegiatan/periode/status)
+  + `GET /api/laporan-rekap` (excel/pdf-rekap). `/hr/laporan` tidak diubah (rekap cuti).
+* Tests: unit 61/61 (NIP + rincian slip + field kebun); flows 24/24
+  (+`slip-rincian`: terbit rincian → detail NIP/rincian → PDF 200 + NIP duplikat ditolak;
+  +`laporan-kebun`: buat kebun → detail → API blok 200/401 → tambah/nonaktifkan blok → rekap + unduh Excel).
+* Pelajaran: PDF pdf-lib terkompresi FlateDecode — assertion konten biner tidak bisa,
+  verifikasi PDF via status/headers + tampilan halaman; seed NIP urut
+  (pimpinan 100001 … karyawan5 100009); `db push --accept-data-loss` untuk kolom hapus.
+* PENTING deploy: skema `SlipGaji` berubah (kolom lama dihapus) — production wajib
+  `db push` + reseed + buat ulang slip demo. Tercatat di TODO P1.
+* Verified: `tsc` + `lint` + `build` + unit 61/61 + E2E 37/37 + flows 24/24 + rate-limit 2/2 PASS
 
 ---
 

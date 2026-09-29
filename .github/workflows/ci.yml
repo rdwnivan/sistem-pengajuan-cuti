@@ -76,6 +76,9 @@ jobs:
       - name: Run E2E tests
         run: npx playwright test
         timeout-minutes: 15
+      - name: Run flow tests (stateful, serial, worker 1)
+        run: npx playwright test --config=playwright.flows.config.ts
+        timeout-minutes: 15
       - name: Run rate-limit tests (serial, worker 1)
         run: npx playwright test --config=playwright.rate-limit.config.ts
         timeout-minutes: 10

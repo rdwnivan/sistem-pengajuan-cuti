@@ -9,14 +9,16 @@ import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } fr
 import { kirimWebPush } from "@/lib/web-push";
 import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
 
-import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, ajukanPerubahanGaji } from "./shared";
+import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, unggahBanyakFoto, ajukanPerubahanGaji } from "./shared";
 
 
 export async function aksiBuatLaporan(_: unknown, fd: FormData) {
   const user = await aktor();
   if (user.role === "HR_ADMIN" || (await isAtasan(user.id))) return { error: "Hanya karyawan (bukan atasan/HR) yang bisa membuat laporan" };
   const v = laporanSchema.safeParse({
-    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"),
+    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"), blok: fd.get("blok"),
+    kegiatan: fd.get("kegiatan"), jumlahTenagaKerja: fd.get("jumlahTenagaKerja"),
+    hasil: fd.get("hasil"), cuaca: fd.get("cuaca"), lat: fd.get("lat"), lng: fd.get("lng"),
     shift: fd.get("shift"), judul: fd.get("judul"),
     isi: fd.get("isi"), approverId: fd.get("approverId"),
   });
@@ -30,11 +32,17 @@ export async function aksiBuatLaporan(_: unknown, fd: FormData) {
   }
   const lampiranResult = await unggahFoto(fd, "laporan");
   if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
+  const fotosResult = await unggahBanyakFoto(fd, "laporan-foto");
+  if (!Array.isArray(fotosResult)) return { error: fotosResult.gagal };
   const l = await prisma.laporanLapangan.create({
     data: {
       pembuatId: user.id, approverId, tglLaporan: new Date(v.data.tglLaporan + "T12:00:00"),
-      lokasi: v.data.lokasi, shift: v.data.shift ?? null, judul: v.data.judul,
+      lokasi: v.data.lokasi, blok: v.data.blok ?? null, kegiatan: v.data.kegiatan ?? null,
+      jumlahTenagaKerja: v.data.jumlahTenagaKerja ?? null, hasil: v.data.hasil ?? null,
+      cuaca: v.data.cuaca ?? null, lat: v.data.lat ?? null, lng: v.data.lng ?? null,
+      shift: v.data.shift ?? null, judul: v.data.judul,
       isi: v.data.isi, lampiranPath: lampiranResult ?? null, status: "DRAFT",
+      fotos: { create: fotosResult.map((f) => ({ path: f.path, keterangan: f.keterangan })) },
     },
   });
   redirect(`/laporan/${l.id}`);
@@ -89,7 +97,9 @@ export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
   if (!dariDraf && !["DITOLAK", "DIKEMBALIKAN"].includes(l.status))
     return { error: "Hanya laporan draf/ditolak/dikembalikan yang bisa direvisi" };
   const v = laporanSchema.safeParse({
-    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"),
+    tglLaporan: fd.get("tglLaporan"), lokasi: fd.get("lokasi"), blok: fd.get("blok"),
+    kegiatan: fd.get("kegiatan"), jumlahTenagaKerja: fd.get("jumlahTenagaKerja"),
+    hasil: fd.get("hasil"), cuaca: fd.get("cuaca"), lat: fd.get("lat"), lng: fd.get("lng"),
     shift: fd.get("shift"), judul: fd.get("judul"),
     isi: fd.get("isi"), approverId: fd.get("approverId"),
   });
@@ -102,15 +112,26 @@ export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
   if (!(await isAtasan(approverId))) return { error: "Approver laporan wajib atasan" };
   const lampiranResult = await unggahFoto(fd, "laporan");
   if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
+  const fotosResult = await unggahBanyakFoto(fd, "laporan-foto");
+  if (!Array.isArray(fotosResult)) return { error: fotosResult.gagal };
   // Edit draf tetap DRAFT (belum dikirim). Revisi setelah ditolak/dikembalikan langsung MENUNGGU.
   const statusBaru = dariDraf ? "DRAFT" : "MENUNGGU";
   await prisma.laporanLapangan.update({
     where: { id }, data: {
-      tglLaporan: new Date(v.data.tglLaporan + "T12:00:00"), lokasi: v.data.lokasi, shift: v.data.shift ?? null,
+      tglLaporan: new Date(v.data.tglLaporan + "T12:00:00"), lokasi: v.data.lokasi,
+      blok: v.data.blok ?? null, kegiatan: v.data.kegiatan ?? null,
+      jumlahTenagaKerja: v.data.jumlahTenagaKerja ?? null, hasil: v.data.hasil ?? null,
+      cuaca: v.data.cuaca ?? null, lat: v.data.lat ?? null, lng: v.data.lng ?? null,
+      shift: v.data.shift ?? null,
       judul: v.data.judul, isi: v.data.isi, approverId, lampiranPath: lampiranResult ?? l.lampiranPath,
       status: statusBaru, catatanApprover: null,
     },
   });
+  if (fotosResult.length > 0) {
+    await prisma.laporanFoto.createMany({
+      data: fotosResult.map((f) => ({ laporanId: id, path: f.path, keterangan: f.keterangan })),
+    });
+  }
   await prisma.auditLog.create({ data: { laporanId: id, aktorId: user.id, aksi: dariDraf ? "DIEDIT" : "DIREVISI", dariStatus: l.status, keStatus: statusBaru } });
   if (!dariDraf) {
     const pesan = `${user.nama} telah merevisi laporan "${v.data.judul}" dan mengirim ulang untuk di-acc.`;

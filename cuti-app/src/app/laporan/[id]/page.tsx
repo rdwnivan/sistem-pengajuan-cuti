@@ -15,7 +15,7 @@ export default async function LaporanDetail({ params }: { params: { id: string }
   const user = await wajibLogin();
   const l = await prisma.laporanLapangan.findUnique({
     where: { id: params.id },
-    include: { pembuat: true, approver: true, riwayat: { include: { aktor: true }, orderBy: { createdAt: "asc" } } },
+    include: { pembuat: true, approver: true, fotos: { orderBy: { createdAt: "asc" } }, riwayat: { include: { aktor: true }, orderBy: { createdAt: "asc" } } },
   });
   if (!l) notFound();
 
@@ -43,6 +43,12 @@ export default async function LaporanDetail({ params }: { params: { id: string }
           <Row k="Pelapor" v={`${l.pembuat.nama} (${l.pembuat.email})`} />
           <Row k="Tanggal" v={fmtTgl(l.tglLaporan)} />
           <Row k="Lokasi" v={l.lokasi} />
+          {l.blok && <Row k="Blok" v={l.blok} />}
+          {l.kegiatan && <Row k="Kegiatan" v={l.kegiatan} />}
+          {l.jumlahTenagaKerja != null && <Row k="Tenaga kerja" v={`${l.jumlahTenagaKerja} orang`} />}
+          {l.hasil && <Row k="Hasil" v={l.hasil} />}
+          {l.cuaca && <Row k="Cuaca" v={l.cuaca} />}
+          {l.lat != null && l.lng != null && <Row k="GPS" v={`${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}`} />}
           {l.shift && <Row k="Shift" v={l.shift} />}
           <Row k="Approver" v={l.approver?.nama ?? "-"} />
           {l.catatanApprover && <Row k="Catatan approver" v={l.catatanApprover} />}
@@ -50,6 +56,17 @@ export default async function LaporanDetail({ params }: { params: { id: string }
         <div className="mt-3 whitespace-pre-wrap rounded-lg border bg-zinc-50 p-3 text-sm">{l.isi}</div>
         {l.lampiranPath && (
           <a href={l.lampiranPath} target="_blank" className="mt-2 inline-block text-sm font-semibold text-emerald-700 underline">Lihat lampiran</a>
+        )}
+        {l.fotos.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <h3 className="text-sm font-bold">Foto bukti lapangan ({l.fotos.length})</h3>
+            {l.fotos.map((f) => (
+              <a key={f.id} href={f.path} target="_blank" className="block rounded-lg border bg-zinc-50 p-2 text-sm">
+                <span className="font-semibold text-emerald-700 underline">Lihat foto</span>
+                {f.keterangan && <span className="text-zinc-600"> — {f.keterangan}</span>}
+              </a>
+            ))}
+          </div>
         )}
       </div>
 

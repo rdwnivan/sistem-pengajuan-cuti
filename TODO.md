@@ -18,6 +18,19 @@ Tasks that block development, production, security, or core functionality.
 
 # P1 — High Priority
 
+## Prototype Standar (hasil grilling, disetujui 2026-09-30)
+
+* [x] Header PDF seragam `— PT ANIME JAPAN` (slip, formulir, rekap cuti/laporan)
+* [x] Hapus Periode ganda + format nama bulan di PDF slip
+* [x] NIP angka wajib unik (schema + form + seed + tampil di slip)
+* [x] Kolom TTD di PDF slip (tanggal + HR + karyawan)
+* [x] Rincian gaji standar (jabatan/transport/makan + lembur/bonus − PPh21/BPJS Kes/BPJS TK/lainnya)
+* [x] Field kebun laporan (blok/kegiatan/TK/hasil/cuaca + GPS)
+* [x] Multi-foto + keterangan per foto
+* [x] Master Blok (endpoint + halaman HR + seed)
+* [x] Rekap laporan lapangan HR (filter + Excel/PDF)
+* [ ] Reseed database production + buat ulang slip demo (skema SlipGaji berubah, data lama tak berlaku)
+
 Tasks that should be completed next.
 
 ## Current Feature
@@ -54,6 +67,7 @@ Important but not immediately blocking.
 
 * [ ] Improve UX: confirm dialog before delete (jenis cuti, karyawan)
 * [ ] Add unit tests for delegation date-range logic in `src/lib/cron.ts`
+* [ ] Add E2E for cron umur H+1/H+3 asli (update `updatedAt`/`lastReminderAt` via DB agar reminder/eskalasi benar-benar terpicu)
 
 ---
 
@@ -79,13 +93,14 @@ Nice-to-have items.
 
 # Testing
 
-* [ ] Add unit tests for `src/lib/cuti.ts` — hari kerja calculation, masa kerja validation
-* [ ] Add unit tests for `src/lib/validasi.ts` — all zod schemas (pengajuan, user, jenis, slip, laporan)
-* [ ] Add integration tests for `POST /api/laporan-lapangan/[id]` (acc action)
-* [ ] Add E2E test for cuti submission → atasan approval → HR approval flow
-* [ ] Add E2E test for delegasi creation → delegated approval
-* [ ] Add E2E test for cron reminder H+1 / eskalasi H+3
-* [ ] Add E2E test for gaji change approval flow (HR submit → atasan approve)
+* [x] Add unit tests for `src/lib/cuti.ts` — hari kerja calculation, masa kerja validation (`cuti-app/unit/cuti.test.ts`, 56 unit total via `npm run test:unit`)
+* [x] Add unit tests for `src/lib/validasi.ts` — all zod schemas (pengajuan, user, jenis, slip, laporan) (`cuti-app/unit/validasi.test.ts`)
+* [x] Add unit tests for `src/lib/rate-limit.ts` + `src/lib/upload.ts` (`cuti-app/unit/rate-limit.test.ts`, `unit/upload.test.ts`)
+* [x] Add integration tests for `POST /api/laporan-lapangan/[id]` (acc action) (`cuti-app/tests/laporan-acc.spec.ts` — setuju/tolak/403/400/401 + PDF)
+* [x] Add E2E test for cuti submission → atasan approval → HR approval flow (`cuti-app/tests/cuti-flow.spec.ts`)
+* [x] Add E2E test for delegasi creation → delegated approval (`cuti-app/tests/delegasi.spec.ts`, serial)
+* [x] Add E2E test for cron reminder H+1 / eskalasi H+3 (`cuti-app/tests/cron.spec.ts` — endpoint 200 + struktur; umur H+1/H+3 belum disimulasikan)
+* [x] Add E2E test for gaji change approval flow (HR submit → atasan approve) (`cuti-app/tests/gaji-flow.spec.ts`; `gaji-perubahan.spec.ts` lama yang lemah dihapus)
 
 ---
 

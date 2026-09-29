@@ -31,12 +31,20 @@ export default async function SlipDetail({ params }: { params: { id: string } })
         <div className="text-center text-3xl font-bold text-emerald-800 mb-4">Rp {s.gajiBersih.toLocaleString("id-ID")}</div>
         <dl className="space-y-2 text-sm">
           <Row k="Karyawan" v={s.user.nama} />
+          <Row k="NIP" v={s.user.nip ?? "-"} />
           <Row k="Email" v={s.user.email} />
           <Row k="Jabatan" v={s.user.jabatan ?? "-"} />
           <Row k="Periode" v={`${namaBulan(s.bulan)} ${s.tahun}`} />
           <Row k="Gaji pokok" v={s.gajiPokok.toLocaleString("id-ID")} />
-          <Row k="Tunjangan" v={s.tunjangan.toLocaleString("id-ID")} />
-          <Row k="Potongan" v={s.potongan.toLocaleString("id-ID")} />
+          <Row k="Tunj. jabatan" v={s.tunjanganJabatan.toLocaleString("id-ID")} />
+          <Row k="Tunj. transport" v={s.tunjanganTransport.toLocaleString("id-ID")} />
+          <Row k="Tunj. makan" v={s.tunjanganMakan.toLocaleString("id-ID")} />
+          <Row k="Lembur" v={s.lembur.toLocaleString("id-ID")} />
+          <Row k="Bonus" v={s.bonus.toLocaleString("id-ID")} />
+          <Row k="PPh 21" v={s.pph21.toLocaleString("id-ID")} />
+          <Row k="BPJS Kesehatan" v={s.bpjsKesehatan.toLocaleString("id-ID")} />
+          <Row k="BPJS TK" v={s.bpjsKetenagakerjaan.toLocaleString("id-ID")} />
+          <Row k="Potongan lain" v={s.potonganLain.toLocaleString("id-ID")} />
           <Row k="Gaji bersih" v={s.gajiBersih.toLocaleString("id-ID")} />
           {s.catatan && <Row k="Catatan" v={s.catatan} />}
           <Row k="Status" v={s.status} />

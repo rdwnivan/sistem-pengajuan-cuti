@@ -7,7 +7,7 @@ import { kirimWebPush } from "@/lib/web-push";
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await userDariSesi();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const l = await prisma.laporanLapangan.findUnique({ where: { id: params.id }, include: { pembuat: true, approver: true } });
+  const l = await prisma.laporanLapangan.findUnique({ where: { id: params.id }, include: { pembuat: true, approver: true, fotos: { orderBy: { createdAt: "asc" } } } });
   if (!l) return Response.json({ error: "Tidak ditemukan" }, { status: 404 });
   const allowed = l.pembuatId === user.id || l.approverId === user.id;
   if (!allowed) return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -23,11 +23,17 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     let y = 780;
     const T = (t: string, size = 11, f = font) => { page.drawText(teksAman(t.slice(0, 90)), { x: 50, y, size, font: f }); y -= size + 5; };
 
-    T("LAPORAN LAPANGAN", 14, bold);
+    T("LAPORAN LAPANGAN - PT ANIME JAPAN", 14, bold);
     T(`Status: ${l.status}`, 11, bold); y -= 8;
     T(`Judul: ${l.judul}`);
     T(`Tanggal: ${l.tglLaporan.toISOString().slice(0, 10)}`);
     T(`Lokasi: ${l.lokasi}`);
+    if (l.blok) T(`Blok: ${l.blok}`);
+    if (l.kegiatan) T(`Kegiatan: ${l.kegiatan}`);
+    if (l.jumlahTenagaKerja != null) T(`Tenaga kerja: ${l.jumlahTenagaKerja} orang`);
+    if (l.hasil) T(`Hasil: ${l.hasil}`);
+    if (l.cuaca) T(`Cuaca: ${l.cuaca}`);
+    if (l.lat != null && l.lng != null) T(`GPS: ${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}`);
     if (l.shift) T(`Shift: ${l.shift}`);
     T(`Pelapor: ${l.pembuat.nama} (${l.pembuat.email})`);
     T(`Approver: ${l.approver?.nama ?? "-"}`);
@@ -39,6 +45,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       T(b || " ");
     }
     if (l.catatanApprover) { y -= 4; T(`Catatan approver: ${l.catatanApprover}`); }
+    if (l.fotos.length > 0) {
+      y -= 4; T("Foto bukti lapangan:", 11, bold);
+      for (const f of l.fotos) {
+        if (y < 60) { page = doc.addPage([595, 842]); y = 780; }
+        T(`- ${f.path}${f.keterangan ? ` (${f.keterangan})` : ""}`);
+      }
+    }
     y -= 10;
     T("Dicetak dari Sistem Pengajuan Cuti Online", 8, font);
     const bytes = await doc.save();
@@ -49,7 +62,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   return Response.json({
     id: l.id, judul: l.judul, isi: l.isi, tglLaporan: l.tglLaporan.toISOString().slice(0, 10),
-    lokasi: l.lokasi, shift: l.shift, status: l.status, lampiranPath: l.lampiranPath,
+    lokasi: l.lokasi, blok: l.blok, kegiatan: l.kegiatan, jumlahTenagaKerja: l.jumlahTenagaKerja,
+    hasil: l.hasil, cuaca: l.cuaca, lat: l.lat, lng: l.lng,
+    shift: l.shift, status: l.status, lampiranPath: l.lampiranPath,
+    fotos: l.fotos.map((f) => ({ path: f.path, keterangan: f.keterangan })),
     catatanApprover: l.catatanApprover,
     pembuat: { nama: l.pembuat.nama, email: l.pembuat.email },
     approver: l.approver ? { nama: l.approver.nama } : null,

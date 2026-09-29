@@ -72,8 +72,8 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
             </div>
             <div className="mt-2 grid grid-cols-3 gap-1 text-xs text-zinc-600">
               <span>Pokok: {s.gajiPokok.toLocaleString("id-ID")}</span>
-              <span>Tunj: {s.tunjangan.toLocaleString("id-ID")}</span>
-              <span>Potong: {s.potongan.toLocaleString("id-ID")}</span>
+              <span>Tunj: {(s.tunjanganJabatan + s.tunjanganTransport + s.tunjanganMakan + s.lembur + s.bonus).toLocaleString("id-ID")}</span>
+              <span>Potong: {(s.pph21 + s.bpjsKesehatan + s.bpjsKetenagakerjaan + s.potonganLain).toLocaleString("id-ID")}</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="font-bold text-emerald-800">Rp {s.gajiBersih.toLocaleString("id-ID")}</span>

@@ -43,6 +43,44 @@ export async function unggahFoto(fd: FormData, prefix: string): Promise<string |
   return `/uploads/${fileName}`;
 }
 
+export type FotoTerunggah = { path: string; keterangan: string | null };
+
+export async function unggahBanyakFoto(fd: FormData, prefix: string): Promise<FotoTerunggah[] | { gagal: string }> {
+  const files = (fd.getAll("fotos") as File[]).filter((f) => f && f.size > 0).slice(0, 5);
+  const keterangans = fd.getAll("fotoKeterangan") as string[];
+  if (files.length === 0) return [];
+  const hasil: FotoTerunggah[] = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (f.size > 2 * 1024 * 1024) return { gagal: `Foto ke-${i + 1} melebihi 2MB` };
+    let snapped;
+    try {
+      snapped = await sniffFile(f);
+    } catch {
+      return { gagal: `Foto ke-${i + 1} hanya boleh JPG/PNG (isi file tidak valid)` };
+    }
+    const { buffer, ext } = snapped;
+    if (ext === "pdf") return { gagal: `Foto ke-${i + 1} harus gambar (JPG/PNG), bukan PDF` };
+    const name = `${prefix}/${Date.now()}-${i}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(name, buffer as unknown as File, { access: "public" });
+      hasil.push({ path: blob.url, keterangan: (keterangans[i] || "").trim() || null });
+    } else if (process.env.NODE_ENV === "production") {
+      return { gagal: "Upload belum dikonfigurasi" };
+    } else {
+      const { writeFile, mkdir } = await import("fs/promises");
+      const { default: path } = await import("path");
+      const dir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(dir, { recursive: true });
+      const fileName = name.split("/").pop()!;
+      await writeFile(path.join(dir, fileName), buffer);
+      hasil.push({ path: `/uploads/${fileName}`, keterangan: (keterangans[i] || "").trim() || null });
+    }
+  }
+  return hasil;
+}
+
 export async function ajukanPerubahanGaji(params: {
   userId: string;
   pengajuId: string;

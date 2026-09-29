@@ -10,5 +10,5 @@ export default async function EditUser({ params }: { params: { id: string } }) {
   if (!u) notFound();
   const atasans = await prisma.user.findMany({ where: { statusAktif: true }, select: { id: true, nama: true }, orderBy: { nama: "asc" } });
   const gajiPending = await prisma.gajiPerubahan.count({ where: { userId: params.id, status: "MENUNGGU" } });
-  return (<Shell nama={admin.nama} role={admin.role} isAtasan={true}><h1 className="text-lg font-bold">Edit Karyawan</h1><UserForm id={u.id} atasans={atasans} gajiPending={gajiPending > 0} initial={{ nama: u.nama, email: u.email, jabatan: u.jabatan, noHp: u.noHp, tglMasuk: fmtTgl(u.tglMasuk), role: u.role, atasanId: u.atasanId, statusAktif: u.statusAktif, gajiPokok: u.gajiPokok ?? 0, tunjanganTetap: u.tunjanganTetap ?? 0 }} /></Shell>);
+  return (<Shell nama={admin.nama} role={admin.role} isAtasan={true}><h1 className="text-lg font-bold">Edit Karyawan</h1><UserForm id={u.id} atasans={atasans} gajiPending={gajiPending > 0} initial={{ nama: u.nama, email: u.email, nip: u.nip, jabatan: u.jabatan, noHp: u.noHp, tglMasuk: fmtTgl(u.tglMasuk), role: u.role, atasanId: u.atasanId, statusAktif: u.statusAktif, gajiPokok: u.gajiPokok ?? 0, tunjanganTetap: u.tunjanganTetap ?? 0 }} /></Shell>);
 }

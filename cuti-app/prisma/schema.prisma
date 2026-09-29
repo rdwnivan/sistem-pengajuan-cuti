@@ -11,6 +11,7 @@ model User {
   id           String   @id @default(cuid())
   nama         String
   email        String   @unique
+  nip          String?  @unique
   passwordHash String
   role         String   @default("KARYAWAN")
   jabatan      String?
@@ -73,8 +74,15 @@ model SlipGaji {
   tahun       Int
   bulan       Int
   gajiPokok   Int
-  tunjangan   Int      @default(0)
-  potongan    Int      @default(0)
+  tunjanganJabatan Int @default(0)
+  tunjanganTransport Int @default(0)
+  tunjanganMakan Int @default(0)
+  lembur      Int      @default(0)
+  bonus       Int      @default(0)
+  pph21       Int      @default(0)
+  bpjsKesehatan Int    @default(0)
+  bpjsKetenagakerjaan Int @default(0)
+  potonganLain Int     @default(0)
   gajiBersih  Int
   catatan     String?
   status      String   @default("TERBIT")
@@ -92,10 +100,18 @@ model LaporanLapangan {
   approver       User?    @relation("LaporanApprover", fields: [approverId], references: [id], onDelete: SetNull)
   tglLaporan     DateTime
   lokasi         String
+  blok           String?
+  kegiatan       String?
+  jumlahTenagaKerja Int?
+  hasil          String?
+  cuaca          String?
+  lat            Float?
+  lng            Float?
   shift          String?
   judul          String
   isi            String
   lampiranPath   String?
+  fotos          LaporanFoto[]
   status         String   @default("DRAFT")
   catatanApprover String?
   createdAt      DateTime @default(now())
@@ -104,6 +120,23 @@ model LaporanLapangan {
   notifikasi     Notifikasi[]
   @@index([approverId, status])
   @@index([pembuatId, createdAt])
+}
+
+model LaporanFoto {
+  id         String   @id @default(cuid())
+  laporanId  String
+  laporan    LaporanLapangan @relation(fields: [laporanId], references: [id], onDelete: Cascade)
+  path       String
+  keterangan String?
+  createdAt  DateTime @default(now())
+  @@index([laporanId])
+}
+
+model Blok {
+  id         String   @id @default(cuid())
+  nama       String   @unique
+  keterangan String?
+  aktif      Boolean  @default(true)
 }
 
 model JenisCuti {

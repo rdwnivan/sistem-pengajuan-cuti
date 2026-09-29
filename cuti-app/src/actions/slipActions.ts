@@ -17,22 +17,30 @@ export async function aksiBuatSlip(_: unknown, fd: FormData) {
   if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
   const v = slipSchema.safeParse({
     userId: fd.get("userId"), tahun: fd.get("tahun"), bulan: fd.get("bulan"),
-    gajiPokok: fd.get("gajiPokok"), tunjangan: fd.get("tunjangan"),
-    potongan: fd.get("potongan"), catatan: fd.get("catatan"),
+    gajiPokok: fd.get("gajiPokok"),
+    tunjanganJabatan: fd.get("tunjanganJabatan"), tunjanganTransport: fd.get("tunjanganTransport"),
+    tunjanganMakan: fd.get("tunjanganMakan"), lembur: fd.get("lembur"), bonus: fd.get("bonus"),
+    pph21: fd.get("pph21"), bpjsKesehatan: fd.get("bpjsKesehatan"),
+    bpjsKetenagakerjaan: fd.get("bpjsKetenagakerjaan"), potonganLain: fd.get("potonganLain"),
+    catatan: fd.get("catatan"),
   });
   if (!v.success) return { error: v.error.issues[0].message };
   const karyawan = await prisma.user.findUnique({ where: { id: v.data.userId } });
   if (!karyawan || !karyawan.statusAktif) return { error: "Karyawan tidak valid" };
-  const tetap = Number(fd.get("tunjanganTetap") || 0);
-  const tunjanganTotal = tetap + v.data.tunjangan;
-  const gajiBersih = v.data.gajiPokok + tunjanganTotal - v.data.potongan;
+  const d = v.data;
+  const gajiBersih = d.gajiPokok + d.tunjanganJabatan + d.tunjanganTransport + d.tunjanganMakan
+    + d.lembur + d.bonus - d.pph21 - d.bpjsKesehatan - d.bpjsKetenagakerjaan - d.potonganLain;
   if (gajiBersih < 0) return { error: "Potongan melebihi gaji (gaji bersih negatif)" };
   try {
     await prisma.slipGaji.create({
       data: {
         userId: v.data.userId, tahun: v.data.tahun, bulan: v.data.bulan,
-        gajiPokok: v.data.gajiPokok, tunjangan: tunjanganTotal,
-        potongan: v.data.potongan, gajiBersih, catatan: v.data.catatan ?? null,
+        gajiPokok: v.data.gajiPokok,
+        tunjanganJabatan: d.tunjanganJabatan, tunjanganTransport: d.tunjanganTransport,
+        tunjanganMakan: d.tunjanganMakan, lembur: d.lembur, bonus: d.bonus,
+        pph21: d.pph21, bpjsKesehatan: d.bpjsKesehatan,
+        bpjsKetenagakerjaan: d.bpjsKetenagakerjaan, potonganLain: d.potonganLain,
+        gajiBersih, catatan: v.data.catatan ?? null,
       },
     });
   } catch {

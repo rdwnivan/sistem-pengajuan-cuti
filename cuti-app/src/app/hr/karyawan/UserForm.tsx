@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 export function UserForm({ initial, atasans, id, gajiPending }: {
   id?: string;
-  initial?: { nama: string; email: string; jabatan?: string | null; noHp?: string | null; tglMasuk: string; role: string; atasanId?: string | null; statusAktif: boolean; gajiPokok?: number; tunjanganTetap?: number };
+  initial?: { nama: string; email: string; nip?: string | null; jabatan?: string | null; noHp?: string | null; tglMasuk: string; role: string; atasanId?: string | null; statusAktif: boolean; gajiPokok?: number; tunjanganTetap?: number };
   atasans: { id: string; nama: string }[];
   gajiPending?: boolean;
 }) {
@@ -20,7 +20,10 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
       )}
       <input type="hidden" name="id" value={id ?? ""} />
       <Field label="Nama"><input name="nama" required defaultValue={initial?.nama} className={inputCls} /></Field>
-      <Field label="Email"><input name="email" type="email" required defaultValue={initial?.email} className={inputCls} /></Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Email"><input name="email" type="email" required defaultValue={initial?.email} className={inputCls} /></Field>
+        <Field label="NIP"><input name="nip" required pattern="[0-9]{6,20}" inputMode="numeric" defaultValue={initial?.nip ?? ""} className={inputCls} placeholder="6-20 digit angka" /></Field>
+      </div>
       <Field label={id ? "Password baru (kosongkan jika tidak diubah)" : "Password"}>
         <input name="password" type="password" required={!id} minLength={6} className={inputCls} />
       </Field>
