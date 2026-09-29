@@ -9,9 +9,15 @@ async function main() {
     console.log("⚠️  Seed diblokir di production. Set SEED_FORCE=true untuk paksa.");
     return;
   }
+  // Urutan delete mengikuti dependensi foreign key (Cascade/Restrict/SetNull)
   await prisma.auditLog.deleteMany();
+  await prisma.notifikasi.deleteMany();
   await prisma.kuota.deleteMany();
+  await prisma.gajiPerubahan.deleteMany();
   await prisma.pengajuan.deleteMany();
+  await prisma.laporanLapangan.deleteMany();
+  await prisma.slipGaji.deleteMany();
+  await prisma.pushSubscription.deleteMany();
   await prisma.delegasi.deleteMany();
   await prisma.sesi.deleteMany();
   await prisma.hariLibur.deleteMany();

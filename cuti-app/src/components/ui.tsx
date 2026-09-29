@@ -18,9 +18,9 @@ export function ErrorMsg({ msg }: { msg?: string }) {
   return <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{msg}</div>;
 }
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, children, id }: { label: string; children: React.ReactNode; id?: string }) {
   return (
-    <label className="block">
+    <label className="block" htmlFor={id}>
       <span className="mb-1 block text-sm font-semibold">{label}</span>
       {children}
     </label>

@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: ["rate-limit.spec.ts"], /* jangan auto-run; jalankan manual: npx playwright test tests/rate-limit.spec.ts --workers=1 */
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

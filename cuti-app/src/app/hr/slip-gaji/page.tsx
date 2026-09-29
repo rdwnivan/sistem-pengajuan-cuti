@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { wajibHR } from "@/lib/auth";
 import { Badge } from "@/components/ui";
 import { Shell } from "@/components/shell";
-import { aksiBatalSlip } from "@/app/actions";
+import { aksiBatalSlip } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 import { SlipForm } from "./SlipForm";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -82,7 +83,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
                 {s.status === "TERBIT" && (
                   <form action={aksiBatalSlip}>
                     <input type="hidden" name="id" value={s.id} />
-                    <button className="rounded-lg border border-red-500 px-2 py-1 text-red-600">Batalkan</button>
+                    <SubmitButton className="rounded-lg border border-red-500 px-2 py-1 text-red-600">Batalkan</SubmitButton>
                   </form>
                 )}
               </div>

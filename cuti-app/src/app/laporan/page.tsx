@@ -5,7 +5,7 @@ import { wajibLogin, isAtasan } from "@/lib/auth";
 import { Badge } from "@/components/ui";
 import { LABEL_STATUS_LAPORAN } from "@/lib/pdf";
 import { Shell } from "@/components/shell";
-import { aksiBatalLaporan } from "@/app/actions";
+import { aksiBatalLaporan } from "@/actions";
 
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agus", "Sep", "Okt", "Nov", "Des"];
 

@@ -11,7 +11,7 @@ export async function buatSesi(userId: string) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + EXPIRE_DAYS * 86400 * 1000);
   await prisma.sesi.create({ data: { token, userId, expiresAt } });
-  cookies().set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt });
+  cookies().set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
 }
 
 export async function userDariSesi() {

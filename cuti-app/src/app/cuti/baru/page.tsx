@@ -1,8 +1,9 @@
 "use client";
 import { useFormState } from "react-dom";
-import { useRouter } from "next/navigation";
-import { aksiAjukan } from "@/app/actions";
+import Link from "next/link";
+import { aksiAjukan } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default function BaruPage({ searchParams }: { searchParams: { jenis?: string } }) {
   return <Form jenisAwal={searchParams.jenis} />;
@@ -10,10 +11,9 @@ export default function BaruPage({ searchParams }: { searchParams: { jenis?: str
 
 function Form({ jenisAwal }: { jenisAwal?: string }) {
   const [state, action] = useFormState(aksiAjukan, { error: "" } as { error?: string });
-  const router = useRouter();
   return (
     <div className="mx-auto max-w-3xl px-3 pb-10 pt-4">
-      <button onClick={() => router.back()} className="mb-3 text-sm font-semibold text-emerald-700 hover:underline">← Kembali</button>
+      <Link href="/" className="mb-3 inline-block text-sm font-semibold text-emerald-700 hover:underline">← Kembali</Link>
       <h1 className="mb-3 text-lg font-bold">Form Ajukan Cuti</h1>
       <JenisLoader jenisAwal={jenisAwal} state={state} action={action} />
     </div>
@@ -43,7 +43,7 @@ function JenisLoader({ jenisAwal, state, action }: { jenisAwal?: string; state: 
       <Field label="Kontak selama cuti"><input name="kontakSelamanyaCuti" className={inputCls} style={{ display: "none" }} tabIndex={-1} autoComplete="off" /><input name="kontakSelamaCuti" className={inputCls} placeholder="No HP aktif" /></Field>
       <Field label="Lampiran (PDF/JPG/PNG, maks 2MB — wajib untuk jenis tertentu)"><input name="lampiran" type="file" accept=".pdf,.jpg,.jpeg,.png" className={inputCls} /></Field>
       <ErrorMsg msg={state?.error} />
-      <button className={btnCls}>Kirim Pengajuan</button>
+      <SubmitButton className={btnCls}>Kirim Pengajuan</SubmitButton>
     </form>
   );
 }

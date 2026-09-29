@@ -9,7 +9,10 @@
 
 Tasks that block development, production, security, or core functionality.
 
-* [ ] Remove `SESSION_SECRET` from `ci.yml` env — unused since session auth moved to token DB
+* [x] Remove `SESSION_SECRET` from `ci.yml` env — already removed; updated README.md to stop mentioning it
+* [x] Add rate limiting on login (`src/lib/rate-limit.ts` — max 5 gagal/15 mnt per akun, blokir 15 mnt; in-memory, tidak shared antar instance serverless)
+* [x] Set `secure: true` on session cookie in production (`src/lib/auth.ts` `buatSesi`)
+* [x] Server-side content sniffing for uploads (`src/lib/upload.ts` `sniffFile` — magic bytes PDF/PNG/JPG, ext dari konten aktual, bukan `File.type` client; spoof HTML/JS/SVG ditolak)
 
 ---
 
@@ -23,7 +26,7 @@ Tasks that should be completed next.
 
 ## Bugs
 
-(none reported)
+* [ ] Vercel Analytics + SpeedInsights blocked by CSP (`script-src` lacks `https://va.vercel-scripts.com`) — analytics/speed data not collected in production
 
 ---
 
@@ -39,11 +42,16 @@ Important but not immediately blocking.
 * [x] Add API tests for `/api/cron` (reminder + eskalasi logic)
 * [x] Add pagination to HR karyawan list
 * [x] Add approval flow for gaji changes (`GajiPerubahan` model + `aksiPutusanPerubahanGaji`)
+* [x] Add navigation progress bar on route change (`NavigationProgress` client component)
+* [x] Refactor `src/app/actions.ts` (647 lines) into 9 domain files under `src/actions/`
+* [x] Add loading spinner on submit buttons (`SubmitButton` component for all server action forms)
+* [x] Fix password toggle on login page (show/hide eye button)
+* [x] Replace `router.back()` on `/cuti/baru` with `Link href="/"` (history-based navigation was wrong)
+* [x] Add edit draft laporan flow (`aksiRevisiLaporan` now accepts DRAFT, detail page shows Edit Laporan for drafts)
+* [x] Make laporan putusan catatan textbox always visible (was hidden until button click, now matches cuti form)
 
 ## Improvements
 
-* [ ] Refactor `src/app/actions.ts` — 557 lines, split into feature-specific files
-* [ ] Improve UX: loading states on approval queue
 * [ ] Improve UX: confirm dialog before delete (jenis cuti, karyawan)
 * [ ] Add unit tests for delegation date-range logic in `src/lib/cron.ts`
 

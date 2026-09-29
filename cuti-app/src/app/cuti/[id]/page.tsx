@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { Badge, Banner } from "@/components/ui";
 import { fmtTgl } from "@/lib/cuti";
-import { aksiBatal } from "@/app/actions";
+import { aksiBatal } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 import { delegasiAktifUntuk } from "@/lib/cron";
 import { PutusanForm } from "./PutusanForm";
 
@@ -60,7 +61,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
       {bisaBatal && (
         <form action={aksiBatal}>
           <input type="hidden" name="id" value={p.id} />
-          <button className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Pengajuan</button>
+          <SubmitButton className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Pengajuan</SubmitButton>
         </form>
       )}
       <div className="rounded-xl border bg-white p-4">

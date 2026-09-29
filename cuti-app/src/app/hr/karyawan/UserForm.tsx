@@ -1,7 +1,8 @@
 "use client";
 import { useFormState } from "react-dom";
-import { aksiSimpanUser } from "@/app/actions";
+import { aksiSimpanUser } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function UserForm({ initial, atasans, id, gajiPending }: {
   id?: string;
@@ -50,7 +51,7 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
         <input type="checkbox" name="statusAktif" defaultChecked={initial?.statusAktif ?? true} /> Akun aktif
       </label>
       <ErrorMsg msg={state?.error} />
-      <button className={btnCls}>Simpan</button>
+      <SubmitButton className={btnCls}>Simpan</SubmitButton>
     </form>
   );
 }

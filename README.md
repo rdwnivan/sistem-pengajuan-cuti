@@ -11,7 +11,7 @@ Dokumentasi lengkap (fitur, alur tiap peran, API, deploy): **[cuti-app/README.md
 ```bash
 cd cuti-app
 npm install
-copy .env.example .env   # lalu isi SESSION_SECRET & CRON_SECRET
+copy .env.example .env   # lalu isi CRON_SECRET & BLOB_READ_WRITE_TOKEN
 npx prisma db push
 npm run db:seed
 npm run dev

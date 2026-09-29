@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
-import { userDariSesi } from "@/lib/auth";
-import { aksiKeluar } from "@/app/actions";
+import { userDariSesi, isAtasan } from "@/lib/auth";
+import { aksiKeluar } from "@/actions";
 import { NotificationPermission } from "@/components/NotificationPermission";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function Shell({ nama, role, isAtasan, children }: { nama: string; role: string; isAtasan: boolean; children: React.ReactNode }) {
   return (
@@ -14,7 +15,7 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
           <div className="text-xs opacity-80">{nama} · {role === "HR_ADMIN" ? "HR" : "Karyawan"}{isAtasan ? " · Atasan" : ""}</div>
         </div>
         <form action={aksiKeluar}>
-          <button className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold">Keluar</button>
+          <SubmitButton className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold">Keluar</SubmitButton>
         </form>
       </header>
       <div className="mb-4">
@@ -43,7 +44,7 @@ function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean;
     { href: "/slip-gaji", label: "Slip Gaji" },
     ...(role !== "HR_ADMIN" && !isAtasan ? [{ href: "/laporan", label: "Laporan" }] : []),
       ...(isAtasan && role !== "HR_ADMIN" ? [{ href: "/persetujuan", label: "Setujui" }, { href: "/kalender", label: "Kalender" }, { href: "/delegasi", label: "Delegasi" }] : []),
-      ...(role === "HR_ADMIN" ? [{ href: "/delegasi", label: "Delegasi" }] : []),
+      ...(role === "HR_ADMIN" ? [{ href: "/persetujuan", label: "Setujui" }, { href: "/delegasi", label: "Delegasi" }] : []),
     { href: "/notifikasi", label: "Notifikasi" },
     ...(role === "HR_ADMIN" ? [{ href: "/hr", label: "HR" }] : [{ href: "/riwayat", label: "Riwayat" }]),
     { href: "/profil", label: "Profil" },
@@ -54,10 +55,17 @@ function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean;
   return (
     <>
       {items.map((i) =>
-        i.href === "/notifikasi" ? (
+        i.href === "/persetujuan" ? (
           <Link key={i.href} href={i.href} className={cls}>
             {i.label}
-            <Suspense fallback={null}>
+            <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
+              <PersetujuanBadge mobile={mobile} />
+            </Suspense>
+          </Link>
+        ) : i.href === "/notifikasi" ? (
+          <Link key={i.href} href={i.href} className={cls}>
+            {i.label}
+            <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
               <NotifBadge mobile={mobile} />
             </Suspense>
           </Link>
@@ -69,12 +77,20 @@ function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean;
   );
 }
 
-async function NotifBadge({ mobile }: { mobile?: boolean }) {
-  const user = await userDariSesi();
-  if (!user) return null;
-  const n = await prisma.notifikasi.count({ where: { userId: user.id, dibaca: false } });
-  if (n === 0) return null;
-  const label = n > 99 ? "99+" : String(n);
+function BadgeSkeleton({ mobile }: { mobile?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={
+        mobile
+          ? "absolute -right-1 -top-1 inline-block h-4 w-4 animate-pulse rounded-full bg-zinc-300"
+          : "ml-1.5 inline-block h-4 w-4 animate-pulse rounded-full bg-zinc-300 align-middle"
+      }
+    />
+  );
+}
+
+function BadgePill({ mobile, label }: { mobile?: boolean; label: string }) {
   return (
     <span
       className={
@@ -86,4 +102,35 @@ async function NotifBadge({ mobile }: { mobile?: boolean }) {
       {label}
     </span>
   );
+}
+
+async function PersetujuanBadge({ mobile }: { mobile?: boolean }) {
+  const user = await userDariSesi();
+  if (!user) return null;
+  let count = 0;
+  if (user.role === "HR_ADMIN") {
+    const gaji = await prisma.gajiPerubahan.count({ where: { approverId: user.id, status: "MENUNGGU" } });
+    count += gaji;
+    const cutiHR = await prisma.pengajuan.count({
+      where: { status: { in: ["MENUNGGU_HR", "MENUNGGU_ATASAN"] } },
+    });
+    count += cutiHR;
+  }
+  if (await isAtasan(user.id)) {
+    const cuti = await prisma.pengajuan.count({
+      where: { status: "MENUNGGU_ATASAN", OR: [{ pemohon: { atasanId: user.id } }, { approverId: user.id }, { eskalasiKeId: user.id }] },
+    });
+    const laporan = await prisma.laporanLapangan.count({ where: { status: "MENUNGGU", OR: [{ approverId: user.id }, { pembuat: { atasanId: user.id } }] } });
+    count += cuti + laporan;
+  }
+  if (count === 0) return null;
+  return <BadgePill mobile={mobile} label={count > 99 ? "99+" : String(count)} />;
+}
+
+async function NotifBadge({ mobile }: { mobile?: boolean }) {
+  const user = await userDariSesi();
+  if (!user) return null;
+  const n = await prisma.notifikasi.count({ where: { userId: user.id, dibaca: false } });
+  if (n === 0) return null;
+  return <BadgePill mobile={mobile} label={n > 99 ? "99+" : String(n)} />;
 }

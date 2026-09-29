@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
-import { aksiBuatLaporan, aksiRevisiLaporan } from "@/app/actions";
+import { aksiBuatLaporan, aksiRevisiLaporan } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 
 type A = { id: string; nama: string; jabatan: string | null };
 
-export function LaporanForm({ editId, initial }: { editId?: string; initial?: { tglLaporan?: string; lokasi?: string; shift?: string | null; judul?: string; isi?: string; approverId?: string } }) {
+export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; initial?: { tglLaporan?: string; lokasi?: string; shift?: string | null; judul?: string; isi?: string; approverId?: string }; dariDraf?: boolean }) {
   const [state, action] = useFormState(editId ? aksiRevisiLaporan : aksiBuatLaporan, { error: "" } as { error?: string });
   const [approverId, setApproverId] = useState(initial?.approverId ?? "");
   const [list, setList] = useState<A[]>([]);
@@ -46,7 +47,9 @@ export function LaporanForm({ editId, initial }: { editId?: string; initial?: { 
         </select>
       </Field>
       <ErrorMsg msg={state?.error} />
-      <button className={btnCls}>{editId ? "Simpan & Kirim Ulang" : "Simpan Laporan"}</button>
+      <SubmitButton className={btnCls}>
+        {!editId ? "Simpan Laporan" : dariDraf ? "Simpan Perubahan" : "Simpan & Kirim Ulang"}
+      </SubmitButton>
     </form>
   );
 }

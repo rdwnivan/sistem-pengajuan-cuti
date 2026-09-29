@@ -3,7 +3,8 @@ import { isAtasan, wajibLogin } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
 import { DelegasiForm } from "./DelegasiForm";
-import { aksiBatalDelegasi } from "@/app/actions";
+import { aksiBatalDelegasi } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 
 export default async function DelegasiPage() {
@@ -29,7 +30,7 @@ export default async function DelegasiPage() {
               <div className="font-semibold">→ {d.ke.nama} {!d.aktif && "(nonaktif)"}</div>
               <div className="text-xs text-zinc-500">{fmtTgl(d.tglMulai)} → {fmtTgl(d.tglSelesai)}</div>
             </div>
-            {d.aktif && <button className="font-semibold text-red-600">Batalkan</button>}
+            {d.aktif && <SubmitButton className="font-semibold text-red-600">Batalkan</SubmitButton>}
           </form>
         ))}
         {list.length === 0 && <p className="text-sm text-zinc-500">Belum ada delegasi.</p>}

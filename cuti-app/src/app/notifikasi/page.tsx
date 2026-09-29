@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { isAtasan, wajibLogin } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
-import { aksiBacaNotif, aksiBacaSemuaNotif } from "@/app/actions";
+import { aksiBacaNotif, aksiBacaSemuaNotif } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function NotifikasiPage() {
   const user = await wajibLogin();
@@ -14,7 +15,7 @@ export default async function NotifikasiPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Notifikasi ({belum} belum dibaca)</h1>
         {belum > 0 && (
-          <form action={aksiBacaSemuaNotif}><button className="rounded-lg border px-3 py-1.5 text-sm font-semibold">Tandai semua dibaca</button></form>
+          <form action={aksiBacaSemuaNotif}><SubmitButton className="rounded-lg border px-3 py-1.5 text-sm font-semibold">Tandai semua dibaca</SubmitButton></form>
         )}
       </div>
       <div className="space-y-2">
@@ -29,7 +30,7 @@ export default async function NotifikasiPage() {
                 {n.pengajuanId && <Link href={`/cuti/${n.pengajuanId}`} className="font-semibold text-emerald-700">Lihat</Link>}
                 {n.laporanId && <Link href={`/laporan/${n.laporanId}`} className="font-semibold text-amber-700">Lihat</Link>}
                 {!n.dibaca && (
-                  <form action={aksiBacaNotif}><input type="hidden" name="id" value={n.id} /><button className="font-semibold text-blue-700">Tandai dibaca</button></form>
+                  <form action={aksiBacaNotif}><input type="hidden" name="id" value={n.id} /><SubmitButton className="font-semibold text-blue-700">Tandai dibaca</SubmitButton></form>
                 )}
               </span>
             </div>

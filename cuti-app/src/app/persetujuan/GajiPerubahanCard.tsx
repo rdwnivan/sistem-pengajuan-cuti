@@ -1,7 +1,8 @@
 "use client";
 import { useFormState } from "react-dom";
 import { Badge, ErrorMsg, inputCls } from "@/components/ui";
-import { aksiPutusanPerubahanGaji } from "@/app/actions";
+import { SubmitButton } from "@/components/SubmitButton";
+import { aksiPutusanPerubahanGaji } from "@/actions";
 
 type GajiPerubahanData = {
   id: string;
@@ -50,9 +51,9 @@ export function GajiPerubahanCard({ g }: { g: GajiPerubahanData }) {
         <textarea name="catatan" rows={2} placeholder="Catatan (wajib diisi bila menolak)" className={inputCls} />
         <ErrorMsg msg={state?.error} />
         <div className="flex gap-2 text-sm font-bold">
-          <button name="aksi" value="setuju" className="flex-1 rounded-lg bg-emerald-700 px-3 py-2 text-white">Setujui</button>
-          <button name="aksi" value="kembalikan" className="flex-1 rounded-lg border border-orange-500 px-3 py-2 text-orange-700">Kembalikan</button>
-          <button name="aksi" value="tolak" className="flex-1 rounded-lg border border-red-500 px-3 py-2 text-red-700">Tolak</button>
+          <SubmitButton name="aksi" value="setuju" className="flex-1 rounded-lg bg-emerald-700 px-3 py-2 text-white">Setujui</SubmitButton>
+          <SubmitButton name="aksi" value="kembalikan" className="flex-1 rounded-lg border border-orange-500 px-3 py-2 text-orange-700">Kembalikan</SubmitButton>
+          <SubmitButton name="aksi" value="tolak" className="flex-1 rounded-lg border border-red-500 px-3 py-2 text-red-700">Tolak</SubmitButton>
         </div>
       </form>
     </div>

@@ -5,7 +5,8 @@ import { wajibLogin } from "@/lib/auth";
 import { Badge } from "@/components/ui";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
-import { aksiKirimLaporan, aksiBatalLaporan } from "@/app/actions";
+import { aksiKirimLaporan, aksiBatalLaporan } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PutusanLaporanForm } from "./PutusanLaporanForm";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -24,8 +25,9 @@ export default async function LaporanDetail({ params }: { params: { id: string }
 
   const dapatPutus = isApprover && l.status === "MENUNGGU";
   const dapatRevisi = isOwner && ["DITOLAK", "DIKEMBALIKAN"].includes(l.status);
+  const dapatEditDraft = isOwner && l.status === "DRAFT";
   const dapatKirim = isOwner && l.status === "DRAFT" && !!l.approverId;
-  const dapatBatal = isOwner && ["DRAFT", "DITOLAK", "DIKEMBALIKAN"].includes(l.status);
+  const dapatBatal = isOwner && ["DITOLAK", "DIKEMBALIKAN"].includes(l.status);
   const bisaDownload = l.status === "DISETUJUI";
 
   return (
@@ -53,15 +55,18 @@ export default async function LaporanDetail({ params }: { params: { id: string }
 
       {dapatPutus && <PutusanLaporanForm laporanId={l.id} />}
 
-      <div className="space-y-2">
+<div className="space-y-2">
         {dapatKirim && (
           <form action={aksiKirimLaporan}>
             <input type="hidden" name="id" value={l.id} />
-            <button className="w-full rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white">Kirim ke Atasan</button>
+            <SubmitButton className="w-full rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white">Kirim ke Atasan</SubmitButton>
           </form>
         )}
         {dapatRevisi && (
           <Link href={`/laporan/baru?edit=${l.id}`} className="block rounded-xl border-2 border-emerald-700 px-4 py-3 text-center font-bold text-emerald-700">Revisi Laporan</Link>
+        )}
+        {dapatEditDraft && (
+          <Link href={`/laporan/baru?edit=${l.id}`} className="block rounded-xl border-2 border-emerald-700 px-4 py-3 text-center font-bold text-emerald-700">Edit Laporan</Link>
         )}
         {bisaDownload && (
           <a href={`/api/laporan-lapangan/${l.id}?format=pdf`} className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-bold text-white">Download PDF</a>
@@ -69,7 +74,7 @@ export default async function LaporanDetail({ params }: { params: { id: string }
         {dapatBatal && (
           <form action={aksiBatalLaporan}>
             <input type="hidden" name="id" value={l.id} />
-            <button className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Laporan</button>
+            <SubmitButton className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Laporan</SubmitButton>
           </form>
         )}
       </div>

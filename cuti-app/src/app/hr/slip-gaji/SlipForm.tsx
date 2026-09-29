@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useFormState } from "react-dom";
-import { aksiBuatSlip } from "@/app/actions";
+import { aksiBuatSlip } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 
 type K = { id: string; nama: string; jabatan: string | null; gajiPokok: number | null; tunjanganTetap: number | null };
 
@@ -60,7 +61,7 @@ export function SlipForm({ karyawan }: { karyawan: K[] }) {
       </div>
       <Field label="Catatan (opsional)"><textarea name="catatan" rows={2} className={inputCls} placeholder="Misal: bonus proyectos lapangan" /></Field>
       <ErrorMsg msg={state?.error} />
-      <button className={btnCls}>Terbitkan Slip</button>
+      <SubmitButton className={btnCls}>Terbitkan Slip</SubmitButton>
     </form>
   );
 }

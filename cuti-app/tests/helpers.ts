@@ -14,7 +14,7 @@ export async function login(page: Page, peran: Peran) {
   const akun = AKUN[peran];
   await page.goto("/login");
   await page.getByLabel("Email").fill(akun.email);
-  await page.getByLabel("Password").fill(akun.password);
+  await page.locator("#password").fill(akun.password);
   await page.getByRole("button", { name: "Masuk" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
 }

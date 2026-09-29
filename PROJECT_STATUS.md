@@ -5,8 +5,46 @@
 
 ## Last Updated
 
-* Date: 2026-09-28
-* Session: Security hardening + UI polish (back buttons, month selector, HR slip filter)
+* Date: 2026-09-29
+* Session: Semua P0 selesai — cookie secure + rate limit login + content sniffing upload + CI cleanup
+
+---
+
+# 0. Security Review (2026-09-29)
+
+## Verified PASS (automated security tests)
+
+* Semua API route punya auth check → 401/403 tanpa sesi
+* IDOR protection: `/api/slip/[id]`, `/api/formulir/[id]`, `/api/laporan` — 403/404 untuk data orang lain
+* HR-only routes (`/hr/*`) redirect non-HR ke `/`
+* `/api/cron` menolak tanpa secret / secret salah → 401
+* Session token: 32 bytes `crypto.randomBytes`, httpOnly, sameSite=lax, 7-day expiry, `secure` di production
+* Password: bcrypt hash (cost 10), `statusAktif` dicek saat login
+* Rate limiting login: maks 5 gagal/15 mnt per akun → blokir 15 mnt (`tests/rate-limit.spec.ts`)
+* Upload: magic-bytes sniffing (`src/lib/upload.ts`) + batas 2MB — spoof HTML/JS/SVG ditolak
+* CSP & security headers lengkap (`X-Frame-Options`, `X-Content-Type-Options`, HSTS, `frame-ancestors`, `object-src 'none'`)
+* `.env` tidak ter-commit (`.gitignore` cover `.env*` kecuali `.env.example`)
+
+## Issues Resolved (sesi ini)
+
+* [x] HIGH — rate limiting login (`src/lib/rate-limit.ts`)
+* [x] HIGH — cookie `secure` di production (`src/lib/auth.ts`)
+* [x] MED — content sniffing upload (`src/lib/upload.ts`)
+* [x] MED — `SESSION_SECRET` sudah tidak ada di ci.yml; README.md diperbaiki agar tidak menyebutnya lagi
+
+## Issues Remaining
+
+| Sev | Issue | Lokasi |
+|-----|-------|--------|
+| LOW | Perbandingan secret cron tidak constant-time (`q !== secret`) — timing attack teoretis | `src/app/api/cron/route.ts:9` |
+| LOW | Session token tidak dirotasi setelah login | `src/lib/auth.ts` |
+| INFO | CSP `script-src 'unsafe-inline'` melemahkan proteksi XSS (dibutuhkan Next.js bootstrap) | `next.config.mjs` |
+o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak memuat `https://va.vercel-scripts.com`, jadi analitik tidak jalan di production | `next.config.mjs` + `layout.tsx` |
+
+## Design Notes (bukan bug)
+
+* `isAtasan(userId)` mengecek **relasi** (`atasanId`), bukan `role` — user yang punya bawahan dianggap "atasan" terlepas dari field `role`. Ini memang desain yang dipakai di seluruh app.
+* `wajibHR()` hanya redirect, tidak throw — dipakai di server component, bukan API route.
 
 ---
 
@@ -30,15 +68,35 @@ Production — live at https://cuti-app.vercel.app/ (Next 14.2.35)
 
 ## Active Feature
 
-Pengawasan perubahan gaji — approval flow atasan sebelum gaji slip bisa terbit.
+Semua P0 security selesai — cookie secure + rate limit login + content sniffing upload + CI cleanup.
 
 ## Current Task
 
-Implementasi selesai, verifikasi `tsc`/`lint`/`build` PASS. Menunggu deploy + seeding test DB.
+Selesai. `tsc`/`lint`/`build` PASS. Suite utama 40/40 PASS, rate-limit 2/2 PASS (dijalankan terpisah, worker 1). Belum commit.
 
 ## Current Status
 
-Semua flow berjalan. Perubahan gaji kini butuh persetujuan atasan (tidak bisa langsung di-set HR).
+Semua P0 security selesai:
+- **Cookie `secure`** — `buatSesi` kini set `secure: true` saat `NODE_ENV === "production"` (tetap HTTP di dev agar login lokal tidak rusak).
+- **Rate limiting login** — `src/lib/rate-limit.ts` (in-memory): maks 5 gagal per 15 menit per akun, blokir 15 menit. Key = **email saja** (bukan IP+email) — `x-forwarded-for` tidak stabil di dev Playwright (`::1`/`127.0.0.1`/null berganti antar request virtual), membuat counter terpecah. Rate limit per akun juga sudah tepat sasaran karena brute force menarget satu akun. Test brute-force dipisah ke `tests/rate-limit.spec.ts` (serial, timeout 120s, worker 1) karena 6× bcrypt cost 10 membuat Next dev single-process macet saat suite penuh berjalan paralel.
+- **Content sniffing upload** — `src/lib/upload.ts` `sniffFile`: magic bytes PDF/PNG/JPG, ekstensi dari konten aktual, bukan `File.type` client. Spoof HTML/JS/SVG ditolak. Terintegrasi di `shared.ts` (`unggahFoto`) dan `cutiActions.ts` (`aksiAjukan`).
+- **CI cleanup** — `SESSION_SECRET` sudah dihapus dari `.github/workflows/ci.yml` (sudah tidak terpakai sejak auth pakai token DB). README.md diperbaiki agar tidak lagi meminta `SESSION_SECRET`.
+- **Test rate-limit dipisah** — `tests/rate-limit.spec.ts` dengan config sendiri `playwright.rate-limit.config.ts` (serial, worker 1, timeout 120s). CI workflow diupdate jalankan terpisah.
+
+## Catatan Teknis Penting
+
+### E2E wajib dari DB bersih
+Test E2E **order/state-dependent**: setiap run menumpuk pengajuan & laporan, sehingga test seperti "HR melihat antrean kosong" gagal kalau DB sudah ada data. **Selalu re-seed sebelum `npx playwright test`:**
+```powershell
+$env:SEED_FORCE="true"; npx tsx prisma/seed.ts; $env:SEED_FORCE=$null
+```
+Seed script sudah diperbaiki urutan `deleteMany`-nya (FK-safe) — sebelumnya gagal karena tidak menghapus `GajiPerubahan`, `LaporanLapangan`, `SlipGaji`, `Notifikasi`, `PushSubscription`.
+
+### Root `loading.tsx` dilarang
+Root `src/app/loading.tsx` **tidak boleh** ditambahkan. Root `loading.tsx` membuat Suspense boundary yang menelan `notFound()`, sehingga halaman yang seharusnya 404 (`cuti/[id]`, `slip-gaji/[id]`, `laporan/[id]`, `hr/karyawan/[id]`) mengembalikan status 200 — verified dengan E2E yang gagal. Loading navigasi diimplementasikan via `src/components/NavigationProgress.tsx` (client-side progress bar di root layout) yang tidak menyentuh server rendering.
+
+### React 18 — `useFormStatus` tidak tersedia
+Project pakai React 18.3.1. `useFormStatus` (React 19) **tidak ada** di `react-dom` — memanggilnya merusak render. `SubmitButton` memakai pendekatan manual: `onClick` → set pending, reset via `pathname` change atau timeout 4 detik. **Jangan tambahkan `disabled={pending}`** — itu memblokir form submit (React men-disable button sebelum browser menyelesaikan submit).
 
 ---
 

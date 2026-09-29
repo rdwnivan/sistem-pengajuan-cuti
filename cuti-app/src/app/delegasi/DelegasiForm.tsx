@@ -1,7 +1,8 @@
 "use client";
 import { useFormState } from "react-dom";
-import { aksiSimpanDelegasi } from "@/app/actions";
+import { aksiSimpanDelegasi } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function DelegasiForm({ users }: { users: { id: string; nama: string; email: string }[] }) {
   const [state, action] = useFormState(aksiSimpanDelegasi, { error: "" } as { error?: string });
@@ -20,7 +21,7 @@ export function DelegasiForm({ users }: { users: { id: string; nama: string; ema
       </div>
       <p className="text-xs text-zinc-500">Selama rentang ini, penerima dapat menyetujui bawahan Anda. Delegasi lama otomatis nonaktif.</p>
       <ErrorMsg msg={state?.error} />
-      <button className={btnCls}>Simpan Delegasi</button>
+      <SubmitButton className={btnCls}>Simpan Delegasi</SubmitButton>
     </form>
   );
 }

@@ -13,7 +13,7 @@ test.describe("Smoke — autentikasi", () => {
   test("kredensial salah ditolak", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(AKUN.karyawan.email);
-    await page.getByLabel("Password").fill("passwordsalah");
+    await page.locator("#password").fill("passwordsalah");
     await page.getByRole("button", { name: "Masuk" }).click();
     await expect(page.getByText("Email atau password salah")).toBeVisible();
   });

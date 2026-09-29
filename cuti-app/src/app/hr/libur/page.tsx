@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { wajibHR } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
-import { aksiTambahLibur, aksiHapusLibur } from "@/app/actions";
+import { aksiTambahLibur, aksiHapusLibur } from "@/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function LiburPage() {
   const admin = await wajibHR();
@@ -17,7 +18,7 @@ export default async function LiburPage() {
           <label className="block"><span className="text-sm font-semibold">Tanggal</span><input name="tanggal" type="date" required className="w-full rounded-lg border border-zinc-300 px-3 py-2" /></label>
           <label className="block"><span className="text-sm font-semibold">Keterangan</span><input name="keterangan" required className="w-full rounded-lg border border-zinc-300 px-3 py-2" /></label>
         </div>
-        <button className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">Tambah</button>
+        <SubmitButton className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">Tambah</SubmitButton>
       </form>
       <div className="mt-4 space-y-2">
         {list.map((l) => (
@@ -27,7 +28,7 @@ export default async function LiburPage() {
               <div className="font-semibold">{fmtTgl(l.tanggal)}</div>
               <div className="text-xs text-zinc-500">{l.keterangan}</div>
             </div>
-            <button className="text-red-600 font-semibold">Hapus</button>
+            <SubmitButton className="text-red-600 font-semibold">Hapus</SubmitButton>
           </form>
         ))}
       </div>
