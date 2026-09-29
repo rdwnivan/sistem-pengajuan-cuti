@@ -378,6 +378,17 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
   `db push` + reseed + buat ulang slip demo. Tercatat di TODO P1.
 * Verified: `tsc` + `lint` + `build` + unit 61/61 + E2E 37/37 + flows 24/24 + rate-limit 2/2 PASS
 
+## 2026-09-30 (pisah DB dev/production)
+
+* Insiden: `.env` lokal menunjuk ke `neondb` yang ternyata dipakai aplikasi live
+  (Neon branch `production`, database `neondb`) — reseed lokal sempat membersihkan DB live.
+  Terkoreksi setelah user menunjukkan screenshot "Connection details for production".
+* Perbaikan: database `neondb_dev` dibuat via `CREATE DATABASE`; `.env` lokal dialihkan
+  ke sana (`db push` + seed OK, 9 user). Production `neondb`reseeded bersih
+  (9 user demo, 0 slip) dan tidak tersentuh lagi oleh kerja lokal/E2E.
+* ATURAN KERAS: `.env` lokal = `neondb_dev` selalu. Seed production hanya via URL
+  eksplisit bila darurat, tidak pernah via `.env`.
+
 ---
 
 # 13. Next Session

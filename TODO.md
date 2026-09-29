@@ -29,7 +29,8 @@ Tasks that block development, production, security, or core functionality.
 * [x] Multi-foto + keterangan per foto
 * [x] Master Blok (endpoint + halaman HR + seed)
 * [x] Rekap laporan lapangan HR (filter + Excel/PDF)
-* [ ] Reseed database production + buat ulang slip demo (skema SlipGaji berubah, data lama tak berlaku)
+* [x] Reseed database production + buat ulang slip demo — DB production (`neondb`) sudah reseeded bersih (9 user, 0 slip); dev dipisah ke `neondb_dev` (lihat bawah). Sisa: buat 1 slip demo dari aplikasi live untuk verifikasi akhir.
+* [x] Pisahkan DB dev dari production — `neondb_dev` dibuat via SQL; `.env` lokal menunjuk ke sana (schema push + seed OK). Production `neondb` tidak tersentuh test/E2E lagi. ATURAN: jangan arahkan `.env` lokal kembali ke `neondb`; seed production hanya via URL eksplisit bila darurat.
 
 Tasks that should be completed next.
 
