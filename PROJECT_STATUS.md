@@ -72,7 +72,7 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-Selesai. `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 24/24 PASS, rate-limit 2/2 PASS. Belum commit.
+Selesai dan ter-commit (`19c1860`): `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 24/24 PASS, rate-limit 2/2 PASS.
 
 ## Current Status
 
