@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Verifikasi checklist security 5/5 + filter tanggal laporan full hijau
+* Session: Fix N+1 delegasi di /persetujuan (flows 22/22, utama 49/49 hijau)
 
 ---
 

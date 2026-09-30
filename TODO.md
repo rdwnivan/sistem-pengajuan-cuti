@@ -118,7 +118,7 @@ Nice-to-have items.
 
 # Performance
 
-* [ ] Investigate slow approval queue query (N+1 on audit logs?)
+* [x] Investigate slow approval queue query (N+1 on audit logs?) — N+1 nyata ada di loop delegasi `/persetujuan` (1 query per delegasi) → digabung jadi 1 query `atanId: { in }`; perilaku badge "delegasi" dipertahankan; flows 22/22 + utama 49/49
 * [ ] Optimize `Kuota` query — cache sisa kuota on dashboard
 * [ ] Review `prisma.ts` — connection pooling config for serverless (Vercel)
 

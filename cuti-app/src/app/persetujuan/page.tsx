@@ -38,16 +38,23 @@ export default async function Persetujuan() {
       where: { keId: user.id, aktif: true, tglMulai: { lte: now }, tglSelesai: { gte: now } },
       select: { dariId: true },
     });
-    for (const a of delegasiDari) {
-      const l = await prisma.pengajuan.findMany({
-        where: { status: "MENUNGGU_ATASAN", pemohon: { atasanId: a.dariId } },
+    // 1 query untuk semua delegasi (bukan 1 per delegasi).
+    // Badge "delegasi" hanya untuk item yang murni dari delegasi (bukan overlap langsung).
+    const terlihat = new Set<string>(langsung.map((x) => x.id));
+    const dariIds = delegasiDari.map((a) => a.dariId);
+    if (dariIds.length > 0) {
+      const via = await prisma.pengajuan.findMany({
+        where: { status: "MENUNGGU_ATASAN", pemohon: { atasanId: { in: dariIds } } },
         include: { jenis: true, pemohon: true }, orderBy: { createdAt: "asc" },
       });
-      viaDelegasiIds.push(...l.map((x) => x.id));
-      list.push(...l);
+      for (const x of via) {
+        if (!terlihat.has(x.id)) {
+          terlihat.add(x.id);
+          viaDelegasiIds.push(x.id);
+          list.push(x);
+        }
+      }
     }
-    const seen = new Set<string>();
-    list = list.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
   }
 
   const gajiList = await prisma.gajiPerubahan.findMany({
