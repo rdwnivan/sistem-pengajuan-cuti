@@ -86,10 +86,10 @@ Nice-to-have items.
 
 # Technical Debt
 
-* [ ] `src/app/actions.ts` — 557 lines; split into `cutiActions.ts`, `slipActions.ts`, `laporanActions.ts`
-* [ ] `src/lib/pdf.ts` — consolidate WinAnsi sanitization logic
-* [ ] `cuti-app/HANDOVER.md` — may be stale, verify against actual code
-* [ ] `cuti-app/dev-server3.log` — committed log file, should be removed (already in `.gitignore` but not yet removed from repo)
+* [x] `src/app/actions.ts` — split selesai (`src/actions/` 9 file domain + barrel, import `@/actions`)
+* [x] `src/lib/pdf.ts` — `teksAman()` kini dipakai konsisten di 4 route PDF (slip, formulir, laporan-lapangan, rekap laporan); sebelumnya formulir + rekap `drawText` langsung (crash WinAnsi untuk karakter non-Latin)
+* [x] `cuti-app/HANDOVER.md` — perbaiki baris struktur `src/app/actions.ts` yang basi → `src/actions/`
+* [x] `cuti-app/dev-server3.log` — ternyata tidak ter-track di git (hanya di disk, sudah di `.gitignore`); hapus dari disk lokal
 
 ---
 

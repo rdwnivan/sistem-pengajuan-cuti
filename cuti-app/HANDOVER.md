@@ -67,9 +67,9 @@ Login: `hr@anime.id` (HR), `pimpinan@anime.id`, `atasan1@anime.id`, `karyawan1@a
 ```
 prisma/schema.prisma      # SlipGaji, LaporanLapangan, relasi User
 src/lib/validasi.ts       # slipSchema, laporanSchema, putusanLaporanSchema
-src/app/actions.ts        # aksiBuatSlip, aksiBatalSlip, aksiSimpanGajiPokok,
-                          # aksiBuatLaporan, aksiKirimLaporan, aksiPutusanLaporan,
-                          # aksiRevisiLaporan, aksiBatalLaporan, aksiSimpanUser
+src/actions/              # cutiActions, hrActions, slipActions, gajiActions,
+                          # laporanActions, delegasiActions, notifActions,
+                          # authActions + shared.ts (diimpor via `@/actions`)
 src/app/api/
   slip/[id]/route.ts      # GET PDF slip (owner/HR)
   approver/route.ts       # GET list user

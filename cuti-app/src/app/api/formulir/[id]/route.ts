@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { fmtTgl } from "@/lib/cuti";
+import { teksAman } from "@/lib/pdf";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const user = await userDariSesi();
@@ -17,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const page = doc.addPage([595, 842]);
   let y = 800;
-  const T = (t: string, size = 11, f = font) => { page.drawText(t.slice(0, 90), { x: 50, y, size, font: f }); y -= size + 6; };
+  const T = (t: string, size = 11, f = font) => { page.drawText(teksAman(t.slice(0, 90)), { x: 50, y, size, font: f }); y -= size + 6; };
   T("FORMULIR PERMOHONAN CUTI - PT ANIME JAPAN", 14, bold);
   T(`Status: DISETUJUI`, 11, bold);
   y -= 6;
@@ -36,7 +37,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   T("Palangka Raya, ........................", 11);
   y -= 30;
   T("Pemohon                                      HR / Atasan", 11);
-  page.drawText("Dicetak dari Sistem Pengajuan Cuti Online", { x: 50, y: 40, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
+  page.drawText(teksAman("Dicetak dari Sistem Pengajuan Cuti Online"), { x: 50, y: 40, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
   const bytes = await doc.save();
   return new Response(bytes as unknown as BodyInit, {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="formulir-cuti-${p.id.slice(0, 8)}.pdf"` },

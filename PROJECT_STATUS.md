@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Fix notif push bocor antar akun — LogoutButton unsubscribe + banner re-subscribe (48/48 hijau)
+* Session: Bersih tech debt (pdf teksAman konsisten, HANDOVER, dev-log) + temuan discovery test
 
 ---
 
@@ -93,8 +93,16 @@ Semua P0 security selesai:
 - **CSP Analytics fix (P1)** — `https://va.vercel-scripts.com` ditambahkan ke `script-src` + `connect-src` di `next.config.mjs`; verified via header CSP asli dari production server (`next start`), build + lint + smoke 6/6 PASS.
 - **Confirm dialog hapus** — prop `confirm` di `SubmitButton` (`window.confirm` dicek SEBELUM `setPending`, batal = `preventDefault` + tombol tetap normal). Dipasang di 5 tombol destruktif: Hapus hari libur (satu-satunya hard delete), Batalkan pengajuan/laporan/slip/delegasi. Jenis cuti & karyawan tidak punya tombol hapus (soft-delete via checkbox Aktif) — TODO item lama sebagian stale. Test `tests/confirm-dialog.spec.ts` verifikasi dismiss → tidak submit, accept → submit. E2E terkait (`delegasi.spec.ts`, `cron.spec.ts`) dipasang `dialog` accept handler. Full suite 47/47 PASS.
 - **Fix notif push bocor antar akun** — PushSubscription milik browser (satu endpoint per origin), bukan milik akun app. Setelah ganti akun di browser yang sama, notif akun lama tetap bunyi. `LogoutButton` (client) kini unsubscribe + DELETE row DB sebelum `aksiKeluar`; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription (re-subscribe ke akun aktif). Alur subscribe end-to-end tidak bisa diuji di headless CI (permission denied + butuh push service asli); terverifikasi via tsc/lint + test logout baru di smoke + full suite 48/48.
+- **Bersih tech debt** — `teksAman()` kini dipakai di 4 route PDF (formulir + rekap laporan sebelumnya `drawText` langsung, crash WinAnsi untuk karakter non-Latin; verified 5/5 via tsx); HANDOVER.md baris `src/app/actions.ts` diperbaiki → `src/actions/`; `dev-server3.log` ternyata tidak ter-track (hanya di disk) → hapus lokal; item refactor actions.ts di TODO yang masih terbuka ditandai selesai.
 
 ## Catatan Teknis Penting
+
+### Arsitektur test: 3 tier terpisah
+Suite E2E dibagi 3 (dibuat sesi prototype, jangan digabung):
+1. **Suite utama** (`npx playwright test`) — 6 file, 48 test: smoke, slip-gaji, laporan, security, performance, confirm-dialog. `testIgnore` di `playwright.config.ts` mengecualikan sisanya.
+2. **Flows** (`npx playwright test --config=playwright.flows.config.ts`) — 7 file serial worker 1: cron, cuti-flow, delegasi, gaji-flow, laporan-acc, laporan-kebun, slip-rincian. Test stateful (buat data lalu cleanup sendiri).
+3. **Rate-limit** (`npx playwright test --config=playwright.rate-limit.config.ts`) — serial worker 1, timeout 120s (6× bcrypt cost 10 membuat Next dev macet bila paralel).
+Jalankan berurutan dari DB bersih (re-seed sekali di awal). Filter per-file via CLI (`npx playwright test tests/x.spec.ts`) sering "No tests found" misterius — gunakan full run per tier sebagai gantinya.
 
 ### E2E wajib dari DB bersih
 Test E2E **order/state-dependent**: setiap run menumpuk pengajuan & laporan, sehingga test seperti "HR melihat antrean kosong" gagal kalau DB sudah ada data. **Selalu re-seed sebelum `npx playwright test`:**

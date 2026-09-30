@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { fmtTgl } from "@/lib/cuti";
+import { teksAman } from "@/lib/pdf";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -62,13 +63,13 @@ export async function GET(req: Request) {
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
     let page = doc.addPage([595, 842]);
     let y = 800;
-    page.drawText("Rekap Pengajuan Cuti - PT ANIME JAPAN", { x: 50, y, size: 14, font: bold });
+    page.drawText(teksAman("Rekap Pengajuan Cuti - PT ANIME JAPAN"), { x: 50, y, size: 14, font: bold });
     y -= 20;
-    page.drawText(`Periode: ${dari ?? "-"} s/d ${sampai ?? "-"} | Status: ${status ?? "semua"} | Total: ${list.length}`, { x: 50, y, size: 9, font });
+    page.drawText(teksAman(`Periode: ${dari ?? "-"} s/d ${sampai ?? "-"} | Status: ${status ?? "semua"} | Total: ${list.length}`), { x: 50, y, size: 9, font });
     y -= 18;
     for (const p of list.slice(0, 60)) {
       if (y < 50) { page = doc.addPage([595, 842]); y = 800; }
-      page.drawText(`${p.pemohon.nama} | ${p.jenis.nama} ${p.jumlahHariKerja}hr | ${fmtTgl(p.tglMulai)}-${fmtTgl(p.tglSelesai)} | ${p.status}`, { x: 50, y, size: 8, font });
+      page.drawText(teksAman(`${p.pemohon.nama} | ${p.jenis.nama} ${p.jumlahHariKerja}hr | ${fmtTgl(p.tglMulai)}-${fmtTgl(p.tglSelesai)} | ${p.status}`), { x: 50, y, size: 8, font });
       y -= 12;
     }
     const bytes = await doc.save();
