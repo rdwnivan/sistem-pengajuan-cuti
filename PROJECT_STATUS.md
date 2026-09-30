@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: E2E cron H+1/H+3 asli (flows 22/22 hijau)
+* Session: Filter tanggal laporan + full 73/73 hijau (utama 49, flows 22, rate-limit 2)
 
 ---
 

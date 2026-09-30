@@ -80,7 +80,7 @@ Nice-to-have items.
 * [ ] Add WhatsApp (Fonnte) delivery retry logic
 * [ ] Add PDF preview before download (slip gaji, formulir cuti)
 * [ ] Add dark mode support
-* [ ] Add filter by date range on laporan list
+* [x] Add filter by date range on laporan list (`?dari=`/`?sampai=` pada `tglLaporan`, form GET + Reset, link status pertahankan tanggal, tanggal invalid diabaikan; test permanen di `laporan.spec.ts`)
 
 ---
 

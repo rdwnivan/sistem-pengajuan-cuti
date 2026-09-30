@@ -79,3 +79,33 @@ test.describe("Laporan lapangan — hak akses", () => {
     expect(response?.status()).toBeGreaterThanOrEqual(400);
   });
 });
+
+test.describe("Laporan lapangan — filter tanggal", () => {
+  test("dari/sampai memfilter daftar, tanggal invalid diabaikan", async ({ page }) => {
+    await login(page, "karyawan");
+    await page.goto("/laporan/baru");
+    await page.waitForFunction(() => document.querySelectorAll('select[name="approverId"] option').length > 1, {}, { timeout: 8000 });
+    const judul = `Uji Filter Tgl ${Date.now()}`;
+    await page.locator('input[name="lokasi"]').fill("Kebun Uji");
+    await page.locator('input[name="judul"]').fill(judul);
+    await page.locator('textarea[name="isi"]').fill("Isi laporan uji filter tanggal yang cukup panjang.");
+    await page.locator('select[name="approverId"]').selectOption({ index: 1 });
+    await page.getByRole("button", { name: "Simpan Laporan" }).click();
+    await page.waitForURL(/\/laporan\/[a-zA-Z0-9]{20,}$/, { timeout: 20000 });
+
+    const kemarin = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const lusa = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+    const tahunLalu = `${new Date().getFullYear() - 1}-01-01`;
+
+    await page.goto(`/laporan?dari=${kemarin}&sampai=${lusa}`);
+    await expect(page.getByText(judul).first()).toBeVisible({ timeout: 8000 });
+
+    await page.goto(`/laporan?dari=${tahunLalu}&sampai=${tahunLalu}`);
+    await expect(page.getByText(judul)).toHaveCount(0);
+    await expect(page.getByText("Belum ada laporan untuk filter ini.").first()).toBeVisible();
+
+    await page.goto("/laporan?dari=asal&sampai=2026-13-99");
+    await expect(page.getByText(judul).first()).toBeVisible({ timeout: 8000 });
+    // Draf tidak masuk antrean persetujuan -> tidak perlu cleanup.
+  });
+});

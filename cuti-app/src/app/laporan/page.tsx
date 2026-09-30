@@ -9,14 +9,30 @@ import { aksiBatalLaporan } from "@/actions";
 
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agus", "Sep", "Okt", "Nov", "Des"];
 
-export default async function LaporanSaya({ searchParams }: { searchParams: { stat?: string } }) {
+function tglValid(s?: string): s is string {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s + "T12:00:00");
+  return !isNaN(d.getTime());
+}
+
+export default async function LaporanSaya({ searchParams }: { searchParams: { stat?: string; dari?: string; sampai?: string } }) {
   const user = await wajibLogin();
   if (user.role === "HR_ADMIN" || (await isAtasan(user.id))) redirect("/");
   const stat = searchParams.stat ?? "semua";
-  const where = stat === "semua" ? { pembuatId: user.id } : { pembuatId: user.id, status: stat };
+  const dari = tglValid(searchParams.dari) ? (searchParams.dari as string) : undefined;
+  const sampai = tglValid(searchParams.sampai) ? (searchParams.sampai as string) : undefined;
+  const where: { pembuatId: string; status?: string; tglLaporan?: { gte?: Date; lte?: Date } } =
+    stat === "semua" ? { pembuatId: user.id } : { pembuatId: user.id, status: stat };
+  if (dari || sampai) {
+    where.tglLaporan = {
+      ...(dari ? { gte: new Date(dari + "T00:00:00") } : {}),
+      ...(sampai ? { lte: new Date(sampai + "T23:59:59") } : {}),
+    };
+  }
   const list = await prisma.laporanLapangan.findMany({
     where, include: { approver: true }, orderBy: { createdAt: "desc" },
   });
+  const qsTanggal = `${dari ? `&dari=${dari}` : ""}${sampai ? `&sampai=${sampai}` : ""}`;
 
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={false}>
@@ -24,14 +40,25 @@ export default async function LaporanSaya({ searchParams }: { searchParams: { st
         <h1 className="text-lg font-bold">Laporan Lapangan</h1>
         <Link href="/laporan/baru" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-bold text-white">+ Laporan Baru</Link>
       </div>
+      <form method="get" action="/laporan" className="flex flex-wrap items-end gap-2 rounded-xl border bg-white p-3">
+        <input type="hidden" name="stat" value={stat} />
+        <label className="text-xs font-semibold">Dari
+          <input name="dari" type="date" defaultValue={dari ?? ""} className="ml-1 rounded-lg border px-2 py-1.5" />
+        </label>
+        <label className="text-xs font-semibold">Sampai
+          <input name="sampai" type="date" defaultValue={sampai ?? ""} className="ml-1 rounded-lg border px-2 py-1.5" />
+        </label>
+        <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-bold text-white">Filter</button>
+        {(dari || sampai) && <Link href={`/laporan?stat=${stat}`} className="rounded-lg border px-3 py-1.5 text-xs font-bold text-zinc-700">Reset</Link>}
+      </form>
       <div className="flex gap-1 text-xs font-semibold">
         {[
-          { href: "/laporan?stat=semua", label: "Semua" },
-          { href: "/laporan?stat=DRAFT", label: "Draf" },
-          { href: "/laporan?stat=MENUNGGU", label: "Menunggu Acc" },
-          { href: "/laporan?stat=DISETUJUI", label: "Disetujui" },
-          { href: "/laporan?stat=DITOLAK", label: "Ditolak" },
-          { href: "/laporan?stat=DIKEMBALIKAN", label: "Dikembalikan" },
+          { href: `/laporan?stat=semua${qsTanggal}`, label: "Semua" },
+          { href: `/laporan?stat=DRAFT${qsTanggal}`, label: "Draf" },
+          { href: `/laporan?stat=MENUNGGU${qsTanggal}`, label: "Menunggu Acc" },
+          { href: `/laporan?stat=DISETUJUI${qsTanggal}`, label: "Disetujui" },
+          { href: `/laporan?stat=DITOLAK${qsTanggal}`, label: "Ditolak" },
+          { href: `/laporan?stat=DIKEMBALIKAN${qsTanggal}`, label: "Dikembalikan" },
         ].map((l) => (
           <Link key={l.href} href={l.href} className={`rounded-lg px-2 py-1 ${l.label === (stat === "semua" ? "Semua" : LABEL_STATUS_LAPORAN[stat]?.label ?? stat) ? "bg-emerald-700 text-white" : "border text-zinc-700"}`}>
             {l.label}
