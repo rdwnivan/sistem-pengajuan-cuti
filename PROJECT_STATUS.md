@@ -46,6 +46,14 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
 * `isAtasan(userId)` mengecek **relasi** (`atasanId`), bukan `role` — user yang punya bawahan dianggap "atasan" terlepas dari field `role`. Ini memang desain yang dipakai di seluruh app.
 * `wajibHR()` hanya redirect, tidak throw — dipakai di server component, bukan API route.
 
+## Flow Decisions (grilling 2026-09-30, disetujui user)
+
+* Slip gaji: HR isi manual → langsung TERBIT tanpa checker; salah → Batalkan + buat ulang.
+* Laporan lapangan: hanya karyawan lapangan boleh buat (atasan/HR ditolak).
+* Alur laporan: DRAFT → Kirim → MENUNGGU → DISETUJUI/DITOLAK/DIKEMBALIKAN, bisa revisi + kirim ulang.
+* Approver laporan: wajib atasan (pilih manual per laporan), HR tidak bisa acc.
+* HR tidak lihat/acc laporan sama sekali — murni karyawan↔atasan.
+
 ---
 
 # 1. Project Overview
