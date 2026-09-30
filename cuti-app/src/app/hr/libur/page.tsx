@@ -28,7 +28,7 @@ export default async function LiburPage() {
               <div className="font-semibold">{fmtTgl(l.tanggal)}</div>
               <div className="text-xs text-zinc-500">{l.keterangan}</div>
             </div>
-            <SubmitButton className="text-red-600 font-semibold">Hapus</SubmitButton>
+            <SubmitButton confirm="Hapus hari libur ini? Data yang dihapus tidak bisa dikembalikan." className="text-red-600 font-semibold">Hapus</SubmitButton>
           </form>
         ))}
       </div>

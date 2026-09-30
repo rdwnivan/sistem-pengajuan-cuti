@@ -40,7 +40,7 @@ Tasks that should be completed next.
 
 ## Bugs
 
-* [ ] Vercel Analytics + SpeedInsights blocked by CSP (`script-src` lacks `https://va.vercel-scripts.com`) — analytics/speed data not collected in production
+* [x] Vercel Analytics + SpeedInsights blocked by CSP — tambah `https://va.vercel-scripts.com` ke `script-src` + `connect-src` di `next.config.mjs` (verified via header production asli)
 
 ---
 
@@ -66,7 +66,7 @@ Important but not immediately blocking.
 
 ## Improvements
 
-* [ ] Improve UX: confirm dialog before delete (jenis cuti, karyawan)
+* [x] Improve UX: confirm dialog before delete — prop `confirm` di `SubmitButton` dipakai di 5 tombol destruktif (Hapus hari libur, Batalkan pengajuan/laporan/slip/delegasi) + konfirmasi saat menonaktifkan jenis cuti (`JenisForm`) & akun karyawan (`UserForm`); diverifikasi dismiss/accept via test sekali pakai
 * [ ] Add unit tests for delegation date-range logic in `src/lib/cron.ts`
 * [ ] Add E2E for cron umur H+1/H+3 asli (update `updatedAt`/`lastReminderAt` via DB agar reminder/eskalasi benar-benar terpicu)
 

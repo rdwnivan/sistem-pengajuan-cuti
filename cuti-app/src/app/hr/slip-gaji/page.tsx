@@ -83,7 +83,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
                 {s.status === "TERBIT" && (
                   <form action={aksiBatalSlip}>
                     <input type="hidden" name="id" value={s.id} />
-                    <SubmitButton className="rounded-lg border border-red-500 px-2 py-1 text-red-600">Batalkan</SubmitButton>
+                    <SubmitButton confirm="Batalkan slip gaji ini?" className="rounded-lg border border-red-500 px-2 py-1 text-red-600">Batalkan</SubmitButton>
                   </form>
                 )}
               </div>

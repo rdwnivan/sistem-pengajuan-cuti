@@ -21,6 +21,8 @@ test.describe("Delegasi — atasan menunjuk pengganti", () => {
 
     // Batalkan agar tidak memengaruhi test lain.
     // NB: aksiBatalDelegasi hanya set aktif=false — baris lama tetap tampil "(nonaktif)".
+    // NB: tombol Batalkan memakai window.confirm — accept dialog dulu.
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Batalkan" }).first().click();
     await page.waitForURL("/delegasi", { timeout: 15_000 });
     await expect(page.getByText("(nonaktif)").first()).toBeVisible({ timeout: 15_000 });
@@ -86,6 +88,7 @@ test.describe("Delegasi — atasan menunjuk pengganti", () => {
     await login(page, "karyawan");
     await page.goto(url);
     await expect(page.getByRole("heading", { name: "Detail Pengajuan" })).toBeVisible({ timeout: 15_000 });
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Batalkan Pengajuan" }).click();
     await page.waitForURL("/", { timeout: 15_000 });
 

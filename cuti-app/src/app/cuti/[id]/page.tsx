@@ -61,7 +61,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
       {bisaBatal && (
         <form action={aksiBatal}>
           <input type="hidden" name="id" value={p.id} />
-          <SubmitButton className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Pengajuan</SubmitButton>
+          <SubmitButton confirm="Batalkan pengajuan cuti ini?" className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Pengajuan</SubmitButton>
         </form>
       )}
       <div className="rounded-xl border bg-white p-4">

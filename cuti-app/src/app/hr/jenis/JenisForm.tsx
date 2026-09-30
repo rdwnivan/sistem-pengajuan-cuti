@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { aksiSimpanJenis } from "@/actions";
 import { ErrorMsg, Field, inputCls } from "@/components/ui";
@@ -8,6 +9,11 @@ type J = { id: string; nama: string; kuota: number; memotongKuotaTahunan: boolea
 
 export function JenisForm({ initial }: { initial?: J }) {
   const [state, action] = useFormState(aksiSimpanJenis, { error: "" } as { error?: string });
+  const [aktif, setAktif] = useState(initial?.aktif ?? true);
+  // Konfirmasi hanya saat menonaktifkan record yang tadinya aktif.
+  const confirmNonaktif = initial && initial.aktif && !aktif
+    ? `Nonaktifkan jenis cuti "${initial.nama}"? Pengajuan baru tidak bisa memakai jenis ini.`
+    : undefined;
   return (
     <form action={action} className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
       <input type="hidden" name="id" value={initial?.id ?? ""} />
@@ -19,11 +25,11 @@ export function JenisForm({ initial }: { initial?: J }) {
       <div className="col-span-2 flex flex-wrap gap-3 text-sm font-semibold">
         <label className="flex items-center gap-1"><input type="checkbox" name="memotongKuotaTahunan" defaultChecked={initial?.memotongKuotaTahunan ?? true} /> Potong kuota</label>
         <label className="flex items-center gap-1"><input type="checkbox" name="lampiranWajib" defaultChecked={initial?.lampiranWajib ?? false} /> Lampiran wajib</label>
-        <label className="flex items-center gap-1"><input type="checkbox" name="aktif" defaultChecked={initial?.aktif ?? true} /> Aktif</label>
+        <label className="flex items-center gap-1"><input type="checkbox" name="aktif" defaultChecked={initial?.aktif ?? true} onChange={(e) => setAktif(e.target.checked)} /> Aktif</label>
       </div>
       <div className="col-span-2">
         <ErrorMsg msg={state?.error} />
-        <SubmitButton className="w-full rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">{initial ? "Update" : "Tambah"}</SubmitButton>
+        <SubmitButton confirm={confirmNonaktif} className="w-full rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">{initial ? "Update" : "Tambah"}</SubmitButton>
       </div>
     </form>
   );

@@ -49,6 +49,7 @@ test.describe("Cron — reminder & eskalasi", () => {
     // Cleanup: batalkan agar antrean HR kembali kosong untuk test lain
     await page.goto(url);
     await expect(page.getByRole("heading", { name: "Detail Pengajuan" })).toBeVisible({ timeout: 15_000 });
+    page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Batalkan Pengajuan" }).click();
     await page.waitForURL("/", { timeout: 15_000 });
   });

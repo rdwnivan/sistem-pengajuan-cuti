@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { aksiSimpanUser } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
@@ -11,6 +12,11 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
   gajiPending?: boolean;
 }) {
   const [state, action] = useFormState(aksiSimpanUser, { error: "" } as { error?: string });
+  const [statusAktif, setStatusAktif] = useState(initial?.statusAktif ?? true);
+  // Konfirmasi hanya saat menonaktifkan akun yang tadinya aktif.
+  const confirmNonaktif = id && (initial?.statusAktif ?? true) && !statusAktif
+    ? `Nonaktifkan akun ${initial?.nama ?? "karyawan ini"}? Akun tidak bisa login sampai diaktifkan lagi.`
+    : undefined;
   return (
     <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
       {gajiPending && (
@@ -51,10 +57,10 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
         <Field label="Tunjangan tetap (Rp)"><input name="tunjanganTetap" type="number" min="0" defaultValue={initial?.tunjanganTetap ?? 0} className={inputCls} /></Field>
       </div>
       <label className="flex items-center gap-2 text-sm font-semibold">
-        <input type="checkbox" name="statusAktif" defaultChecked={initial?.statusAktif ?? true} /> Akun aktif
+        <input type="checkbox" name="statusAktif" defaultChecked={initial?.statusAktif ?? true} onChange={(e) => setStatusAktif(e.target.checked)} /> Akun aktif
       </label>
       <ErrorMsg msg={state?.error} />
-      <SubmitButton className={btnCls}>Simpan</SubmitButton>
+      <SubmitButton confirm={confirmNonaktif} className={btnCls}>Simpan</SubmitButton>
     </form>
   );
 }

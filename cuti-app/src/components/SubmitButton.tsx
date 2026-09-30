@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Tampilkan spinner hanya pada tombol ini. Default true. */
   active?: boolean;
+  /** Jika diisi, tampilkan window.confirm dengan pesan ini sebelum submit. Batal = tidak submit. */
+  confirm?: string;
 };
 
 const RESET_MS = 4000;
 
-export function SubmitButton({ children, className, active = true, onClick, ...rest }: Props) {
+export function SubmitButton({ children, className, active = true, confirm, onClick, ...rest }: Props) {
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
 
@@ -32,6 +34,12 @@ export function SubmitButton({ children, className, active = true, onClick, ...r
       aria-busy={show}
       className={className}
       onClick={(e) => {
+        // Cek konfirmasi DULU sebelum setPending — kalau user batal,
+        // preventDefault menghentikan submit dan tombol tetap normal.
+        if (confirm && !window.confirm(confirm)) {
+          e.preventDefault();
+          return;
+        }
         setPending(true);
         onClick?.(e);
       }}

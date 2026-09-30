@@ -4,13 +4,14 @@ const csp = [
   "default-src 'self'",
   // Next.js App Router inlines its bootstrap payload; 'unsafe-inline' is required.
   // React only needs 'unsafe-eval' in development.
+  // https://va.vercel-scripts.com diizinkan untuk Vercel Analytics + Speed Insights.
   isProd
-    ? "script-src 'self' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    ? "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://va.vercel-scripts.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -91,7 +91,7 @@ export default async function LaporanDetail({ params }: { params: { id: string }
         {dapatBatal && (
           <form action={aksiBatalLaporan}>
             <input type="hidden" name="id" value={l.id} />
-            <SubmitButton className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Laporan</SubmitButton>
+            <SubmitButton confirm="Batalkan laporan ini?" className="w-full rounded-xl border-2 border-red-500 px-4 py-3 font-bold text-red-600">Batalkan Laporan</SubmitButton>
           </form>
         )}
       </div>

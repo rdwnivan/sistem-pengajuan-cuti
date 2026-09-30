@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Revisi prototype — tanggal slip WIB, hapus master blok + rekap laporan (semua hijau)
+* Session: Confirm nonaktifkan jenis cuti & akun karyawan (dismiss/accept terverifikasi)
 
 ---
 
@@ -90,6 +90,8 @@ Semua P0 security selesai:
 - **Content sniffing upload** — `src/lib/upload.ts` `sniffFile`: magic bytes PDF/PNG/JPG, ekstensi dari konten aktual, bukan `File.type` client. Spoof HTML/JS/SVG ditolak. Terintegrasi di `shared.ts` (`unggahFoto`) dan `cutiActions.ts` (`aksiAjukan`).
 - **CI cleanup** — `SESSION_SECRET` sudah dihapus dari `.github/workflows/ci.yml` (sudah tidak terpakai sejak auth pakai token DB). README.md diperbaiki agar tidak lagi meminta `SESSION_SECRET`.
 - **Test rate-limit dipisah** — `tests/rate-limit.spec.ts` dengan config sendiri `playwright.rate-limit.config.ts` (serial, worker 1, timeout 120s). CI workflow diupdate jalankan terpisah.
+- **CSP Analytics fix (P1)** — `https://va.vercel-scripts.com` ditambahkan ke `script-src` + `connect-src` di `next.config.mjs`; verified via header CSP asli dari production server (`next start`), build + lint + smoke 6/6 PASS.
+- **Confirm dialog hapus** — prop `confirm` di `SubmitButton` (`window.confirm` dicek SEBELUM `setPending`, batal = `preventDefault` + tombol tetap normal). Dipasang di 5 tombol destruktif: Hapus hari libur (satu-satunya hard delete), Batalkan pengajuan/laporan/slip/delegasi. Jenis cuti & karyawan tidak punya tombol hapus (soft-delete via checkbox Aktif) — TODO item lama sebagian stale. Test `tests/confirm-dialog.spec.ts` verifikasi dismiss → tidak submit, accept → submit. E2E terkait (`delegasi.spec.ts`, `cron.spec.ts`) dipasang `dialog` accept handler. Full suite 47/47 PASS.
 
 ## Catatan Teknis Penting
 

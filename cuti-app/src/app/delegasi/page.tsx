@@ -30,7 +30,7 @@ export default async function DelegasiPage() {
               <div className="font-semibold">→ {d.ke.nama} {!d.aktif && "(nonaktif)"}</div>
               <div className="text-xs text-zinc-500">{fmtTgl(d.tglMulai)} → {fmtTgl(d.tglSelesai)}</div>
             </div>
-            {d.aktif && <SubmitButton className="font-semibold text-red-600">Batalkan</SubmitButton>}
+            {d.aktif && <SubmitButton confirm="Batalkan delegasi ini?" className="font-semibold text-red-600">Batalkan</SubmitButton>}
           </form>
         ))}
         {list.length === 0 && <p className="text-sm text-zinc-500">Belum ada delegasi.</p>}
