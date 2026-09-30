@@ -6,7 +6,6 @@ import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 
 type A = { id: string; nama: string; jabatan: string | null };
-type B = { id: string; nama: string; keterangan: string | null };
 type Initial = {
   tglLaporan?: string; lokasi?: string; blok?: string | null; kegiatan?: string | null;
   jumlahTenagaKerja?: number | null; hasil?: string | null; cuaca?: string | null;
@@ -18,8 +17,6 @@ export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; in
   const [state, action] = useFormState(editId ? aksiRevisiLaporan : aksiBuatLaporan, { error: "" } as { error?: string });
   const [approverId, setApproverId] = useState(initial?.approverId ?? "");
   const [list, setList] = useState<A[]>([]);
-  const [bloks, setBloks] = useState<B[]>([]);
-  const [blok, setBlok] = useState(initial?.blok ?? "");
   const [lat, setLat] = useState(initial?.lat != null ? String(initial.lat) : "");
   const [lng, setLng] = useState(initial?.lng != null ? String(initial.lng) : "");
   const [gpsMsg, setGpsMsg] = useState("");
@@ -30,10 +27,6 @@ export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; in
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setList(Array.isArray(d) ? d : []))
       .catch(() => setList([]));
-    fetch("/api/blok")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setBloks(Array.isArray(d) ? d : []))
-      .catch(() => setBloks([]));
   }, []);
 
   const ambilGps = () => {
@@ -61,10 +54,7 @@ export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; in
           <input name="lokasi" required defaultValue={initial?.lokasi ?? ""} className={inputCls} placeholder="Misal: Kantor Pusat" />
         </Field>
         <Field label="Blok / Afdeling">
-          <select name="blok" value={blok} onChange={(e) => setBlok(e.target.value)} className={inputCls}>
-            <option value="">-- pilih blok --</option>
-            {bloks.map((b) => <option key={b.id} value={b.nama}>{b.nama}{b.keterangan ? ` (${b.keterangan})` : ""}</option>)}
-          </select>
+          <input name="blok" defaultValue={initial?.blok ?? ""} className={inputCls} placeholder="Misal: Blok A1" />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-2">

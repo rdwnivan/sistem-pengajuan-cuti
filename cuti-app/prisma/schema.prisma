@@ -132,13 +132,6 @@ model LaporanFoto {
   @@index([laporanId])
 }
 
-model Blok {
-  id         String   @id @default(cuid())
-  nama       String   @unique
-  keterangan String?
-  aktif      Boolean  @default(true)
-}
-
 model JenisCuti {
   id                   String @id @default(cuid())
   nama                 String @unique

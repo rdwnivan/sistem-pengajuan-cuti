@@ -5,7 +5,7 @@ async function buatLaporanKebun(page: Page, judul: string): Promise<string> {
   await login(page, "karyawan");
   await page.goto("/laporan/baru");
   await page.getByLabel("Lokasi").fill("Afdeling 1");
-  await page.locator('select[name="blok"]').selectOption({ label: "Blok A1 (Afdeling 1)" });
+  await page.getByLabel("Blok / Afdeling").fill("Blok A1");
   await page.getByLabel("Kegiatan / pekerjaan").fill("Panen TBS");
   await page.getByLabel("Jumlah tenaga kerja").fill("12");
   await page.getByLabel("Hasil / output").fill("2,5 ton TBS");
@@ -38,56 +38,11 @@ test.describe("Laporan kebun — field operasional", () => {
     await expect(page.getByText("Ditolak").first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("API blok butuh login, mengembalikan daftar blok aktif", async ({ page }) => {
-    await login(page, "karyawan");
-    const r = await page.request.get("/api/blok");
-    expect(r.status()).toBe(200);
-    const j = await r.json();
-    expect(Array.isArray(j)).toBe(true);
-    expect(j.length).toBeGreaterThanOrEqual(5);
-    expect(j[0].nama).toBeTruthy();
-  });
-
-  test("API blok tanpa sesi → 401", async ({ page, context }) => {
-    await context.clearCookies();
-    const r = await page.request.get("/api/blok");
-    expect(r.status()).toBe(401);
-  });
-});
-
-test.describe("HR — master blok + rekap laporan", () => {
-  test("HR tambah blok baru lalu nonaktifkan", async ({ page }) => {
+  test("rute blok/rekap yang dihapus mengembalikan 404", async ({ page }) => {
     await login(page, "hr");
-    await page.goto("/hr/blok");
-    await expect(page.getByRole("heading", { name: "Master Blok / Afdeling" })).toBeVisible();
-    const namaBlok = `Blok T${Date.now() % 100000}`;
-    await page.getByLabel("Nama blok").first().fill(namaBlok);
-    await page.getByLabel("Keterangan").first().fill("Blok test otomatis");
-    await page.getByRole("button", { name: "Tambah", exact: true }).first().click();
-    await page.waitForURL("/hr/blok", { timeout: 15_000 });
-    await expect(page.getByText(namaBlok).first()).toBeVisible();
-    // nonaktifkan kembali agar tidak mengotori dropdown
-    const baris = page.locator("form", { hasText: namaBlok }).first();
-    await baris.getByRole("button", { name: "Nonaktifkan" }).click();
-    await page.waitForURL("/hr/blok", { timeout: 15_000 });
-  });
-
-  test("HR buka rekap laporan + unduh Excel", async ({ page }) => {
-    await buatLaporanKebun(page, "Laporan Untuk Rekap");
-    await login(page, "hr");
-    await page.goto("/hr/laporan-lapangan");
-    await expect(page.getByRole("heading", { name: /Rekap Laporan Lapangan/ })).toBeVisible();
-    await expect(page.getByText("Laporan Untuk Rekap").first()).toBeVisible({ timeout: 15_000 });
-    // filter blok
-    await page.locator('select[name="blok"]').first().selectOption("Blok A1");
-    await page.getByRole("button", { name: "Filter" }).first().click();
-    await expect(page.getByText("Laporan Untuk Rekap").first()).toBeVisible({ timeout: 15_000 });
-    // unduh excel
-    const dl = await Promise.all([
-      page.waitForEvent("download", { timeout: 30_000 }),
-      page.getByRole("link", { name: "Unduh Excel" }).first().click(),
-    ]);
-    const path = await dl[0].path();
-    expect(path).toBeTruthy();
+    const blok = await page.goto("/hr/blok");
+    expect(blok?.status()).toBe(404);
+    const rekap = await page.goto("/hr/laporan-lapangan");
+    expect(rekap?.status()).toBe(404);
   });
 });

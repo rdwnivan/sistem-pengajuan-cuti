@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
-import { namaBulan, teksAman } from "@/lib/pdf";
+import { namaBulan, teksAman, tglWib } from "@/lib/pdf";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const user = await userDariSesi();
@@ -47,7 +47,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   T("Slip ini bersifat rahasia. Jangan dibagikan ke siapa pun.", 9, bold);
   y -= 20;
   const now = new Date();
-  T(`Palangka Raya, ${now.getDate()} ${namaBulan(now.getMonth() + 1)} ${now.getFullYear()}`, 11);
+  T(`Palangka Raya, ${tglWib(now)}`, 11);
   y -= 24;
   T("HR                                        Karyawan", 11);
 

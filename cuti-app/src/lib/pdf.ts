@@ -27,6 +27,12 @@ export function namaBulan(bulan: number) {
   return NAMA_BULAN[bulan - 1] ?? String(bulan);
 }
 
+/** Tanggal hari ini dalam WIB (server Vercel jalan di UTC). */
+export function tglWib(ref = new Date()) {
+  const wib = new Date(ref.getTime() + 7 * 3600 * 1000);
+  return `${wib.getUTCDate()} ${NAMA_BULAN[wib.getUTCMonth()]} ${wib.getUTCFullYear()}`;
+}
+
 export const LABEL_STATUS_LAPORAN: Record<string, { label: string; cls: string }> = {
   DRAFT: { label: "Draf", cls: "bg-zinc-200 text-zinc-700 border-zinc-300" },
   MENUNGGU: { label: "Menunggu Acc", cls: "bg-amber-100 text-amber-800 border-amber-300" },

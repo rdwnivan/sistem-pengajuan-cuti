@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Prototype standar selesai — slip rincian + NIP + TTD, laporan kebun + blok + rekap (semua hijau)
+* Session: Revisi prototype — tanggal slip WIB, hapus master blok + rekap laporan (semua hijau)
 
 ---
 
@@ -72,7 +72,7 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-Selesai dan ter-commit (`19c1860`): `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 24/24 PASS, rate-limit 2/2 PASS.
+Selesai dan siap commit: `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 21/21 PASS, rate-limit 2/2 PASS.
 
 ## Current Status
 
@@ -377,6 +377,18 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 * PENTING deploy: skema `SlipGaji` berubah (kolom lama dihapus) — production wajib
   `db push` + reseed + buat ulang slip demo. Tercatat di TODO P1.
 * Verified: `tsc` + `lint` + `build` + unit 61/61 + E2E 37/37 + flows 24/24 + rate-limit 2/2 PASS
+
+## 2026-09-30 (revisi: tanggal WIB + hapus blok/rekap)
+
+* Tanggal TTD slip pakai WIB (`tglWib()` di `src/lib/pdf.ts`) — server Vercel UTC
+  membuat tanggal mundur sehari bila PDF dibuat pagi hari. Berlaku untuk TTD slip.
+* Hapus sesuai keputusan user: model `Blok` + seed + `/api/blok` + `/hr/blok`
+  + `/api/laporan-rekap` + `/hr/laporan-lapangan` + action blok di `hrActions`.
+  Alasan: HR tidak urus laporan lapangan (murni atasan↔karyawan); blok cukup teks bebas.
+  Blok tetap ada sebagai field teks di laporan (form/detail/PDF/JSON).
+* `tests/laporan-kebun.spec.ts` ditulis ulang: buat laporan kebun → detail →
+  rute terhapus 404. Spec blok/rekap dibuang.
+* Verified: `tsc` + `lint` + `build` + unit 61/61 + E2E 37/37 + flows 21/21 + rate-limit 2/2 PASS
 
 ## 2026-09-30 (pisah DB dev/production)
 

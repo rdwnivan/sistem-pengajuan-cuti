@@ -114,29 +114,3 @@ export async function aksiHapusLibur(fd: FormData) {
   await prisma.hariLibur.delete({ where: { id } });
   redirect("/hr/libur");
 }
-
-
-export async function aksiSimpanBlok(_: unknown, fd: FormData) {
-  const admin = await aktor();
-  if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
-  const nama = ((fd.get("nama") as string) || "").trim();
-  const keterangan = ((fd.get("keterangan") as string) || "").trim() || null;
-  if (nama.length < 2 || nama.length > 100) return { error: "Nama blok minimal 2 karakter" };
-  try {
-    await prisma.blok.create({ data: { nama, keterangan } });
-  } catch {
-    return { error: "Nama blok sudah ada" };
-  }
-  redirect("/hr/blok");
-}
-
-
-export async function aksiToggleBlok(fd: FormData) {
-  const admin = await aktor();
-  if (admin.role !== "HR_ADMIN") return;
-  const id = (fd.get("id") as string) || "";
-  const b = await prisma.blok.findUnique({ where: { id } });
-  if (!b) redirect("/hr/blok");
-  await prisma.blok.update({ where: { id }, data: { aktif: !b!.aktif } });
-  redirect("/hr/blok");
-}

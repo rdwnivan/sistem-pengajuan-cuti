@@ -21,7 +21,6 @@ async function main() {
   await prisma.delegasi.deleteMany();
   await prisma.sesi.deleteMany();
   await prisma.hariLibur.deleteMany();
-  await prisma.blok.deleteMany();
   await prisma.jenisCuti.deleteMany();
   await prisma.user.deleteMany();
 
@@ -73,16 +72,6 @@ async function main() {
       { tanggal: new Date("2026-05-01"), keterangan: "Hari Buruh" },
       { tanggal: new Date("2026-08-17"), keterangan: "Hari Kemerdekaan" },
       { tanggal: new Date("2026-12-25"), keterangan: "Natal" },
-    ],
-  });
-
-  await prisma.blok.createMany({
-    data: [
-      { nama: "Blok A1", keterangan: "Afdeling 1" },
-      { nama: "Blok A2", keterangan: "Afdeling 1" },
-      { nama: "Blok B1", keterangan: "Afdeling 2" },
-      { nama: "Blok B2", keterangan: "Afdeling 2" },
-      { nama: "Blok C1", keterangan: "Afdeling 3" },
     ],
   });
 

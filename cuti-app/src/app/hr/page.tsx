@@ -29,11 +29,9 @@ export default async function HRHome() {
     { href: "/hr/pengajuan", label: `Semua Pengajuan (${menunggu.length} tertunda)` },
     { href: "/hr/slip-gaji", label: `Slip Gaji (${totalUser} karyawan)` },
     { href: "/hr/laporan", label: "Rekap Pengajuan" },
-    { href: "/hr/laporan-lapangan", label: "Rekap Laporan Lapangan" },
     { href: "/hr/karyawan", label: `Karyawan (${totalUser})` },
     { href: "/hr/jenis", label: "Jenis Cuti" },
     { href: "/hr/libur", label: "Hari Libur" },
-    { href: "/hr/blok", label: "Master Blok" },
     { href: "/kalender", label: "Kalender Cuti" },
     { href: "/persetujuan", label: `Perubahan Gaji Menunggu (${gajiPending})` },
   ];
