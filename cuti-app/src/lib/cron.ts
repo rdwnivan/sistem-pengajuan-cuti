@@ -84,6 +84,18 @@ export async function delegasiAktifUntuk(atasanId: string, ref = new Date()): Pr
   return d?.keId ?? null;
 }
 
+/**
+ * Cerminan murni dari kondisi `where` di `delegasiAktifUntuk`:
+ * aktif + rentang [tglMulai, tglSelesai] inklusif terhadap ref.
+ * Diekspor agar bisa di-unit-test tanpa DB (`unit/delegasi.test.ts`).
+ */
+export function delegasiBerlaku(
+  d: { aktif: boolean; tglMulai: Date; tglSelesai: Date },
+  ref = new Date(),
+): boolean {
+  return d.aktif && d.tglMulai <= ref && ref <= d.tglSelesai;
+}
+
 export async function approverEfektif(pemohonId: string): Promise<string | null> {
   const pemohon = await prisma.user.findUnique({ where: { id: pemohonId } });
   if (!pemohon?.atasanId) {
