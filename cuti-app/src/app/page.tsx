@@ -9,18 +9,23 @@ export default async function Dashboard() {
   const user = await wajibLogin();
   const atasan = user.role === "HR_ADMIN" ? true : await isAtasan(user.id);
   const tahun = new Date().getFullYear();
-  const jenis = await prisma.jenisCuti.findMany({ where: { aktif: true }, orderBy: { nama: "asc" } });
-  const kuota = await prisma.kuota.findMany({ where: { userId: user.id, tahun }, include: { jenis: true } });
+  // Query independen jalan paralel (bukan sequential) untuk potong latency wall-clock.
+  // Sengaja TIDAK di-cache: sisa kuota berubah setiap ada pengajuan disetujui,
+  // sehingga cache butuh invalidasi per user per tahun yang lebih mahal daripada query-nya.
+  const [jenis, kuota, riwayat, antreanAtasan, antreanHR] = await Promise.all([
+    prisma.jenisCuti.findMany({ where: { aktif: true }, orderBy: { nama: "asc" } }),
+    prisma.kuota.findMany({ where: { userId: user.id, tahun }, include: { jenis: true } }),
+    prisma.pengajuan.findMany({
+      where: { pemohonId: user.id }, include: { jenis: true }, orderBy: { createdAt: "desc" }, take: 5,
+    }),
+    atasan && user.role !== "HR_ADMIN"
+      ? prisma.pengajuan.count({ where: { status: "MENUNGGU_ATASAN", pemohon: { atasanId: user.id } } })
+      : 0,
+    user.role === "HR_ADMIN"
+      ? prisma.pengajuan.count({ where: { status: "MENUNGGU_HR" } })
+      : 0,
+  ]);
   const petaKuota = new Map(kuota.map((k) => [k.jenisId, k]));
-  const riwayat = await prisma.pengajuan.findMany({
-    where: { pemohonId: user.id }, include: { jenis: true }, orderBy: { createdAt: "desc" }, take: 5,
-  });
-  const antreanAtasan = atasan && user.role !== "HR_ADMIN"
-    ? await prisma.pengajuan.count({ where: { status: "MENUNGGU_ATASAN", pemohon: { atasanId: user.id } } })
-    : 0;
-  const antreanHR = user.role === "HR_ADMIN"
-    ? await prisma.pengajuan.count({ where: { status: "MENUNGGU_HR" } })
-    : 0;
   const menungguSaya = user.role === "HR_ADMIN" ? antreanHR : antreanAtasan;
 
   return (

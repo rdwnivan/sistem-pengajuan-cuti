@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Fix N+1 delegasi di /persetujuan (flows 22/22, utama 49/49 hijau)
+* Session: Paralelisasi query dashboard (ganti cache kuota yang tidak tepat)
 
 ---
 
