@@ -108,11 +108,11 @@ Nice-to-have items.
 
 # Security
 
-* [ ] Review authentication — session token entropy, expiry, cookie flags
-* [ ] Review authorization — verify `wajibHR()` guard on all HR routes
-* [ ] Review input validation — zod schemas cover all server actions
-* [ ] Review secret handling — verify no secrets in git history
-* [ ] Review API security — `/api/cron` secret validation, PDF access control
+* [x] Review authentication — token `crypto.randomBytes(32)`, expiry 7 hari, cookie httpOnly + sameSite=lax + secure(prod); bcrypt cost 10; `statusAktif` dicek (`src/lib/auth.ts`)
+* [x] Review authorization — 9/9 halaman `/hr/*` pakai `wajibHR()`; E2E security 8 test redirect non-HR
+* [x] Review input validation — semua action form pakai zod `safeParse` (10 pemakaian di 8 file); sisanya validasi manual/parsing aman (notif scope `userId`, password min 6, delegasi cek target)
+* [x] Review secret handling — tidak ada `.env` ter-track; scan history bersih (tanpa private key/token)
+* [x] Review API security — `/api/cron` tolak tanpa/salah secret (401, E2E); PDF slip/formulir/laporan cek owner/HR/approver (403/404, E2E)
 
 ---
 
