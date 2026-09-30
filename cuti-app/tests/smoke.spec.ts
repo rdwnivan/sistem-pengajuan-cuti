@@ -22,6 +22,16 @@ test.describe("Smoke — autentikasi", () => {
     await page.goto("/slip-gaji");
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("tombol Keluar logout dan redirect ke login", async ({ page }) => {
+    await login(page, "karyawan");
+    await expect(page).toHaveURL("/");
+    await page.getByRole("button", { name: /^Keluar/ }).click();
+    await page.waitForURL(/\/login/, { timeout: 15000 });
+    // Sesi sudah mati: halaman terproteksi redirect lagi ke login
+    await page.goto("/slip-gaji");
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
 
 test.describe("Smoke — navigasi", () => {

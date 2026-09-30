@@ -24,7 +24,21 @@ export function NotificationPermission() {
       setStatus("unsupported");
       return;
     }
-    setStatus(Notification.permission);
+    if (Notification.permission !== "granted") {
+      setStatus(Notification.permission);
+      return;
+    }
+    // Permission granted di level browser belum tentu ada subscription
+    // (misal setelah logout yang meng-unsubscribe). Cek dulu.
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration().catch(() => undefined);
+        const sub = await reg?.pushManager.getSubscription().catch(() => undefined);
+        setStatus(sub ? "granted" : "default");
+      } catch {
+        setStatus("granted");
+      }
+    })();
   }, []);
 
   async function enable() {

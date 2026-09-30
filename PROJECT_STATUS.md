@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Confirm nonaktifkan jenis cuti & akun karyawan (dismiss/accept terverifikasi)
+* Session: Fix notif push bocor antar akun — LogoutButton unsubscribe + banner re-subscribe (48/48 hijau)
 
 ---
 
@@ -92,6 +92,7 @@ Semua P0 security selesai:
 - **Test rate-limit dipisah** — `tests/rate-limit.spec.ts` dengan config sendiri `playwright.rate-limit.config.ts` (serial, worker 1, timeout 120s). CI workflow diupdate jalankan terpisah.
 - **CSP Analytics fix (P1)** — `https://va.vercel-scripts.com` ditambahkan ke `script-src` + `connect-src` di `next.config.mjs`; verified via header CSP asli dari production server (`next start`), build + lint + smoke 6/6 PASS.
 - **Confirm dialog hapus** — prop `confirm` di `SubmitButton` (`window.confirm` dicek SEBELUM `setPending`, batal = `preventDefault` + tombol tetap normal). Dipasang di 5 tombol destruktif: Hapus hari libur (satu-satunya hard delete), Batalkan pengajuan/laporan/slip/delegasi. Jenis cuti & karyawan tidak punya tombol hapus (soft-delete via checkbox Aktif) — TODO item lama sebagian stale. Test `tests/confirm-dialog.spec.ts` verifikasi dismiss → tidak submit, accept → submit. E2E terkait (`delegasi.spec.ts`, `cron.spec.ts`) dipasang `dialog` accept handler. Full suite 47/47 PASS.
+- **Fix notif push bocor antar akun** — PushSubscription milik browser (satu endpoint per origin), bukan milik akun app. Setelah ganti akun di browser yang sama, notif akun lama tetap bunyi. `LogoutButton` (client) kini unsubscribe + DELETE row DB sebelum `aksiKeluar`; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription (re-subscribe ke akun aktif). Alur subscribe end-to-end tidak bisa diuji di headless CI (permission denied + butuh push service asli); terverifikasi via tsc/lint + test logout baru di smoke + full suite 48/48.
 
 ## Catatan Teknis Penting
 

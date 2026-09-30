@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { userDariSesi, isAtasan } from "@/lib/auth";
-import { aksiKeluar } from "@/actions";
 import { NotificationPermission } from "@/components/NotificationPermission";
+import { LogoutButton } from "@/components/LogoutButton";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export function Shell({ nama, role, isAtasan, children }: { nama: string; role: string; isAtasan: boolean; children: React.ReactNode }) {
@@ -14,9 +14,7 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
           <div className="text-sm font-bold">Cuti Anime Japan</div>
           <div className="text-xs opacity-80">{nama} · {role === "HR_ADMIN" ? "HR" : "Karyawan"}{isAtasan ? " · Atasan" : ""}</div>
         </div>
-        <form action={aksiKeluar}>
-          <SubmitButton className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold">Keluar</SubmitButton>
-        </form>
+        <LogoutButton />
       </header>
       <div className="mb-4">
         <NotificationPermission />
