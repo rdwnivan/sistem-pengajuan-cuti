@@ -69,7 +69,7 @@ Important but not immediately blocking.
 
 * [x] Improve UX: confirm dialog before delete — prop `confirm` di `SubmitButton` dipakai di 5 tombol destruktif (Hapus hari libur, Batalkan pengajuan/laporan/slip/delegasi) + konfirmasi saat menonaktifkan jenis cuti (`JenisForm`) & akun karyawan (`UserForm`); diverifikasi dismiss/accept via test sekali pakai
 * [x] Add unit tests for delegation date-range logic in `src/lib/cron.ts` (`unit/delegasi.test.ts` — 8 kasus via fungsi murni `delegasiBerlaku` cerminan `where` Prisma; total unit 69/69)
-* [ ] Add E2E for cron umur H+1/H+3 asli (update `updatedAt`/`lastReminderAt` via DB agar reminder/eskalasi benar-benar terpicu)
+* [x] Add E2E for cron umur H+1/H+3 asli (`tests/cron.spec.ts` — update `updatedAt`/`lastReminderAt` via raw SQL karena `@updatedAt` Prisma selalu reset ke now; assert reminderCount tepat 1 + tidak dobel + eskalasi pindah approver; flows 22/22)
 
 ---
 
