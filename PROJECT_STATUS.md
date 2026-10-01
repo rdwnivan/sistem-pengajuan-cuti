@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Prosedur rollback production (ROLLBACK.md)
+* Session: Hapus project Vercel staging (staging lokal saja)
 
 ---
 

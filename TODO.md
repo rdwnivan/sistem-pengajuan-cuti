@@ -133,7 +133,7 @@ Nice-to-have items.
 * [x] Verify environment variables (`.env.example` documented)
 * [x] Verify database migration process (`prisma db push`)
 * [x] Add rollback procedure (Vercel instant rollback + DB backup) — `ROLLBACK.md`: kapan rollback, promote deployment lama, matriks keputusan schema (kolom baru = kode saja cukup; kolom dihapus = DB juga), PITR Neon via branch, verifikasi read-only, forward-fix, pelajaran insiden `notifWa`
-* [ ] Configure staging environment
+* [x] Configure staging environment - KEPUTUSAN: staging **lokal saja**, tanpa URL publik (data salinan production + akun demo mudah ditebak = terlalu berisiko dibuka ke internet). STAGING.md ditulis ulang: Neon branch + db push + build + start + E2E reuse server; .env tetap dev; larangan seed/FONNTE. Dukungan E2E_BASE_URL dibatalkan + di-revert.
 
 ---
 
