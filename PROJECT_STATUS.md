@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-01
-* Session: Pesan error push ramah (gcm-internals, unit 83/83)
+* Session: E2E alur notifikasi in-app + pelajaran .next korup (74/74 E2E + 83/83 unit)
 
 ---
 

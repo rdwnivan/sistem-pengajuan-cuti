@@ -42,7 +42,7 @@ Tasks that should be completed next.
 
 * [x] Vercel Analytics + SpeedInsights blocked by CSP — tambah `https://va.vercel-scripts.com` ke `script-src` + `connect-src` di `next.config.mjs` (verified via header production asli)
 * [x] Notifikasi Web Push bocor antar akun di browser yang sama — `LogoutButton` unsubscribe + hapus row DB saat Keluar; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription
-* [x] Banner notifikasi muncul lagi setelah refresh walau sudah diaktifkan — `enable()` menyembunyikan banner langsung setelah izin granted, sebelum subscribe sukses; kegagalan subscribe/POST diam-diam (cuma console). Kini banner hilang hanya bila seluruh alur sukses + pesan error tampil ke user bila gagal. Lanjutan: error mentah browser dipetakan ke panduan ramah (`pesanGalatPush`, unit 5/5) — mis. "push service error" = Chrome gagal hubungi FCM, cek internet/VPN/ad-block atau coba Firefox/Edge
+* [x] Banner notifikasi muncul lagi setelah refresh walau sudah diaktifkan — `enable()` menyembunyikan banner langsung setelah izin granted, sebelum subscribe sukses; kegagalan subscribe/POST diam-diam (cuma console). Kini banner hilang hanya bila seluruh alur sukses + pesan error tampil ke user bila gagal. Lanjutan: error mentah browser dipetakan ke panduan ramah (`pesanGalatPush`, unit 5/5) + tombol "Nanti saja" (snooze 7 hari via localStorage) agar banner tidak nagih bila push memang tak bisa jalan; test E2E di smoke
 
 ---
 
@@ -105,6 +105,7 @@ Nice-to-have items.
 * [x] Add E2E test for cuti submission → atasan approval → HR approval flow (`cuti-app/tests/cuti-flow.spec.ts`)
 * [x] Add E2E test for delegasi creation → delegated approval (`cuti-app/tests/delegasi.spec.ts`, serial)
 * [x] Add E2E test for cron reminder H+1 / eskalasi H+3 (`cuti-app/tests/cron.spec.ts` — endpoint 200 + struktur; umur H+1/H+3 belum disimulasikan)
+* [x] Add E2E test for notifikasi in-app end-to-end (`cuti-app/tests/notifikasi.spec.ts` — ajukan → notif + badge atasan → setujui → notif karyawan → cleanup batalkan; di tier flows/serial karena stateful)
 * [x] Add E2E test for gaji change approval flow (HR submit → atasan approve) (`cuti-app/tests/gaji-flow.spec.ts`; `gaji-perubahan.spec.ts` lama yang lemah dihapus)
 
 ---

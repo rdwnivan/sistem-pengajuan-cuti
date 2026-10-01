@@ -4,6 +4,19 @@ import { useEffect, useState } from "react";
 
 type Status = "default" | "granted" | "denied" | "unsupported";
 
+/** Banner "Nanti saja" menunda tawaran 7 hari (bukan selamanya). */
+const SNOOZE_KEY = "notif-banner-snooze";
+const SNOOZE_MS = 7 * 86400000;
+
+function sedangSnooze(): boolean {
+  try {
+    const t = Number(localStorage.getItem(SNOOZE_KEY) || 0);
+    return Date.now() - t < SNOOZE_MS;
+  } catch {
+    return false;
+  }
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -36,8 +49,13 @@ export function NotificationPermission() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
+  const [ditutup, setDitutup] = useState(false);
 
   useEffect(() => {
+    if (sedangSnooze()) {
+      setDitutup(true);
+      return;
+    }
     if (!("Notification" in window)) {
       setStatus("unsupported");
       return;
@@ -99,6 +117,16 @@ export function NotificationPermission() {
     }
   }
 
+  function nantiSaja() {
+    try {
+      localStorage.setItem(SNOOZE_KEY, String(Date.now()));
+    } catch {
+      // abaikan (mode privat dsb) — banner cukup hilang sesi ini
+    }
+    setDitutup(true);
+  }
+
+  if (ditutup) return null;
   if (status === null) return null;
   if (status === "unsupported") return null;
   if (status === "granted") return null;
@@ -113,13 +141,22 @@ export function NotificationPermission() {
             (persetujuan cuti, slip gaji terbit, atau laporan lapangan).
           </p>
         </div>
-        <button
-          onClick={enable}
-          disabled={loading || status === "denied"}
-          className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          {loading ? "Memproses..." : status === "denied" ? "Diblokir Browser" : "Aktifkan"}
-        </button>
+        <div className="flex shrink-0 flex-col gap-1">
+          <button
+            onClick={enable}
+            disabled={loading || status === "denied"}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {loading ? "Memproses..." : status === "denied" ? "Diblokir Browser" : "Aktifkan"}
+          </button>
+          <button
+            type="button"
+            onClick={nantiSaja}
+            className="rounded-lg px-4 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            Nanti saja
+          </button>
+        </div>
       </div>
       {status === "denied" && (
         <p className="mt-2 text-xs text-red-700">

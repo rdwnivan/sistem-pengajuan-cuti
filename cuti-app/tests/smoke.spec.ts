@@ -53,6 +53,14 @@ test.describe("Smoke — navigasi", () => {
     await page.goto("/laporan");
     await expect(page.getByRole("heading", { name: "Laporan Lapangan" }).first()).toBeVisible();
   });
+
+  test("banner notifikasi bisa ditutup via Nanti saja dan tidak muncul lagi", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Nanti saja" }).first()).toBeVisible({ timeout: 10000 });
+    await page.getByRole("button", { name: "Nanti saja" }).first().click();
+    await expect(page.getByText("Aktifkan Notifikasi Browser").first()).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText("Aktifkan Notifikasi Browser").first()).toHaveCount(0);
+  });
 });
 
 // NOTE: test profil notif WA dihapus sementara mengikuti fitur yang di-hide.
