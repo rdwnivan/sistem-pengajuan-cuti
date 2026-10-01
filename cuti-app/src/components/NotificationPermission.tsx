@@ -18,7 +18,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function pesanGalatPush(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (/push service error/i.test(msg)) {
-    return "Browser gagal menghubungi layanan push. Cek koneksi internet, matikan VPN/ad-block untuk situs ini, lalu coba lagi. Bila tetap gagal, buka chrome://gcm-internals untuk status koneksi, atau coba browser lain (Firefox/Edge).";
+    return "Browser gagal menghubungi layanan push. Coba berurutan: (1) matikan VPN/proxy lalu coba lagi; (2) pastikan jaringan tidak memblokir Google (firewall kantor/DNS filter) — cek status di chrome://gcm-internals; (3) nonaktifkan ad-block untuk situs ini; (4) bila tetap gagal, coba browser lain (Firefox/Edge).";
   }
   if (e instanceof DOMException && (e.name === "AbortError" || e.name === "InvalidAccessError")) {
     return "Kunci notifikasi server tidak valid. Hubungi admin/HR (VAPID tidak cocok).";

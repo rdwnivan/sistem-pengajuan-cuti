@@ -6,6 +6,7 @@ describe("pesanGalatPush — pesan error subscribe yang ramah", () => {
   it("push service error -> panduan cek koneksi/FCM/browser lain", () => {
     const msg = pesanGalatPush(new Error("Registration failed - push service error"));
     assert.match(msg, /layanan push/);
+    assert.match(msg, /VPN|proxy/);
     assert.match(msg, /gcm-internals|Firefox/);
   });
 
