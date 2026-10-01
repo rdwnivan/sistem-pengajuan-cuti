@@ -8,6 +8,18 @@ type Status = "default" | "granted" | "denied" | "unsupported";
 const SNOOZE_KEY = "notif-banner-snooze";
 const SNOOZE_MS = 7 * 86400000;
 
+/**
+ * Penanda apakah subscription browser ini sudah ditautkan ke sesi aktif.
+ * Module-level (bukan state): berlaku selama SPA hidup, sekali per login.
+ * Di-reset oleh LogoutButton agar login berikutnya menautkan ulang.
+ */
+let sudahTaut = false;
+
+/** Dipanggil LogoutButton agar login berikutnya menautkan ulang. */
+export function resetTautanPush() {
+  sudahTaut = false;
+}
+
 function sedangSnooze(): boolean {
   try {
     const t = Number(localStorage.getItem(SNOOZE_KEY) || 0);
@@ -65,12 +77,28 @@ export function NotificationPermission() {
       return;
     }
     // Permission granted di level browser belum tentu ada subscription
-    // (misal setelah logout yang meng-unsubscribe). Cek dulu.
+    // (misal data situs dihapus). Cek dulu; bila ada, tautkan diam-diam
+    // ke sesi aktif (server tahu user dari cookie) lalu sembunyikan banner.
+    // Ini yang membuat akun yang sama tidak ditanya banner berulang-ulang
+    // setelah login ulang — sekaligus menautkan ulang perangkat yang
+    // diputus saat logout ke akun yang sedang login.
     (async () => {
       try {
         const reg = await navigator.serviceWorker.getRegistration().catch(() => undefined);
         const sub = await reg?.pushManager.getSubscription().catch(() => undefined);
-        setStatus(sub ? "granted" : "default");
+        if (!sub) {
+          setStatus("default");
+          return;
+        }
+        if (!sudahTaut) {
+          const res = await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sub.toJSON()),
+          }).catch(() => undefined);
+          if (res?.ok) sudahTaut = true;
+        }
+        setStatus("granted");
       } catch {
         setStatus("granted");
       }

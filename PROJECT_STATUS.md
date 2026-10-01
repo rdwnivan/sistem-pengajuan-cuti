@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-01
-* Session: E2E alur notifikasi in-app + pelajaran .next korup (74/74 E2E + 83/83 unit)
+* Session: Akun sama login ulang tidak ditanya banner lagi (auto-taut, smoke 8/8)
 
 ---
 
@@ -83,6 +83,21 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 Selesai dan siap commit: `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 21/21 PASS, rate-limit 2/2 PASS.
 
 ## Current Status
+
+> [!CAUTION]
+> **Eksperimen Suspense streaming (dashboard + persetujuan) DINYATAKAN GAGAL — jangan diulang.**
+> Branch + PR #1 sudah ditutup & dihapus. Bukti: CI e2e gagal dengan
+> `TypeError: Cannot read properties of null (reading 'fallback')`
+> dari mesin Suspense React saat SSR dev-server (~6 menit run, bukan detik
+> pertama — koreksi), diikuti kegagalan massal; satu-satunya failure main di
+> periode sama ada di job `verify` (bukan e2e), dan e2e main success beruntun.
+> Tantangan "mungkin E2E-nya yang salah" sudah diinvestigasi dan GUGUR:
+> error-nya crash server-side, bukan timeout/flake. Hipotesis mekanisme
+> (belum terbukti pasti): boundary Suspense mengelilingi async server component
+> memicu crash reconciler saat streaming SSR dev. Yang tersisa dan AMAN di main:
+> progress bar tegas (h-1 + glow), paralelisasi query, `SubmitButton` tanpa `disabled`.
+> Syarat bila suatu hari coba lagi: branch baru → CI hijau penuh → baru merge.
+> Jangan verifikasi Suspense hanya via dev lokal yang flaky.
 
 Semua P0 security selesai:
 - **Cookie `secure`** — `buatSesi` kini set `secure: true` saat `NODE_ENV === "production"` (tetap HTTP di dev agar login lokal tidak rusak).
