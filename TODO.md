@@ -42,7 +42,7 @@ Tasks that should be completed next.
 
 * [x] Vercel Analytics + SpeedInsights blocked by CSP — tambah `https://va.vercel-scripts.com` ke `script-src` + `connect-src` di `next.config.mjs` (verified via header production asli)
 * [x] Notifikasi Web Push bocor antar akun di browser yang sama — `LogoutButton` unsubscribe + hapus row DB saat Keluar; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription
-* [x] Banner notifikasi muncul lagi setelah refresh walau sudah diaktifkan — `enable()` menyembunyikan banner langsung setelah izin granted, sebelum subscribe sukses; kegagalan subscribe/POST diam-diam (cuma console). Kini banner hilang hanya bila seluruh alur sukses + pesan error tampil ke user bila gagal
+* [x] Banner notifikasi muncul lagi setelah refresh walau sudah diaktifkan — `enable()` menyembunyikan banner langsung setelah izin granted, sebelum subscribe sukses; kegagalan subscribe/POST diam-diam (cuma console). Kini banner hilang hanya bila seluruh alur sukses + pesan error tampil ke user bila gagal. Lanjutan: error mentah browser dipetakan ke panduan ramah (`pesanGalatPush`, unit 5/5) — mis. "push service error" = Chrome gagal hubungi FCM, cek internet/VPN/ad-block atau coba Firefox/Edge
 
 ---
 

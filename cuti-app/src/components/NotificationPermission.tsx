@@ -15,6 +15,23 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+export function pesanGalatPush(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/push service error/i.test(msg)) {
+    return "Browser gagal menghubungi layanan push. Cek koneksi internet, matikan VPN/ad-block untuk situs ini, lalu coba lagi. Bila tetap gagal, buka chrome://gcm-internals untuk status koneksi, atau coba browser lain (Firefox/Edge).";
+  }
+  if (e instanceof DOMException && (e.name === "AbortError" || e.name === "InvalidAccessError")) {
+    return "Kunci notifikasi server tidak valid. Hubungi admin/HR (VAPID tidak cocok).";
+  }
+  if (e instanceof DOMException && e.name === "NotAllowedError") {
+    return "Izin notifikasi diblokir browser. Aktifkan manual di pengaturan situs (ikon gembok di address bar).";
+  }
+  if (/register/i.test(msg) && /undefined|not a function/i.test(msg)) {
+    return "Browser/alamat ini tidak mendukung notifikasi push. Buka via localhost atau HTTPS.";
+  }
+  return msg || "Gagal mengaktifkan notifikasi, silakan coba lagi";
+}
+
 export function NotificationPermission() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,7 +93,7 @@ export function NotificationPermission() {
       // Sembunyikan banner HANYA bila seluruh alur sukses.
       setStatus("granted");
     } catch (e) {
-      setGalat(e instanceof Error ? e.message : "Gagal mengaktifkan notifikasi, silakan coba lagi");
+      setGalat(pesanGalatPush(e));
     } finally {
       setLoading(false);
     }

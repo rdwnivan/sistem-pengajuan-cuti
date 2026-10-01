@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-01
-* Session: Fix banner notifikasi muncul lagi setelah refresh (error subscribe kini terlihat user)
+* Session: Pesan error push ramah (gcm-internals, unit 83/83)
 
 ---
 
