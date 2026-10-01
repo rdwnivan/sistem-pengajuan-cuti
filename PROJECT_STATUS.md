@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-01
-* Session: Akun sama login ulang tidak ditanya banner lagi (auto-taut, smoke 8/8)
+* Session: Push production terverifikasi ujung-ke-ujung (muncul di perangkat)
 
 ---
 
