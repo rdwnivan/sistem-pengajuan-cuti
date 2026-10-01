@@ -26,7 +26,9 @@ test("notifikasi cuti: pengajuan baru sampai keputusan", async ({ page }) => {
   console.log("OK|pengajuan dibuat");
 
   // 2. Atasan: notif + badge muncul
-  const ctx = await page.context().browser().newContext();
+  const browser = page.context().browser();
+  if (!browser) throw new Error("browser null");
+  const ctx = await browser.newContext();
   const p2 = await ctx.newPage();
   await p2.goto("http://localhost:3000/login");
   await p2.locator("input[name=email]").fill("atasan1@anime.id");
