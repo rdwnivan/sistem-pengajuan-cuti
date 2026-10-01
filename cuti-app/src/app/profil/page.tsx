@@ -4,7 +4,10 @@ import { isAtasan, wajibLogin } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
 import { PasswordForm } from "./PasswordForm";
-import { ProfilForm } from "./ProfilForm";
+// ProfilForm (No HP + toggle notif WA) DISEMBUNYIKAN sementara — user belum minta.
+// Backend tetap utuh (kolom notifWa, kirimWAkeUser, retry): untuk menyalakan lagi,
+// cukup render ulang <ProfilForm/> di bawah dan kembalikan baris info WA.
+// import { ProfilForm } from "./ProfilForm";
 
 export default async function Profil({ searchParams }: { searchParams: { ok?: string } }) {
   const user = await wajibLogin();
@@ -18,10 +21,9 @@ export default async function Profil({ searchParams }: { searchParams: { ok?: st
         <div className="font-bold">{db?.nama}</div>
         <div className="text-zinc-600">{db?.email} · {db?.jabatan ?? "-"}</div>
         <div className="text-zinc-600">Masuk: {db ? fmtTgl(db.tglMasuk) : "-"} · Atasan: {db?.atasan?.nama ?? "-"}</div>
-        <div className="text-zinc-600">WA: {db?.noHp ?? "-"} · Notif WA: {db?.notifWa ? "Aktif" : "Mati"}</div>
         <Link href={db?.role === "HR_ADMIN" ? "/hr/laporan" : "/riwayat"} className="mt-1 inline-block font-semibold text-emerald-700">Riwayat saya</Link>
       </div>
-      <ProfilForm initial={{ noHp: db?.noHp ?? null, notifWa: db?.notifWa ?? true }} />
+      {/* <ProfilForm initial={{ noHp: db?.noHp ?? null, notifWa: db?.notifWa ?? true }} /> */}
       <PasswordForm />
     </Shell>
   );

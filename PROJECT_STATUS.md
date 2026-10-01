@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Setting notif WA per user di profil (74/74 E2E + 78/78 unit hijau)
+* Session: Hide UI notif WA dari profil (backend utuh, smoke 7/7 + build hijau)
 
 ---
 
