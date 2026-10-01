@@ -51,6 +51,7 @@ export default async function SlipDetail({ params }: { params: { id: string } })
         </dl>
       </div>
       <div className="flex gap-2">
+        <a href={`/api/slip/${s.id}?lihat=1`} target="_blank" rel="noopener" className="flex-1 rounded-xl border-2 border-emerald-700 py-3 text-center font-bold text-emerald-700">Lihat PDF</a>
         <a href={`/api/slip/${s.id}`} className="flex-1 rounded-xl bg-emerald-700 py-3 text-center font-bold text-white">Download PDF</a>
       </div>
       <MonthSelector slips={allSlips} currentId={s.id} />

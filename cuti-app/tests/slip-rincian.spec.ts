@@ -43,6 +43,18 @@ test.describe("Slip gaji rincian standar", () => {
     expect(pdf.status()).toBe(200);
     expect(pdf.headers()["content-type"]).toContain("application/pdf");
     expect(pdf.headers()["content-disposition"]).toContain(`slip-gaji-`);
+
+    // 4. Mode preview: link Lihat tampil, ?lihat=1 inline (default attachment),
+    //    dan otorisasi tetap berlaku walau mode lihat.
+    await expect(page.getByRole("link", { name: "Lihat PDF" })).toBeVisible();
+    const dl = await page.request.get(`/api/slip/${id}`);
+    expect(dl.headers()["content-disposition"]).toContain("attachment");
+    const prev = await page.request.get(`/api/slip/${id}?lihat=1`);
+    expect(prev.status()).toBe(200);
+    expect(prev.headers()["content-disposition"]).toContain("inline");
+    await login(page, "karyawan");
+    const fob = await page.request.get(`/api/slip/${id}?lihat=1`);
+    expect(fob.status()).toBe(403);
   });
 
   test("HR kelola NIP: duplikat ditolak", async ({ page }) => {

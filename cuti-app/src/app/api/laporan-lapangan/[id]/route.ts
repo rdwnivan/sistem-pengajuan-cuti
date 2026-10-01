@@ -13,6 +13,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!allowed) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const url = new URL(req.url);
+  // ?lihat=1 -> tampilkan di browser (inline), default tetap unduh (attachment).
+  const lihat = url.searchParams.get("lihat") === "1";
   if (url.searchParams.get("format") === "pdf") {
     if (l.status !== "DISETUJUI") return Response.json({ error: "PDF hanya untuk laporan disetujui" }, { status: 400 });
     const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
@@ -56,7 +58,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     T("Dicetak dari Sistem Pengajuan Cuti Online", 8, font);
     const bytes = await doc.save();
     return new Response(bytes as unknown as BodyInit, {
-      headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="laporan-${l.id.slice(0, 8)}.pdf"` },
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": `${lihat ? "inline" : "attachment"}; filename="laporan-${l.id.slice(0, 8)}.pdf"` },
     });
   }
 

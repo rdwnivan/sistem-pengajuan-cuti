@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Paralelisasi query dashboard (ganti cache kuota yang tidak tepat)
+* Session: PDF preview ?lihat=1 + link Lihat (73/73 hijau)
 
 ---
 

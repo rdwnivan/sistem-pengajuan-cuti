@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { namaBulan, teksAman, tglWib } from "@/lib/pdf";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await userDariSesi();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const s = await prisma.slipGaji.findUnique({ where: { id: params.id }, include: { user: true } });
@@ -10,6 +10,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const allowed = s.userId === user.id || user.role === "HR_ADMIN";
   if (!allowed) return Response.json({ error: "Forbidden" }, { status: 403 });
   if (s.status !== "TERBIT") return Response.json({ error: "Slip belum diterbitkan" }, { status: 400 });
+  // ?lihat=1 -> tampilkan di browser (inline), default tetap unduh (attachment).
+  // Otorisasi di atas tetap berlaku untuk kedua mode.
+  const lihat = new URL(req.url).searchParams.get("lihat") === "1";
 
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const doc = await PDFDocument.create();
@@ -55,7 +58,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return new Response(bytes as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="slip-gaji-${s.userId}-${s.tahun}-${String(s.bulan).padStart(2, "0")}.pdf"`,
+      "Content-Disposition": `${lihat ? "inline" : "attachment"}; filename="slip-gaji-${s.userId}-${s.tahun}-${String(s.bulan).padStart(2, "0")}.pdf"`,
     },
   });
 }

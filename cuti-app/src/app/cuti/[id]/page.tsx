@@ -56,7 +56,10 @@ export default async function Detail({ params }: { params: { id: string } }) {
       </div>
       {bisaPutus && <PutusanForm id={p.id} />}
       {p.status === "DISETUJUI" && (
-        <a href={`/api/formulir/${p.id}`} className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-bold text-white">Cetak / Unduh Formulir PDF</a>
+        <div className="space-y-2">
+          <a href={`/api/formulir/${p.id}?lihat=1`} target="_blank" rel="noopener" className="block rounded-xl border-2 border-emerald-700 px-4 py-3 text-center font-bold text-emerald-700">Lihat Formulir PDF</a>
+          <a href={`/api/formulir/${p.id}`} className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-bold text-white">Cetak / Unduh Formulir PDF</a>
+        </div>
       )}
       {bisaBatal && (
         <form action={aksiBatal}>

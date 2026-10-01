@@ -86,7 +86,10 @@ export default async function LaporanDetail({ params }: { params: { id: string }
           <Link href={`/laporan/baru?edit=${l.id}`} className="block rounded-xl border-2 border-emerald-700 px-4 py-3 text-center font-bold text-emerald-700">Edit Laporan</Link>
         )}
         {bisaDownload && (
-          <a href={`/api/laporan-lapangan/${l.id}?format=pdf`} className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-bold text-white">Download PDF</a>
+          <div className="space-y-2">
+            <a href={`/api/laporan-lapangan/${l.id}?format=pdf&lihat=1`} target="_blank" rel="noopener" className="block rounded-xl border-2 border-emerald-700 px-4 py-3 text-center font-bold text-emerald-700">Lihat PDF</a>
+            <a href={`/api/laporan-lapangan/${l.id}?format=pdf`} className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-bold text-white">Download PDF</a>
+          </div>
         )}
         {dapatBatal && (
           <form action={aksiBatalLaporan}>

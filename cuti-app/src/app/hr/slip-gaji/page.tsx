@@ -79,6 +79,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
               <span className="font-bold text-emerald-800">Rp {s.gajiBersih.toLocaleString("id-ID")}</span>
               <div className="flex gap-2 text-xs font-bold">
                 <Link href={`/slip-gaji/${s.id}`} className="rounded-lg border border-emerald-700 px-2 py-1 text-emerald-700">Detail</Link>
+                {s.status === "TERBIT" && <a href={`/api/slip/${s.id}?lihat=1`} target="_blank" rel="noopener" className="rounded-lg border border-emerald-700 px-2 py-1 text-emerald-700">Lihat</a>}
                 {s.status === "TERBIT" && <a href={`/api/slip/${s.id}`} className="rounded-lg border border-blue-700 px-2 py-1 text-blue-700">PDF</a>}
                 {s.status === "TERBIT" && (
                   <form action={aksiBatalSlip}>
