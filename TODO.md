@@ -132,7 +132,7 @@ Nice-to-have items.
 * [x] Add CI/CD (GitHub Actions: verify + e2e)
 * [x] Verify environment variables (`.env.example` documented)
 * [x] Verify database migration process (`prisma db push`)
-* [ ] Add rollback procedure (Vercel instant rollback + DB backup)
+* [x] Add rollback procedure (Vercel instant rollback + DB backup) — `ROLLBACK.md`: kapan rollback, promote deployment lama, matriks keputusan schema (kolom baru = kode saja cukup; kolom dihapus = DB juga), PITR Neon via branch, verifikasi read-only, forward-fix, pelajaran insiden `notifWa`
 * [ ] Configure staging environment
 
 ---

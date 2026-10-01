@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: Hide UI notif WA dari profil (backend utuh, smoke 7/7 + build hijau)
+* Session: Prosedur rollback production (ROLLBACK.md)
 
 ---
 
