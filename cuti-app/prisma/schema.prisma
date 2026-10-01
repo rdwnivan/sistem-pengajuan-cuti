@@ -21,6 +21,7 @@ model User {
   atasanId     String?
   atasan       User?    @relation("AtasanBawahan", fields: [atasanId], references: [id], onDelete: SetNull)
   bawahan      User[]   @relation("AtasanBawahan")
+  notifWa      Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   pengajuan    Pengajuan[] @relation("Pemohon")

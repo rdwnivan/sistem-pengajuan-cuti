@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-09-30
-* Session: PDF preview ?lihat=1 + link Lihat (73/73 hijau)
+* Session: Setting notif WA per user di profil (74/74 E2E + 78/78 unit hijau)
 
 ---
 

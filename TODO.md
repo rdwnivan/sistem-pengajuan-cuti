@@ -77,7 +77,9 @@ Important but not immediately blocking.
 
 Nice-to-have items.
 
-* [ ] Add WhatsApp (Fonnte) delivery retry logic
+* [x] Add WhatsApp (Fonnte) delivery retry logic — maks 3x + backoff + timeout + log `[WA-GAGAL]`; ringan (sukses tetap 1x); unit 5/5
+* [x] Setting notif WA per user — kolom `notifWa` (default true) + No HP bisa diubah sendiri di `/profil` (`ProfilForm` + `aksiUbahProfil`); pengiriman via `kirimWAkeUser` yang patuh preferensi; unit `bolehKirimWA` 4/5 kasus; E2E profil di smoke (restore state)
+
 * [x] Add PDF preview before download (slip gaji, formulir cuti) — `?lihat=1` → `inline` (default tetap `attachment`) di 3 route (slip, formulir, laporan-lapangan); link "Lihat" (target _blank) di 4 halaman; otorisasi tidak berubah; langkah verifikasi digabung ke `slip-rincian.spec.ts` (hindari konflik unique slip per bulan)
 * [ ] Add dark mode support
 * [x] Add filter by date range on laporan list (`?dari=`/`?sampai=` pada `tglLaporan`, form GET + Reset, link status pertahankan tanggal, tanggal invalid diabaikan; test permanen di `laporan.spec.ts`)

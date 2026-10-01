@@ -54,3 +54,25 @@ test.describe("Smoke — navigasi", () => {
     await expect(page.getByRole("heading", { name: "Laporan Lapangan" }).first()).toBeVisible();
   });
 });
+
+test.describe("Smoke — profil notifikasi WA", () => {
+  test("simpan no HP + toggle mati/nyala tersimpan dan tampil", async ({ page }) => {
+    await login(page, "karyawan");
+    await page.goto("/profil");
+    await expect(page.getByText("Notifikasi WhatsApp").first()).toBeVisible();
+
+    await page.locator('input[name="noHp"]').first().fill("08123456789");
+    const box = page.locator('input[name="notifWa"]').first();
+    if (await box.isChecked()) await box.uncheck();
+    await page.getByRole("button", { name: "Simpan Profil" }).click();
+    await page.waitForURL(/\/profil\?ok=2/, { timeout: 15000 });
+    await expect(page.getByText("Profil berhasil disimpan.").first()).toBeVisible();
+    await expect(page.getByText(/Notif WA: Mati/).first()).toBeVisible();
+
+    // Restore: nyalakan lagi agar tidak memengaruhi test lain
+    await page.locator('input[name="notifWa"]').first().check();
+    await page.getByRole("button", { name: "Simpan Profil" }).click();
+    await page.waitForURL(/\/profil\?ok=2/, { timeout: 15000 });
+    await expect(page.getByText(/Notif WA: Aktif/).first()).toBeVisible();
+  });
+});

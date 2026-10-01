@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fmtTgl } from "@/lib/cuti";
-import { kirimWA, notifApp } from "@/lib/notif";
+import { kirimWAkeUser, notifApp } from "@/lib/notif";
 
 const HARI_MS = 86400000;
 
@@ -36,7 +36,7 @@ export async function jalankanReminderEskalasi(): Promise<HasilCron> {
         await prisma.pengajuan.update({ where: { id: p.id }, data: { approverId: naikId, dieskalasi: true, eskalasiKeId: naikId } });
         await prisma.auditLog.create({ data: { pengajuanId: p.id, aksi: "ESKALASI_OTOMATIS", dariStatus: p.status, keStatus: p.status, catatan: `Dieskalasi ke ${naik?.nama} setelah ${umurHari} hari tanpa respons` } });
         await notifApp(naikId, "Eskalasi persetujuan cuti", `${p.pemohon.nama} menunggu ${umurHari} hari (${p.jenis.nama} ${p.jumlahHariKerja} hari). Mohon segera diproses.`, p.id, "ESKALASI");
-        if (naik?.noHp) await kirimWA(naik.noHp, `*Cuti Anime - ESKALASI* - ${p.pemohon.nama} menunggu ${umurHari} hari. Mohon proses.`);
+        if (naik) await kirimWAkeUser(naik.id, `*Cuti Anime - ESKALASI* - ${p.pemohon.nama} menunggu ${umurHari} hari. Mohon proses.`);
         eskalasi++;
         detail.push(`eskalasi ${p.id.slice(0, 6)} -> ${naik?.nama}`);
         continue;
@@ -50,7 +50,7 @@ export async function jalankanReminderEskalasi(): Promise<HasilCron> {
           const hrs = await prisma.user.findMany({ where: { role: "HR_ADMIN", statusAktif: true } });
           for (const h of hrs) {
             await notifApp(h.id, "Pengingat verifikasi HR", `${p.pemohon.nama} menunggu ${umurHari} hari (${p.jenis.nama} ${fmtTgl(p.tglMulai)}).`, p.id, "REMINDER");
-            if (h.noHp) await kirimWA(h.noHp, `*Cuti Anime - Reminder HR* - ${p.pemohon.nama} menunggu ${umurHari} hari.`);
+            await kirimWAkeUser(h.id, `*Cuti Anime - Reminder HR* - ${p.pemohon.nama} menunggu ${umurHari} hari.`);
           }
           await prisma.pengajuan.update({ where: { id: p.id }, data: { reminderCount: p.reminderCount + 1, lastReminderAt: now } });
           await prisma.auditLog.create({ data: { pengajuanId: p.id, aksi: "REMINDER_OTOMATIS", dariStatus: p.status, keStatus: p.status, catatan: `Reminder ke-${p.reminderCount + 1} ke semua HR` } });
@@ -61,7 +61,7 @@ export async function jalankanReminderEskalasi(): Promise<HasilCron> {
           await prisma.pengajuan.update({ where: { id: p.id }, data: { reminderCount: p.reminderCount + 1, lastReminderAt: now } });
           await prisma.auditLog.create({ data: { pengajuanId: p.id, aksi: "REMINDER_OTOMATIS", dariStatus: p.status, keStatus: p.status, catatan: `Reminder ke-${p.reminderCount + 1} ke ${target?.nama}` } });
           await notifApp(targetId, "Pengingat persetujuan cuti", `${p.pemohon.nama} menunggu ${umurHari} hari (${p.jenis.nama} ${fmtTgl(p.tglMulai)}).`, p.id, "REMINDER");
-          if (target?.noHp) await kirimWA(target.noHp, `*Cuti Anime - Reminder* - ${p.pemohon.nama} menunggu ${umurHari} hari.`);
+          if (target) await kirimWAkeUser(target.id, `*Cuti Anime - Reminder* - ${p.pemohon.nama} menunggu ${umurHari} hari.`);
           reminder++;
           detail.push(`reminder ${p.id.slice(0, 6)} -> ${target?.nama}`);
         }
