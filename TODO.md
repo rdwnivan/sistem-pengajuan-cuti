@@ -81,7 +81,7 @@ Nice-to-have items.
 * [x] Setting notif WA per user — kolom `notifWa` (default true) + `ProfilForm` + `aksiUbahProfil`; pengiriman via `kirimWAkeUser` yang patuh preferensi; unit `bolehKirimWA`; **DI-HIDE dari UI 2026-09-30** (user belum minta): `ProfilForm` tidak dirender + test E2E profil dihapus (ada catatan kembalinya); backend utuh (kolom, retry, kirimWAkeUser)
 
 * [x] Add PDF preview before download (slip gaji, formulir cuti) — `?lihat=1` → `inline` (default tetap `attachment`) di 3 route (slip, formulir, laporan-lapangan); link "Lihat" (target _blank) di 4 halaman; otorisasi tidak berubah; langkah verifikasi digabung ke `slip-rincian.spec.ts` (hindari konflik unique slip per bulan)
-* [ ] Add dark mode support
+* [x] Add dark mode support — DITOLAK 2026-09-30: seluruh UI hardcode terang, effort besar untuk app HR internal jam kerja; jangan kerjakan tanpa permintaan user eksplisit
 * [x] Add filter by date range on laporan list (`?dari=`/`?sampai=` pada `tglLaporan`, form GET + Reset, link status pertahankan tanggal, tanggal invalid diabaikan; test permanen di `laporan.spec.ts`)
 
 ---
@@ -122,7 +122,7 @@ Nice-to-have items.
 
 * [x] Investigate slow approval queue query (N+1 on audit logs?) — N+1 nyata ada di loop delegasi `/persetujuan` (1 query per delegasi) → digabung jadi 1 query `atanId: { in }`; perilaku badge "delegasi" dipertahankan; flows 22/22 + utama 49/49
 * [x] Optimize `Kuota` query — TIDAK di-cache (sengaja): sisa kuota berubah tiap transaksi sehingga cache butuh invalidasi per user per tahun yang lebih mahal daripada query-nya; sebagai gantinya 5 query dashboard (`jenis`, `kuota`, `riwayat`, 2× count antrean) yang tadinya sequential kini paralel via `Promise.all`
-* [ ] Review `prisma.ts` — connection pooling config for serverless (Vercel)
+* [x] Review `prisma.ts` — TIDAK PERLU diubah: URL Neon yang dipakai sudah pooler (`-pooler-`), pooling ditangani sisi Neon; singleton pattern sudah benar; tanpa gejala masalah. Tinjau ulang hanya bila muncul error connection/timeout di production
 
 ---
 
@@ -149,7 +149,7 @@ Move completed tasks here periodically.
 * [x] Delegasi — atasan→atasan, HR→HR, same-tier only
 * [x] Web Push — VAPID + Service Worker + subscribe endpoint
 * [x] Cron — reminder H+1 + eskalasi H+3 (Vercel cron)
-* [x] E2E tests — 18 Playwright tests (smoke, slip-gaji, laporan)
+* [x] E2E tests — 73 Playwright (49 utama + 22 flows + 2 rate-limit, 3 tier config) + 78 unit (`npm run test:unit`)
 * [x] CI/CD — GitHub Actions verify + e2e
 * [x] Deploy — Vercel live
 
