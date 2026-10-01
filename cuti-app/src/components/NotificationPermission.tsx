@@ -18,6 +18,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function NotificationPermission() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
+  const [galat, setGalat] = useState<string | null>(null);
 
   useEffect(() => {
     if (!("Notification" in window)) {
@@ -44,16 +45,19 @@ export function NotificationPermission() {
   async function enable() {
     if (!("Notification" in window)) return;
     setLoading(true);
+    setGalat(null);
     try {
       const perm = await Notification.requestPermission();
-      setStatus(perm);
-      if (perm !== "granted") return;
+      if (perm !== "granted") {
+        setStatus(perm);
+        return;
+      }
 
       const res = await fetch("/api/push/subscribe");
+      if (!res.ok) throw new Error("Server menolak permintaan (mungkin sesi habis — silakan login ulang lalu coba lagi)");
       const { publicKey } = (await res.json()) as { publicKey: string | null };
       if (!publicKey) {
-        console.error("VAPID public key belum dikonfigurasi");
-        return;
+        throw new Error("Server belum dikonfigurasi untuk notifikasi (VAPID kosong di server)");
       }
 
       const reg = await navigator.serviceWorker.register("/sw.js");
@@ -62,13 +66,17 @@ export function NotificationPermission() {
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
-      await fetch("/api/push/subscribe", {
+      const simpan = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub.toJSON()),
       });
+      if (!simpan.ok) throw new Error("Gagal menyimpan subscription ke server");
+
+      // Sembunyikan banner HANYA bila seluruh alur sukses.
+      setStatus("granted");
     } catch (e) {
-      console.error("Gagal mengaktifkan notifikasi:", e);
+      setGalat(e instanceof Error ? e.message : "Gagal mengaktifkan notifikasi, silakan coba lagi");
     } finally {
       setLoading(false);
     }
@@ -99,6 +107,11 @@ export function NotificationPermission() {
       {status === "denied" && (
         <p className="mt-2 text-xs text-red-700">
           Notifikasi diblokir browser. Aktifkan manual di pengaturan situs (ikon gembok di address bar).
+        </p>
+      )}
+      {galat && (
+        <p className="mt-2 text-xs font-semibold text-red-700">
+          {galat}
         </p>
       )}
     </div>

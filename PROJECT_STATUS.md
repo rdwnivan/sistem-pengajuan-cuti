@@ -5,8 +5,8 @@
 
 ## Last Updated
 
-* Date: 2026-09-30
-* Session: Hapus project Vercel staging (staging lokal saja)
+* Date: 2026-10-01
+* Session: Fix banner notifikasi muncul lagi setelah refresh (error subscribe kini terlihat user)
 
 ---
 
