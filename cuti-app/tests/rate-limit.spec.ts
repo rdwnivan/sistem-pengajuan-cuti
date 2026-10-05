@@ -18,11 +18,22 @@ test("brute force diblokir setelah 5 percobaan gagal", async ({ page }) => {
   for (let i = 0; i < 6; i++) {
     await page.locator("input[name=email]").fill(email);
     await page.locator("#password").fill(`salah-${i}`);
+    // Tunggu POST server action halaman ini saja (bukan POST lain di halaman).
+    // JANGAN pakai response.finished(): pada respons streaming Next dev promise
+    // itu tidak punya timeout sendiri, jadi bisa menggantung sampai timeout test
+    // 120s (pernah terjadi di CI). Header balik sudah cukup — server selesai
+    // memproses action sebelum body-nya dikirim.
     const [resp] = await Promise.all([
-      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/login")),
       page.getByRole("button", { name: /Masuk|Memproses/ }).click(),
     ]);
-    await resp.finished();
+    expect(resp.status()).toBeLessThan(500);
+    // Barrier antar-iterasi: tunggu React selesai mereset form supaya isian
+    // iterasi berikutnya tidak terhapus di tengah jalan. Iterasi terakhir tidak
+    // perlu (loop sudah berakhir) dan action-nya memang diblokir rate limit.
+    if (i < 5) {
+      await expect(page.locator("input[name=email]")).toHaveValue("", { timeout: 30000 });
+    }
   }
   // setelah 5× gagal, error rate limit harus muncul
   await expect(page.getByText("Terlalu banyak percobaan")).toBeVisible({ timeout: 8000 });
