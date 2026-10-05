@@ -8,7 +8,7 @@ import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
 import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-import { sniffFile, type FileValid } from "@/lib/upload";
+import { sniffFile, DI_VERCEL, type FileValid } from "@/lib/upload";
 
 import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, ajukanPerubahanGaji } from "./shared";
 import { cekRateLimit, catatGagal, reset as resetRateLimit } from "@/lib/rate-limit";
@@ -105,7 +105,7 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
       const { put } = await import("@vercel/blob");
       const blob = await put(name, buffer as unknown as File, { access: "public" });
       lampiranPath = blob.url;
-    } else if (process.env.NODE_ENV === "production") {
+    } else if (DI_VERCEL) {
       return { error: "Upload lampiran belum dikonfigurasi (BLOB_READ_WRITE_TOKEN kosong)" };
     } else {
       const { writeFile, mkdir } = await import("fs/promises");

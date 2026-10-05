@@ -1,4 +1,5 @@
 import { test, expect, login, seninDepan } from "./helpers";
+import type { BrowserContext } from "@playwright/test";
 
 /**
  * Alur notifikasi in-app ujung-ke-ujung:
@@ -25,47 +26,66 @@ test("notifikasi cuti: pengajuan baru sampai keputusan", async ({ page }) => {
   const url = page.url();
   console.log("OK|pengajuan dibuat");
 
-  // 2. Atasan: notif + badge muncul
-  const browser = page.context().browser();
-  if (!browser) throw new Error("browser null");
-  const ctx = await browser.newContext();
-  const p2 = await ctx.newPage();
-  await p2.goto("http://localhost:3000/login");
-  await p2.locator("input[name=email]").fill("atasan1@anime.id");
-  await p2.locator("#password").fill("anime123");
-  await p2.getByRole("button", { name: "Masuk" }).click();
-  await p2.waitForURL((u) => u.pathname !== "/login", { timeout: 20000 });
-  await p2.goto("/notifikasi");
-  await expect(p2.getByText("Pengajuan cuti baru menunggu Anda").first()).toBeVisible({ timeout: 10000 });
-  console.log("OK|atasan dapat notif pengajuan baru");
-  const badge = await p2.getByRole("link", { name: "Notifikasi" }).first().innerText();
-  expect(Number(badge.replace(/\D/g, "")) >= 1).toBe(true);
-  console.log("OK|badge notifikasi tampil angka");
+  let ctx: BrowserContext | undefined;
+  try {
+    // 2. Atasan: notif + badge muncul
+    const browser = page.context().browser();
+    if (!browser) throw new Error("browser null");
+    ctx = await browser.newContext();
+    const p2 = await ctx.newPage();
+    await p2.goto("http://localhost:3000/login");
+    await p2.locator("input[name=email]").fill("atasan1@anime.id");
+    await p2.locator("#password").fill("anime123");
+    await p2.getByRole("button", { name: "Masuk" }).click();
+    await p2.waitForURL((u) => u.pathname !== "/login", { timeout: 20000 });
+    await p2.goto("/notifikasi");
+    await expect(p2.getByText("Pengajuan cuti baru menunggu Anda").first()).toBeVisible({ timeout: 10000 });
+    console.log("OK|atasan dapat notif pengajuan baru");
+    // Badge di nav di-stream lewat <Suspense> (fallback-nya skeleton tanpa angka),
+    // jadi JANGAN baca innerText sekali saja — bisa keburu fallback dan dapat 0
+    // (penyebab flake/gagal di CI 2026-10-06). Tunggu sampai angkanya benar-benar muncul.
+    await expect
+      .poll(
+        async () =>
+          Number((await p2.getByRole("link", { name: "Notifikasi" }).first().innerText()).replace(/\D/g, "")) || 0,
+        { timeout: 10000 }
+      )
+      .toBeGreaterThanOrEqual(1);
+    console.log("OK|badge notifikasi tampil angka");
 
-  // 3. Atasan menyetujui. PENTING: jangan pakai waitForURL(/\/cuti\//) —
-  // URL sudah cocok sebelum action selesai sehingga lolos instan.
-  // Tunggu bukti visual status berubah sebagai tanda server selesai.
-  await p2.goto(url);
-  await p2.locator('textarea[name="catatan"]').fill("Setuju, silakan cuti.");
-  await p2.getByRole("button", { name: "Setujui" }).click();
-  await expect(p2.getByText("Menunggu HR").first()).toBeVisible({ timeout: 20000 });
-  console.log("OK|atasan menyetujui");
-  await ctx.close();
+    // 3. Atasan menyetujui. PENTING: jangan pakai waitForURL(/\/cuti\//) —
+    // URL sudah cocok sebelum action selesai sehingga lolos instan.
+    // Tunggu bukti visual status berubah sebagai tanda server selesai.
+    await p2.goto(url);
+    await p2.locator('textarea[name="catatan"]').fill("Setuju, silakan cuti.");
+    await p2.getByRole("button", { name: "Setujui" }).click();
+    await expect(p2.getByText("Menunggu HR").first()).toBeVisible({ timeout: 20000 });
+    console.log("OK|atasan menyetujui");
 
-  // 4. Karyawan: notif keputusan muncul (atasan->HR = "Atasan menyetujui",
-  // bukan "Pengajuan Anda" yang hanya untuk status final)
-  await page.goto("/notifikasi");
-  await expect(page.getByText("Atasan menyetujui").first()).toBeVisible({ timeout: 10000 });
-  console.log("OK|karyawan dapat notif keputusan");
-
-  // 5. Cleanup: batalkan agar antrean kosong untuk test lain
-  await page.goto(url);
-  const batal = page.getByRole("button", { name: "Batalkan Pengajuan" });
-  if (await batal.count()) {
-    page.once("dialog", (d) => d.accept());
-    await batal.first().click();
-    await page.waitForURL("/", { timeout: 20000 });
-    console.log("OK|cleanup dibatalkan");
+    // 4. Karyawan: notif keputusan muncul (atasan->HR = "Atasan menyetujui",
+    // bukan "Pengajuan Anda" yang hanya untuk status final)
+    await page.goto("/notifikasi");
+    await expect(page.getByText("Atasan menyetujui").first()).toBeVisible({ timeout: 10000 });
+    console.log("OK|karyawan dapat notif keputusan");
+  } finally {
+    // 5. Cleanup SELALU jalan, termasuk saat test gagal. Kalau tidak, pengajuan
+    // yang bocor membuat percobaan retry gagal karena anti-bentrok/kuota (jenis
+    // "Duka" kuotanya kecil & permanen) — bukan karena penyebab aslinya. Tier ini
+    // memakai retries:2 di CI, jadi cleanup bocor membuat hasil retry menyesatkan.
+    // Kegagalan cleanup hanya dilaporkan supaya tidak menutupi error asli.
+    try {
+      if (ctx) await ctx.close();
+      await page.goto(url);
+      const batal = page.getByRole("button", { name: "Batalkan Pengajuan" });
+      if (await batal.count()) {
+        page.once("dialog", (d) => d.accept());
+        await batal.first().click();
+        await page.waitForURL("/", { timeout: 20000 });
+        console.log("OK|cleanup dibatalkan");
+      }
+    } catch (e) {
+      console.log(`WARN|cleanup gagal: ${e}`);
+    }
   }
 });
 

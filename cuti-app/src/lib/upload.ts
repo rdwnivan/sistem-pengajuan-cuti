@@ -20,6 +20,17 @@ const SIGNATURE = {
 export type FileValid = { buffer: Buffer; ext: string; mime: string };
 
 /**
+ * True bila proses berjalan di Vercel. FS Vercel **read-only**, jadi di sana
+ * upload lokal tidak mungkin — wajib lewat Vercel Blob (`BLOB_READ_WRITE_TOKEN`).
+ *
+ * Sengaja TIDAK memakai `NODE_ENV === "production"`: build produksi yang
+ * dijalankan lokal (mis. E2E `next start` di CI) masih bisa menulis ke
+ * `public/uploads/`, sedangkan di Vercel tidak. Dipakai di 3 tempat agar
+ * kondisinya satu sumber (cutiActions + shared unggahFoto/unggahBanyakFoto).
+ */
+export const DI_VERCEL = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+/**
  * Baca buffer file dan verifikasi signature-nya terhadap daftar yang diizinkan.
  * Mengembalikan Buffer + ekstensi/mime berdasarkan konten, bukan klaim client.
  *
