@@ -15,8 +15,18 @@ test("HR terbitkan lalu batalkan slip gaji", async ({ page }) => {
   await page.goto("/hr/slip-gaji?buat=1");
   await page.locator('select[name="userId"]').first().selectOption({ label: "Karyawan 3 (Staff)" });
   await page.locator('select[name="bulan"]').first().selectOption(bulan);
-  await page.getByRole("button", { name: "Terbitkan Slip" }).first().click();
-  await page.waitForURL(/\/hr\/slip-gaji/, { timeout: 20000 });
+  // Tunggu server action aksiBuatSlip benar-benar selesai SEBELUM navigasi berikutnya.
+  // PENTING: `waitForURL(/\/hr\/slip-gaji/)` TIDAK menunggu apa pun di sini, karena URL
+  // saat itu (`/hr/slip-gaji?buat=1`) sudah cocok dengan regex-nya. Akibatnya form filter
+  // di bawah (GET → navigasi penuh) bisa membatalkan POST server action yang masih berjalan,
+  // slip tidak jadi dibuat, dan kartu "Terbit" tidak pernah ada (flake CI 2026-10-06).
+  const [resp] = await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/hr/slip-gaji")),
+    page.getByRole("button", { name: "Terbitkan Slip" }).first().click(),
+  ]);
+  expect(resp.status()).toBeLessThan(500);
+  // Pastikan redirect dari action sudah mendarat: form `?buat=1` harus sudah tertutup.
+  await page.waitForURL((u) => !u.searchParams.has("buat"), { timeout: 20000 });
 
   // Filter ke Karyawan 3 agar hanya barisnya yang tampil
   await page.locator('select[name="akun"]').first().selectOption({ label: "Karyawan 3" });
