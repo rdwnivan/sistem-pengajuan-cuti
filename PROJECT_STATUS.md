@@ -6,8 +6,9 @@
 ## Last Updated
 
 * Date: 2026-10-06 (WIB)
-* Session: Merge + deploy upgrade Next 15.5.27/React 19 ke production; temukan & perbaiki flake E2E
-  rate-limit yang memblokir CI; audit sisa dependensi (postcss/uuid) dianalisis ulang
+* Session: Merge + deploy upgrade Next 15.5.27/React 19 ke production; audit sisa dependensi
+  (postcss/uuid) dianalisis ulang; akar flake E2E ditemukan & diperbaiki — CI sekarang pakai
+  server produksi + retries (job `e2e` 5–9 menit → ~3 menit, tanpa flaky)
 
 ---
 
@@ -97,7 +98,53 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
   cocok dengan URL saat itu** (`/hr/slip-gaji?buat=1`) sehingga tidak menunggu apa pun; filter
   berikutnya lalu berlomba dengan server action yang masih berjalan.
   `playwright.flows.config.ts` `retries: 0`, jadi satu flake langsung memerahkan job.
-  **Belum diperbaiki** — menunggu keputusan (lihat TODO).
+  **Diperbaiki** di PR #3 (`917a89c`): tunggu respons POST `aksiBuatSlip` (punya timeout) lalu
+  pastikan redirect mendarat lewat predikat yang tidak cocok dengan URL `?buat=1`.
+
+## Infrastruktur E2E — Server Produksi di CI + Retries (2026-10-06, lanjutan)
+
+**Masalah**: tier E2E flaky ~50% di CI — 3 test berbeda gagal dalam 4 run (`rate-limit`,
+`slip-batal`, `notifikasi`). Akarnya bukan satu test, tapi lingkungan + kebijakan retry:
+CI memakai **dev server** untuk 91 test (React StrictMode merender 2×, kompilasi on-demand, HMR),
+dan tier flows/rate-limit memakai `retries: 0` padahal tier utama sudah `retries: CI ? 2 : 0`.
+
+**Perubahan** (PR #4, `d41f91a`):
+
+* `webServer.command` di 3 config Playwright → `process.env.CI ? "npm run start" : "npm run dev"`.
+  Job `e2e` CI sudah menjalankan `npm run build` sebelum test, jadi tanpa biaya tambahan.
+* `retries: process.env.CI ? 2 : 0` untuk tier flows & rate-limit (disamakan dengan tier utama).
+  Playwright tetap menandai test `flaky`, jadi tidak ada kegagalan yang disembunyikan.
+* **Gate upload lokal dipindah dari `NODE_ENV === "production"` ke `DI_VERCEL`**
+  (`src/lib/upload.ts`, dipakai di `cutiActions.ts` + 2 tempat di `shared.ts`).
+  Sebab: dengan `next start` lokal, `NODE_ENV=production` sehingga `tests/lampiran.spec.ts:42`
+  gagal 3/3 attempt ("Upload lampiran belum dikonfigurasi"). Alasan gate itu sebenarnya adalah
+  **FS Vercel read-only**, bukan mode produksi. Perilaku di Vercel **tidak berubah**
+  (`VERCEL`/`VERCEL_ENV` selalu di-set di sana). `sniffFile` (validasi magic bytes) tidak disentuh.
+* `tests/notifikasi.spec.ts`: badge nav di-stream lewat `<Suspense>` dengan fallback skeleton
+  **tanpa angka** (`shell.tsx:63-69`), jadi `innerText()` sekali baca itu race → dapat 0;
+  diganti `expect.poll`. Cleanup (batalkan pengajuan) dipindah ke `finally` — kalau bocor,
+  percobaan retry gagal karena anti-bentrok/kuota jenis "Duka", bukan karena penyebab aslinya
+  (terbukti: attempt 1 bocor → attempt 2 & 3 gagal di `waitForURL`).
+
+**Hasil** (CI hijau di PR #4 dan PR #3, keduanya tanpa flaky sama sekali):
+
+| Tier | Sebelum (dev) | Sesudah (produksi) |
+|---|---|---|
+| main 54 test | ~5–6 menit | **27–33 detik** |
+| flows 37 test | ~4–7 menit, sering flaky | **28–33 detik**, 37/37 |
+| rate-limit 2 test | ~2 menit | **2 detik** |
+| job `e2e` total | 5–9 menit | **~3 menit** |
+
+Pelajaran: `slip-batal` yang tadinya flaky ~50% **lolos first try** setelah pindah ke server
+produksi (bahkan sebelum fix PR #3 masuk) — jadi sumber utamanya memang nondeterminisme dev
+server, bukan test-nya. Dua fix test (PR #3 dan `notifikasi`) tetap dipertahankan karena
+menutup bug nyata: `waitForURL` yang sudah cocok URL saat itu, dan satu kali baca nilai
+yang di-stream Suspense.
+
+> Catatan penting: `next start` menyalakan `secure: true` pada cookie sesi
+> (`NODE_ENV === "production"` di `auth.ts`). Login E2E tetap berhasil di `http://localhost`
+> karena Chromium memperlakukan localhost sebagai secure context. Sudah diverifikasi —
+> kalau tidak, seluruh test login akan gagal.
 
 ## Audit Sisa — Koreksi Analisis (2026-10-06)
 
@@ -194,11 +241,13 @@ Semua P0 security selesai:
 ## Catatan Teknis Penting
 
 ### Arsitektur test: 3 tier terpisah
-Suite E2E dibagi 3 (dibuat sesi prototype, jangan digabung):
-1. **Suite utama** (`npx playwright test`) — 6 file, 48 test: smoke, slip-gaji, laporan, security, performance, confirm-dialog. `testIgnore` di `playwright.config.ts` mengecualikan sisanya.
-2. **Flows** (`npx playwright test --config=playwright.flows.config.ts`) — 7 file serial worker 1: cron, cuti-flow, delegasi, gaji-flow, laporan-acc, laporan-kebun, slip-rincian. Test stateful (buat data lalu cleanup sendiri).
-3. **Rate-limit** (`npx playwright test --config=playwright.rate-limit.config.ts`) — serial worker 1, timeout 120s (6× bcrypt cost 10 membuat Next dev macet bila paralel).
+Suite E2E dibagi 3 tier (dibuat sesi prototype, jangan digabung) — total 20 file spec, 93 test:
+1. **Suite utama** (`npx playwright test`) — 6 file, **54 test**: smoke, slip-gaji, laporan, security, performance, confirm-dialog. `testIgnore` di `playwright.config.ts` mengecualikan 14 file sisanya.
+2. **Flows** (`npx playwright test --config=playwright.flows.config.ts`) — 13 file serial worker 1, **37 test**: cron, cuti-flow, cuti-validasi, delegasi, gaji-flow, hr-crud, lampiran, laporan-acc, laporan-kebun, notifikasi, profil, slip-batal, slip-rincian. Test stateful (buat data lalu cleanup sendiri).
+3. **Rate-limit** (`npx playwright test --config=playwright.rate-limit.config.ts`) — 1 file, **2 test**, serial worker 1, timeout 120s (6× bcrypt cost 10 membuat Next dev macet bila paralel).
 Jalankan berurutan dari DB bersih (re-seed sekali di awal). Filter per-file via CLI (`npx playwright test tests/x.spec.ts`) sering "No tests found" misterius — gunakan full run per tier sebagai gantinya.
+
+**Lingkungan & retry (2026-10-06)**: ketiga config memakai `webServer.command = process.env.CI ? "npm run start" : "npm run dev"` dan `retries: process.env.CI ? 2 : 0`. Di CI hasilnya job `e2e` ~3 menit (dulu 5–9 menit) tanpa flaky; di lokal tetap dev server tanpa retry. Lihat "Infrastruktur E2E" di atas.
 
 ### E2E wajib dari DB bersih
 Test E2E **order/state-dependent**: setiap run menumpuk pengajuan & laporan, sehingga test seperti "HR melihat antrean kosong" gagal kalau DB sudah ada data. **Selalu re-seed sebelum `npx playwright test`:**
@@ -221,13 +270,16 @@ sebelum browser menyelesaikan submit). Perilaku baru React 19 yang wajib diingat
 Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
 
 ### E2E makin flaky — CI pun bukan juri yang bersih
-Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug.
+Suite E2E (kini 93 test; flows 37) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug.
 
-**Pembaruan 2026-10-06 — flakiness juga muncul di CI**, jadi "CI sebagai juri" tidak lagi cukup sendirian. Dua kelas flake teridentifikasi, keduanya menunggu sinyal yang salah:
-1. `tests/rate-limit.spec.ts` — `await resp.finished()` tanpa timeout pada respons streaming (SUDAH diperbaiki, `de9a7c1`).
-2. `tests/slip-batal.spec.ts` — `waitForURL(/\/hr\/slip-gaji/)` sudah cocok dengan URL saat itu sehingga tidak menunggu redirect (BELUM diperbaiki).
+**Pembaruan 2026-10-06 — flakiness juga muncul di CI**, jadi "CI sebagai juri" tidak lagi cukup sendirian. Tiga kelas flake teridentifikasi, semuanya **menunggu sinyal yang salah** (bukan bug produk):
+1. `tests/rate-limit.spec.ts` — `await resp.finished()` tanpa timeout pada respons streaming. Diperbaiki di `de9a7c1`.
+2. `tests/slip-batal.spec.ts` — `waitForURL(/\/hr\/slip-gaji/)` sudah cocok dengan URL saat itu sehingga tidak menunggu redirect. Diperbaiki di `917a89c`.
+3. `tests/notifikasi.spec.ts` — `innerText()` sekali baca pada badge nav yang di-stream `<Suspense>` (fallback skeleton tanpa angka). Diperbaiki di `d41f91a`.
 
-Tier flows & rate-limit memakai `retries: 0`, jadi satu flake langsung memerahkan job. **Verifikasi tiap flake dengan rerun job yang sama**: kalau rerun hijau tanpa perubahan kode, itu flake, bukan regresi produk — dan perbaiki test-nya, karena flake di gate sama merusaknya dengan gate yang tidak pernah jalan.
+**Akar masalah sebenarnya adalah lingkungan dev server di CI** — lihat "Infrastruktur E2E — Server Produksi di CI + Retries" di atas. Setelah pindah ke `next start`, ketiga tier lolos tanpa flaky sama sekali.
+
+**Verifikasi tiap flake dengan rerun job yang sama**: kalau rerun hijau tanpa perubahan kode, itu flake, bukan regresi produk. Lalu perbaiki: flake di gate sama merusaknya dengan gate yang tidak pernah jalan.
 
 ---
 
@@ -571,9 +623,9 @@ PASS (`npm run build` Next 15.5.27, 29/29 halaman; CI `verify` hijau di `main`)
 
 ## Tests
 
-PASS — unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2** (3 tier config).
-Catatan: tier CI flaky secara intermiten (2 kelas flake ditemukan 2026-10-06; satu sudah
-diperbaiki, `slip-batal` belum) — lihat bagian "Merge + Deploy Upgrade" di atas.
+PASS — unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2** (3 tier config, 20 file).
+CI `e2e` hijau **tanpa flaky** setelah pindah ke server produksi (job ~3 menit) — lihat
+"Infrastruktur E2E — Server Produksi di CI + Retries".
 
 ## Lint
 
@@ -581,9 +633,9 @@ PASS (`next lint` 0 warning; deprecated, dihapus di Next 16)
 
 ## Deployment
 
-PASS — live di https://cuti-app.vercel.app/ (Next 15.5.27 + React 19, `main` = `513395e`)
+PASS — live di https://cuti-app.vercel.app/ (Next 15.5.27 + React 19, `main` = `917a89c`)
 
 ## Overall State
 
-Stable — upgrade security sudah production; sisa 4 vuln dependensi tanpa critical
-(postcss + uuid, keduanya terbukti tidak reachable — lihat "Audit Sisa").
+Stable — upgrade security sudah production; CI andal (tanpa flaky); sisa 4 vuln dependensi tanpa
+critical (postcss + uuid, keduanya terbukti tidak reachable — lihat "Audit Sisa").

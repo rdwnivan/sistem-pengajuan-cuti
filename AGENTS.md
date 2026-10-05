@@ -349,11 +349,11 @@ Single app in `cuti-app/` — all commands, env, Prisma, and tests run from ther
 - Verify (CI order in `.github/workflows/ci.yml`): `npx tsc --noEmit` → `npm run lint` → `npm run build` → E2E
 - **CI TIDAK jalan pada push ke branch fitur** — `ci.yml` hanya trigger `push` ke `main` dan `pull_request`. Branch yang di-push tanpa PR tidak pernah menjalankan `verify`/`e2e`, jadi "CI hijau" tidak bisa diklaim dari push branch. Selalu buka PR supaya gate benar-benar dieksekusi; cek dengan `gh run list --branch <branch>`
 - DB: `npm run db:push` (`prisma db push`, no migrations) / `npm run db:seed` (`tsx prisma/seed.ts`, blocked in production without `SEED_FORCE=true`)
-- E2E: `npm run test:e2e` / `npm run test:e2e:ui`; single file `npx playwright test tests/smoke.spec.ts`; filter `-g "nama test"`; config `cuti-app/playwright.config.ts` (`baseURL` localhost:3000, `webServer` `npm run dev`, `reuseExistingServer: !CI`, 120s timeout, `chromium` only)
+- E2E: `npm run test:e2e` / `npm run test:e2e:ui`; single file `npx playwright test tests/smoke.spec.ts`; filter `-g "nama test"`; configs `cuti-app/playwright.config.ts`, `playwright.flows.config.ts`, `playwright.rate-limit.config.ts` (`baseURL` localhost:3000, `chromium` only). Ketiganya memakai `webServer.command = process.env.CI ? "npm run start" : "npm run dev"` dan `retries: process.env.CI ? 2 : 0`. Di CI jalankan `npm run build` dulu (job `e2e` sudah melakukannya); di lokal tetap dev server tanpa retry. Server produksi di CI inilah yang menghilangkan flake (job `e2e` ~3 menit, 5–9 menit sebelumnya).
 
 ## Env (`cuti-app/.env.example`)
 - Required: `DATABASE_URL` (PostgreSQL only — `provider = "postgresql"`), `CRON_SECRET`
-- `BLOB_READ_WRITE_TOKEN` — empty = local `public/uploads/` fallback; on Vercel without it uploads fail (read-only FS)
+- `BLOB_READ_WRITE_TOKEN` — empty = local `public/uploads/` fallback (also for local/CI `next start`); on Vercel without it uploads fail (read-only FS). Gate is `DI_VERCEL` in `src/lib/upload.ts`, **not** `NODE_ENV === "production"` — do not revert that.
 - `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` — pair or neither (Web Push)
 - Optional `FONNTE_TOKEN` (WA via Fonnte) — empty = log only
 - `SESSION_SECRET` is **not used** — session auth uses token DB (`Sesi` model); it's in ci.yml env but unused in source code
