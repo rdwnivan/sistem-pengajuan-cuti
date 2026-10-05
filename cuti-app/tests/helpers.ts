@@ -8,6 +8,7 @@ export const AKUN = {
   karyawan: { email: "karyawan1@anime.id", password: "anime123" },
   karyawan2: { email: "karyawan4@anime.id", password: "anime123" },
   karyawan3: { email: "karyawan3@anime.id", password: "anime123" },
+  karyawan5: { email: "karyawan5@anime.id", password: "anime123" },
 } as const;
 
 export type Peran = keyof typeof AKUN;
