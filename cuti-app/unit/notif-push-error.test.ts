@@ -10,6 +10,12 @@ describe("pesanGalatPush — pesan error subscribe yang ramah", () => {
     assert.match(msg, /gcm-internals|Firefox/);
   });
 
+  it("push service error di Brave -> panduan Google services", () => {
+    const msg = pesanGalatPush(new Error("Registration failed - push service error"), true);
+    assert.match(msg, /Brave/);
+    assert.match(msg, /Google services for push messaging/);
+  });
+
   it("AbortError (VAPID tidak cocok) -> suruh hubungi admin", () => {
     const e = new DOMException("Failed to subscribe", "AbortError");
     assert.match(pesanGalatPush(e), /VAPID|admin/);

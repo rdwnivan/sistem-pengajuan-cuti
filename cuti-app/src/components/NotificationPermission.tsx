@@ -40,9 +40,12 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-export function pesanGalatPush(e: unknown): string {
+export function pesanGalatPush(e: unknown, isBrave = false): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (/push service error/i.test(msg)) {
+    if (isBrave) {
+      return "Brave mematikan layanan push Google secara default, jadi notifikasi tidak bisa aktif. Buka brave://settings/privacy → nyalakan \"Use Google services for push messaging\" → muat ulang halaman ini → coba Aktifkan lagi. Alternatif: pakai Chrome/Edge/Firefox.";
+    }
     return "Browser gagal menghubungi layanan push. Coba berurutan: (1) matikan VPN/proxy lalu coba lagi; (2) pastikan jaringan tidak memblokir Google (firewall kantor/DNS filter) — cek status di chrome://gcm-internals; (3) nonaktifkan ad-block untuk situs ini; (4) bila tetap gagal, coba browser lain (Firefox/Edge).";
   }
   if (e instanceof DOMException && (e.name === "AbortError" || e.name === "InvalidAccessError")) {
@@ -55,6 +58,12 @@ export function pesanGalatPush(e: unknown): string {
     return "Browser/alamat ini tidak mendukung notifikasi push. Buka via localhost atau HTTPS.";
   }
   return msg || "Gagal mengaktifkan notifikasi, silakan coba lagi";
+}
+
+/** Deteksi Brave (memakai chrome.* API sendiri). Aman bila bukan Brave. */
+function isBraveBrowser(): boolean {
+  const nav = navigator as Navigator & { brave?: { isBrave?: () => Promise<boolean> } };
+  return typeof nav.brave?.isBrave === "function";
 }
 
 export function NotificationPermission() {
@@ -139,7 +148,7 @@ export function NotificationPermission() {
       // Sembunyikan banner HANYA bila seluruh alur sukses.
       setStatus("granted");
     } catch (e) {
-      setGalat(pesanGalatPush(e));
+      setGalat(pesanGalatPush(e, isBraveBrowser()));
     } finally {
       setLoading(false);
     }
