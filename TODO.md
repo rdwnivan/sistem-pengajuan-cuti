@@ -98,6 +98,8 @@ Nice-to-have items.
 
 # Testing
 
+* [x] E2E HR CRUD (jenis cuti tambah, hari libur tambah/hapus, karyawan buat/edit/nonaktif) — `tests/hr-crud.spec.ts` (tier flows, serial)
+* [x] E2E validasi bisnis cuti (min H-, masa kerja, anti-bentrok, kuota tidak cukup) — `tests/cuti-validasi.spec.ts` (tier flows, serial)
 * [x] Add unit tests for `src/lib/cuti.ts` — hari kerja calculation, masa kerja validation (`cuti-app/unit/cuti.test.ts`, 56 unit total via `npm run test:unit`)
 * [x] Add unit tests for `src/lib/validasi.ts` — all zod schemas (pengajuan, user, jenis, slip, laporan) (`cuti-app/unit/validasi.test.ts`)
 * [x] Add unit tests for `src/lib/rate-limit.ts` + `src/lib/upload.ts` (`cuti-app/unit/rate-limit.test.ts`, `unit/upload.test.ts`)
