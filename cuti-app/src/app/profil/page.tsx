@@ -9,14 +9,15 @@ import { PasswordForm } from "./PasswordForm";
 // cukup render ulang <ProfilForm/> di bawah dan kembalikan baris info WA.
 // import { ProfilForm } from "./ProfilForm";
 
-export default async function Profil({ searchParams }: { searchParams: { ok?: string } }) {
+export default async function Profil({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
+  const sp = await searchParams;
   const user = await wajibLogin();
   const db = await prisma.user.findUnique({ where: { id: user.id }, include: { atasan: true } });
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={await isAtasan(user.id)}>
       <h1 className="text-lg font-bold">Profil Saya</h1>
-      {searchParams.ok === "1" && <div className="rounded-lg border border-green-400 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">Password berhasil diubah.</div>}
-      {searchParams.ok === "2" && <div className="rounded-lg border border-green-400 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">Profil berhasil disimpan.</div>}
+      {sp.ok === "1" && <div className="rounded-lg border border-green-400 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">Password berhasil diubah.</div>}
+      {sp.ok === "2" && <div className="rounded-lg border border-green-400 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">Profil berhasil disimpan.</div>}
       <div className="rounded-xl border bg-white p-4 text-sm">
         <div className="font-bold">{db?.nama}</div>
         <div className="text-zinc-600">{db?.email} · {db?.jabatan ?? "-"}</div>

@@ -3,10 +3,11 @@ import { userDariSesi } from "@/lib/auth";
 import { fmtTgl } from "@/lib/cuti";
 import { teksAman } from "@/lib/pdf";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await userDariSesi();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const p = await prisma.pengajuan.findUnique({ where: { id: params.id }, include: { pemohon: true, jenis: true } });
+  const p = await prisma.pengajuan.findUnique({ where: { id }, include: { pemohon: true, jenis: true } });
   if (!p) return Response.json({ error: "Tidak ditemukan" }, { status: 404 });
   const allowed = p.pemohonId === user.id || user.role === "HR_ADMIN" || p.pemohon.atasanId === user.id;
   if (!allowed) return Response.json({ error: "Forbidden" }, { status: 403 });

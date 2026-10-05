@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiBuatSlip } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -28,7 +27,7 @@ const POTONGAN = [
 ] as const;
 
 export function SlipForm({ karyawan }: { karyawan: K[] }) {
-  const [state, action] = useFormState(aksiBuatSlip, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiBuatSlip, { error: "" } as { error?: string });
   const [userId, setUserId] = useState("");
   const [nilai, setNilai] = useState<Record<string, number>>({});
   const pilih = karyawan.find((k) => k.id === userId);

@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiSimpanJenis } from "@/actions";
 import { ErrorMsg, Field, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -8,7 +7,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 type J = { id: string; nama: string; kuota: number; memotongKuotaTahunan: boolean; lampiranWajib: boolean; lampiranWajibJikaLebihDari: number | null; minHariSebelum: number; butuhMasaKerjaBulan: number; aktif: boolean };
 
 export function JenisForm({ initial }: { initial?: J }) {
-  const [state, action] = useFormState(aksiSimpanJenis, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiSimpanJenis, { error: "" } as { error?: string });
   const [aktif, setAktif] = useState(initial?.aktif ?? true);
   // Konfirmasi hanya saat menonaktifkan record yang tadinya aktif.
   const confirmNonaktif = initial && initial.aktif && !aktif

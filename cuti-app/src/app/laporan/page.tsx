@@ -15,12 +15,13 @@ function tglValid(s?: string): s is string {
   return !isNaN(d.getTime());
 }
 
-export default async function LaporanSaya({ searchParams }: { searchParams: { stat?: string; dari?: string; sampai?: string } }) {
+export default async function LaporanSaya({ searchParams }: { searchParams: Promise<{ stat?: string; dari?: string; sampai?: string }> }) {
+  const sp = await searchParams;
   const user = await wajibLogin();
   if (user.role === "HR_ADMIN" || (await isAtasan(user.id))) redirect("/");
-  const stat = searchParams.stat ?? "semua";
-  const dari = tglValid(searchParams.dari) ? (searchParams.dari as string) : undefined;
-  const sampai = tglValid(searchParams.sampai) ? (searchParams.sampai as string) : undefined;
+  const stat = sp.stat ?? "semua";
+  const dari = tglValid(sp.dari) ? (sp.dari as string) : undefined;
+  const sampai = tglValid(sp.sampai) ? (sp.sampai as string) : undefined;
   const where: { pembuatId: string; status?: string; tglLaporan?: { gte?: Date; lte?: Date } } =
     stat === "semua" ? { pembuatId: user.id } : { pembuatId: user.id, status: stat };
   if (dari || sampai) {

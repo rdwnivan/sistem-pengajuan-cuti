@@ -11,11 +11,11 @@ export async function buatSesi(userId: string) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + EXPIRE_DAYS * 86400 * 1000);
   await prisma.sesi.create({ data: { token, userId, expiresAt } });
-  cookies().set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
+  (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
 }
 
 export async function userDariSesi() {
-  const token = cookies().get(COOKIE)?.value;
+  const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const sesi = await prisma.sesi.findUnique({ where: { token }, include: { user: true } });
   if (!sesi || sesi.expiresAt < new Date() || !sesi.user.statusAktif) return null;
@@ -42,9 +42,9 @@ export async function verifikasiLogin(email: string, password: string) {
 }
 
 export async function keluar() {
-  const token = cookies().get(COOKIE)?.value;
+  const token = (await cookies()).get(COOKIE)?.value;
   if (token) await prisma.sesi.deleteMany({ where: { token } });
-  cookies().delete(COOKIE);
+  (await cookies()).delete(COOKIE);
   redirect("/login");
 }
 

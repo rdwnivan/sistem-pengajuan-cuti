@@ -7,9 +7,10 @@ import { Shell } from "@/components/shell";
 import { namaBulan } from "@/lib/pdf";
 import { MonthSelector } from "./MonthSelector";
 
-export default async function SlipDetail({ params }: { params: { id: string } }) {
+export default async function SlipDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await wajibLogin();
-  const s = await prisma.slipGaji.findUnique({ where: { id: params.id }, include: { user: true } });
+  const s = await prisma.slipGaji.findUnique({ where: { id }, include: { user: true } });
   if (!s) notFound();
   const allowed = s.userId === user.id || user.role === "HR_ADMIN";
   if (!allowed) notFound();

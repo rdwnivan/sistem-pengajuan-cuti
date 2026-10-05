@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-05
-* Session: E2E upload lampiran + total cakupan 91 E2E / 84 unit (CI hijau)
+* Session: Security + performance testing; fix GPS Permissions-Policy; upgrade Next 15.5.27 (security) + React 19
 
 ---
 
@@ -41,6 +41,25 @@
 | INFO | CSP `script-src 'unsafe-inline'` melemahkan proteksi XSS (dibutuhkan Next.js bootstrap) | `next.config.mjs` |
 o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak memuat `https://va.vercel-scripts.com`, jadi analitik tidak jalan di production | `next.config.mjs` + `layout.tsx` |
 
+## Security + Performance Testing (2026-10-05)
+
+* `tests/security.spec.ts` **21/21 PASS** (+2 test header baru: CSP/X-Frame/HSTS + `Permissions-Policy`), `tests/rate-limit.spec.ts` **2/2 PASS**, `tests/performance.spec.ts` **9/9 PASS** (dev, rata-rata ~2.5s; bukan angka produksi).
+* **BUG ditemukan & diperbaiki** — `Permissions-Policy: geolocation=()` men-disable geolocation sepenuhnya (termasuk same-origin), mematikan tombol GPS di `/laporan/baru` (`src/app/laporan/baru/LaporanForm.tsx:35`). Diubah ke `geolocation=(self)`; regression test ditambahkan di `security.spec.ts`.
+* Audit dependensi produksi (`npm audit --omit=dev`): `next` **critical** (banyak GHSA: DoS Server Components/Actions, SSRF, RCE Windows-hosted), `postcss` high (bundled di next), `uuid` moderate (via exceljs). Fix `npm audit fix --force` = upgrade `next@16` (breaking) — BELUM dikerjakan, butuh keputusan (lihat TODO).
+
+## Framework Upgrade (2026-10-05) — Next 14.2.35 → 15.5.27 + React 19
+
+* **Tujuan**: menutup audit `next` **critical** (Next 15.5.27 = jalur security backport; install 16.3.8 hanya untuk sisa `postcss`, tapi butuh migrasi ESLint 9 flat config + `next lint` dihapus → tidak dipilih).
+* **Perubahan kode (breaking Next 15)**:
+  * `cookies()` jadi async → `await cookies()` di `src/lib/auth.ts`.
+  * `params`/`searchParams` jadi Promise → `await` di 3 API route (`slip`, `formulir`, `laporan-lapangan` GET/POST) + 8 halaman (`kalender`, `laporan`, `laporan/baru`, `hr/slip-gaji`, `profil`, `slip-gaji/[id]`, `cuti/[id]`, `hr/karyawan/[id]`, `laporan/[id]`).
+  * `cuti/baru/page.tsx` (client page) dipecah → server `page.tsx` + client `Form.tsx` (menghindari searchParams Promise di client).
+  * React 18 → 19; `useFormState` (deprecated) → `useActionState` di 12 form.
+* **Perilaku baru React 19 (penting)**: form uncontrolled **direset otomatis** setelah tiap server action → field email di login kosong setelah gagal. `tests/rate-limit.spec.ts` diperbarui: isi ulang email tiap iterasi (pakai `waitForResponse` agar deterministik).
+* **Verifikasi**: `tsc` 0, `lint` 0, `build` 0, unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2**. (Dua flake dev lokal: kalender `server-side exception` sewaktu suite paralel — lolos terisolasi & rerun penuh; catatan flakiness lama tetap berlaku.)
+* **Sisa audit** (`npm audit --omit=dev`): `postcss` high (bundled di next, build-time) + `uuid` moderate (via exceljs) — 4 vuln, tanpa critical. Bisa ditutup dengan `next@16` (breaking) bila diinginkan.
+* Catatan: CI Node 20 sudah cocok; `next lint` masih ada di 15.5 (deprecated, dihapus di 16).
+
 ## Design Notes (bukan bug)
 
 * `isAtasan(userId)` mengecek **relasi** (`atasanId`), bukan `role` — user yang punya bawahan dianggap "atasan" terlepas dari field `role`. Ini memang desain yang dipakai di seluruh app.
@@ -68,7 +87,7 @@ Aplikasi web pengajuan dan persetujuan cuti karyawan dengan alur berlapis (Atasa
 
 ## Current Stage
 
-Production — live at https://cuti-app.vercel.app/ (Next 14.2.35)
+Production — live at https://cuti-app.vercel.app/ (Next 15.5.27, React 19)
 
 ---
 
@@ -167,7 +186,7 @@ Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run pan
 
 ## Backend
 
-* Framework: Next.js 14.2.35 (App Router) — API routes + Server Actions
+* Framework: Next.js 15.5.27 (App Router) — API routes + Server Actions; React 19
 * Language: TypeScript (strict mode)
 * Database: PostgreSQL
 * ORM: Prisma 5

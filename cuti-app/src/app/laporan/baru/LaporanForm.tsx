@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useState, useActionState } from "react";
 import { aksiBuatLaporan, aksiRevisiLaporan } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -14,7 +13,7 @@ type Initial = {
 };
 
 export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; initial?: Initial; dariDraf?: boolean }) {
-  const [state, action] = useFormState(editId ? aksiRevisiLaporan : aksiBuatLaporan, { error: "" } as { error?: string });
+  const [state, action] = useActionState(editId ? aksiRevisiLaporan : aksiBuatLaporan, { error: "" } as { error?: string });
   const [approverId, setApproverId] = useState(initial?.approverId ?? "");
   const [list, setList] = useState<A[]>([]);
   const [lat, setLat] = useState(initial?.lat != null ? String(initial.lat) : "");

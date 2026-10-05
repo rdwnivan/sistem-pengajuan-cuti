@@ -11,10 +11,11 @@ import { PutusanLaporanForm } from "./PutusanLaporanForm";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-export default async function LaporanDetail({ params }: { params: { id: string } }) {
+export default async function LaporanDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await wajibLogin();
   const l = await prisma.laporanLapangan.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { pembuat: true, approver: true, fotos: { orderBy: { createdAt: "asc" } }, riwayat: { include: { aktor: true }, orderBy: { createdAt: "asc" } } },
   });
   if (!l) notFound();

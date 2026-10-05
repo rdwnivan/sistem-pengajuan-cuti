@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiPutusan } from "@/actions";
 import { ErrorMsg, btnCls, inputCls, Field } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export function PutusanForm({ id }: { id: string }) {
-  const [state, action] = useFormState(aksiPutusan, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiPutusan, { error: "" } as { error?: string });
   const [pending, setPending] = useState<string | null>(null);
   return (
     <form action={action} className="space-y-2 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">

@@ -1,5 +1,5 @@
 "use client";
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { Badge, ErrorMsg, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { aksiPutusanPerubahanGaji } from "@/actions";
@@ -17,7 +17,7 @@ type GajiPerubahanData = {
 };
 
 export function GajiPerubahanCard({ g }: { g: GajiPerubahanData }) {
-  const [state, action] = useFormState(aksiPutusanPerubahanGaji, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiPutusanPerubahanGaji, { error: "" } as { error?: string });
   return (
     <div className="space-y-2 rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
       <div className="flex items-start justify-between gap-2">

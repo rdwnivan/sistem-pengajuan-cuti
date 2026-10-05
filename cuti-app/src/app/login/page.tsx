@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiLogin } from "@/actions";
 import { ErrorMsg, inputCls, btnCls, Field } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -27,7 +26,7 @@ function IkonMataTertutup() {
 }
 
 export default function LoginPage() {
-  const [state, action] = useFormState(aksiLogin, init);
+  const [state, action] = useActionState(aksiLogin, init);
   const [showPassword, setShowPassword] = useState(false);
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">

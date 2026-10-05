@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiPutusanLaporan } from "@/actions";
 import { ErrorMsg, Field, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export function PutusanLaporanForm({ laporanId }: { laporanId: string }) {
-  const [state, action] = useFormState(aksiPutusanLaporan, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiPutusanLaporan, { error: "" } as { error?: string });
   const [opsi, setOpsi] = useState<"setuju" | "tolak" | "kembalikan" | null>(null);
 
   return (

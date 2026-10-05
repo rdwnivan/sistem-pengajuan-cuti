@@ -4,10 +4,11 @@ import { teksAman } from "@/lib/pdf";
 import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await userDariSesi();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const l = await prisma.laporanLapangan.findUnique({ where: { id: params.id }, include: { pembuat: true, approver: true, fotos: { orderBy: { createdAt: "asc" } } } });
+  const l = await prisma.laporanLapangan.findUnique({ where: { id }, include: { pembuat: true, approver: true, fotos: { orderBy: { createdAt: "asc" } } } });
   if (!l) return Response.json({ error: "Tidak ditemukan" }, { status: 404 });
   const allowed = l.pembuatId === user.id || l.approverId === user.id;
   if (!allowed) return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -74,10 +75,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   });
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await userDariSesi();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const l = await prisma.laporanLapangan.findUnique({ where: { id: params.id } });
+  const l = await prisma.laporanLapangan.findUnique({ where: { id } });
   if (!l) return Response.json({ error: "Tidak ditemukan" }, { status: 404 });
   const fd = await _req.formData();
   const aksi = fd.get("aksi");
