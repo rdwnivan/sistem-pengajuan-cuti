@@ -67,3 +67,17 @@ test.describe("Smoke — navigasi", () => {
 // Kembalikan bila ProfilForm ditampilkan lagi di /profil:
 // - simpan noHp + toggle mati -> tampil "Notif WA: Mati" + redirect ?ok=2
 // - nyalakan lagi -> tampil "Notif WA: Aktif" (restore agar tidak pengaruhi test lain)
+
+test.describe("Smoke — halaman tambahan", () => {
+  test("kalender cuti terbuka (atasan)", async ({ page }) => {
+    await login(page, "atasan");
+    await page.goto("/kalender");
+    await expect(page.getByRole("heading", { name: /Kalender Cuti/ }).first()).toBeVisible();
+  });
+
+  test("riwayat pengajuan terbuka (karyawan)", async ({ page }) => {
+    await login(page, "karyawan");
+    await page.goto("/riwayat");
+    await expect(page.getByRole("heading", { name: "Riwayat Pengajuan Saya" }).first()).toBeVisible();
+  });
+});

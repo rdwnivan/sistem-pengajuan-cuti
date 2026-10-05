@@ -68,3 +68,15 @@ test("notifikasi cuti: pengajuan baru sampai keputusan", async ({ page }) => {
     console.log("OK|cleanup dibatalkan");
   }
 });
+
+test("tandai semua dibaca → hitungan belum dibaca jadi 0", async ({ page }) => {
+  await login(page, "karyawan");
+  await page.goto("/notifikasi");
+  // Dipastikan ada minimal 1 belum dibaca oleh test sebelumnya; tandai semua.
+  const tombol = page.getByRole("button", { name: "Tandai semua dibaca" });
+  if (await tombol.count()) {
+    await tombol.first().click();
+    await page.waitForURL(/\/notifikasi/, { timeout: 15000 });
+  }
+  await expect(page.getByText(/Notifikasi \(0 belum dibaca\)/).first()).toBeVisible({ timeout: 10000 });
+});
