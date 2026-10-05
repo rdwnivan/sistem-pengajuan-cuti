@@ -48,27 +48,27 @@ function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean;
     { href: "/profil", label: "Profil" },
   ];
   const cls = mobile
-    ? "relative shrink-0 rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-50"
-    : "block rounded-lg px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-50";
+    ? "relative shrink-0 rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50 active:bg-emerald-100"
+    : "block rounded-lg px-3 py-2 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-50 active:bg-emerald-100";
   return (
     <>
       {items.map((i) =>
         i.href === "/persetujuan" ? (
-          <Link key={i.href} href={i.href} className={cls}>
+          <Link key={i.href} href={i.href} prefetch className={cls}>
             {i.label}
             <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
               <PersetujuanBadge mobile={mobile} />
             </Suspense>
           </Link>
         ) : i.href === "/notifikasi" ? (
-          <Link key={i.href} href={i.href} className={cls}>
+          <Link key={i.href} href={i.href} prefetch className={cls}>
             {i.label}
             <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
               <NotifBadge mobile={mobile} />
             </Suspense>
           </Link>
         ) : (
-          <Link key={i.href} href={i.href} className={cls}>{i.label}</Link>
+          <Link key={i.href} href={i.href} prefetch className={cls}>{i.label}</Link>
         )
       )}
     </>

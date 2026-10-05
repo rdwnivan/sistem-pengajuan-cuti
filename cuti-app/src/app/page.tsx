@@ -32,14 +32,14 @@ export default async function Dashboard() {
     <Shell nama={user.nama} role={user.role} isAtasan={atasan}>
       <Banner />
       {(menungguSaya > 0) && (
-        <Link href="/persetujuan" className="block rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-center text-sm font-bold text-amber-800">
+        <Link href="/persetujuan" prefetch className="block rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-center text-sm font-bold text-amber-800 transition active:scale-[0.99]">
           {menungguSaya} pengajuan menunggu persetujuan Anda — ketuk untuk proses
         </Link>
       )}
       <section className="rounded-xl border bg-white p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-bold">Sisa Kuota {tahun}</h2>
-          <Link href="/cuti/baru" className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-bold text-white">+ Ajukan</Link>
+          <Link href="/cuti/baru" prefetch className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-bold text-white transition active:scale-[0.97]">+ Ajukan</Link>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {jenis.filter((j) => j.kuota > 0).map((j) => {
@@ -57,12 +57,12 @@ export default async function Dashboard() {
       <section className="rounded-xl border bg-white p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-bold">Pengajuan Terakhir</h2>
-          <Link href="/riwayat" className="text-sm font-semibold text-emerald-700">Lihat semua</Link>
+          <Link href="/riwayat" prefetch className="text-sm font-semibold text-emerald-700">Lihat semua</Link>
         </div>
         <div className="space-y-2">
           {riwayat.length === 0 && <p className="text-sm text-zinc-500">Belum ada pengajuan.</p>}
           {riwayat.map((p) => (
-            <Link key={p.id} href={`/cuti/${p.id}`} className="flex items-center justify-between rounded-lg border px-3 py-2">
+            <Link key={p.id} href={`/cuti/${p.id}`} prefetch className="flex items-center justify-between rounded-lg border px-3 py-2 transition active:scale-[0.99]">
               <div className="text-sm">
                 <div className="font-semibold">{p.jenis.nama} · {p.jumlahHariKerja} hari</div>
                 <div className="text-xs text-zinc-500">{fmtTgl(p.tglMulai)} → {fmtTgl(p.tglSelesai)}</div>
@@ -73,12 +73,12 @@ export default async function Dashboard() {
         </div>
       </section>
       <section className="grid grid-cols-2 gap-2">
-        <Link href="/cuti/baru" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700">+ Ajukan Cuti</Link>
-        <Link href="/slip-gaji" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700">Slip Gaji</Link>
-        {!atasan && <Link href="/laporan" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-amber-700">Laporan Lapangan</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/persetujuan" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700">Verifikasi HR ({antreanHR})</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/hr/slip-gaji" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-purple-700">Kelola Slip Gaji</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/hr" className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700">Kelola HR</Link>}
+        <Link href="/cuti/baru" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700 transition active:scale-[0.97]">+ Ajukan Cuti</Link>
+        <Link href="/slip-gaji" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700 transition active:scale-[0.97]">Slip Gaji</Link>
+        {!atasan && <Link href="/laporan" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-amber-700 transition active:scale-[0.97]">Laporan Lapangan</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/persetujuan" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700 transition active:scale-[0.97]">Verifikasi HR ({antreanHR})</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/hr/slip-gaji" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-purple-700 transition active:scale-[0.97]">Kelola Slip Gaji</Link>}
+        {user.role === "HR_ADMIN" && <Link href="/hr" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700 transition active:scale-[0.97]">Kelola HR</Link>}
       </section>
     </Shell>
   );

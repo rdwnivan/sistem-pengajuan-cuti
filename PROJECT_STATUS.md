@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-01
-* Session: Push production terverifikasi ujung-ke-ujung (muncul di perangkat)
+* Session: Fluidity — prefetch nav + feedback tekan (navigasi 350-585ms → 70-90ms)
 
 ---
 
@@ -131,6 +131,9 @@ Root `src/app/loading.tsx` **tidak boleh** ditambahkan. Root `loading.tsx` membu
 
 ### React 18 — `useFormStatus` tidak tersedia
 Project pakai React 18.3.1. `useFormStatus` (React 19) **tidak ada** di `react-dom` — memanggilnya merusak render. `SubmitButton` memakai pendekatan manual: `onClick` → set pending, reset via `pathname` change atau timeout 4 detik. **Jangan tambahkan `disabled={pending}`** — itu memblokir form submit (React men-disable button sebelum browser menyelesaikan submit).
+
+### Fluidity navigasi — prefetch wajib dipertahankan
+Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
 
 ---
 
