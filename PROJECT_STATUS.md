@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-05
-* Session: E2E diperluas (ganti password, batal slip, tandai dibaca, kalender/riwayat) — CI hijau. Total E2E 88 (main 52 + flows 34 + rate-limit 2) + unit 84.
+* Session: E2E upload lampiran + total cakupan 91 E2E / 84 unit (CI hijau)
 
 ---
 
@@ -134,6 +134,9 @@ Project pakai React 18.3.1. `useFormStatus` (React 19) **tidak ada** di `react-d
 
 ### Fluidity navigasi — prefetch wajib dipertahankan
 Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
+
+### E2E lokal makin flaky — jadikan CI sebagai juri
+Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug. Bila flakiness mengganggu, pertimbangkan ubah `webServer` config E2E ke `npm run start` (butuh `npm run build` dulu) agar stabil & cepat.
 
 ---
 

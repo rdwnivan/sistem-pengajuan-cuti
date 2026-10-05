@@ -104,6 +104,8 @@ Nice-to-have items.
 * [x] E2E batal slip gaji — `tests/slip-batal.spec.ts`
 * [x] E2E notif tandai semua dibaca — `tests/notifikasi.spec.ts`
 * [x] Smoke halaman kalender & riwayat — `tests/smoke.spec.ts`
+* [x] E2E upload lampiran cuti (wajib tanpa file ditolak, PNG valid diterima, spoof HTML→PDF ditolak) — `tests/lampiran.spec.ts`
+* [ ] (opsional) Ubah `webServer` E2E ke `npm run start` untuk stabilitas lokal — CI sudah hijau; hanya perlu bila flakiness dev lokal mengganggu
 * [x] Add unit tests for `src/lib/cuti.ts` — hari kerja calculation, masa kerja validation (`cuti-app/unit/cuti.test.ts`, 56 unit total via `npm run test:unit`)
 * [x] Add unit tests for `src/lib/validasi.ts` — all zod schemas (pengajuan, user, jenis, slip, laporan) (`cuti-app/unit/validasi.test.ts`)
 * [x] Add unit tests for `src/lib/rate-limit.ts` + `src/lib/upload.ts` (`cuti-app/unit/rate-limit.test.ts`, `unit/upload.test.ts`)
