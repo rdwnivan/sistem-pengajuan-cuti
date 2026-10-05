@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-10-05
-* Session: E2E HR CRUD + validasi bisnis cuti (CI hijau)
+* Session: E2E diperluas (ganti password, batal slip, tandai dibaca, kalender/riwayat) — CI hijau. Total E2E 88 (main 52 + flows 34 + rate-limit 2) + unit 84.
 
 ---
 
