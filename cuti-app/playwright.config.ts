@@ -17,7 +17,10 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Di CI pakai server produksi (`next start`) yang sudah di-build job `Build`,
+    // supaya E2E tidak ikut terkena nondeterminisme dev server: React StrictMode
+    // me-render 2×, kompilasi on-demand, dan HMR. Lokally tetap `npm run dev`.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

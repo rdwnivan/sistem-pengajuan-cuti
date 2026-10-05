@@ -13,7 +13,9 @@ export default defineConfig({
   testMatch: "rate-limit.spec.ts",
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // Aman di-retry: tiap percobaan memakai email acak baru, jadi state rate-limit
+  // in-memory dari percobaan sebelumnya tidak mengganggu.
+  retries: process.env.CI ? 2 : 0,
   reporter: "line",
   use: {
     baseURL: "http://localhost:3000",
@@ -22,7 +24,8 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Lihat catatan di playwright.config.ts — CI pakai server produksi.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

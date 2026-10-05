@@ -15,7 +15,9 @@ export default defineConfig({
   testMatch: ["cuti-flow.spec.ts", "delegasi.spec.ts", "gaji-flow.spec.ts", "cron.spec.ts", "laporan-acc.spec.ts", "slip-rincian.spec.ts", "laporan-kebun.spec.ts", "notifikasi.spec.ts", "hr-crud.spec.ts", "cuti-validasi.spec.ts", "profil.spec.ts", "slip-batal.spec.ts", "lampiran.spec.ts"],
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // Samakan dengan tier utama: di CI boleh retry (Playwright tetap menandai test
+  // sebagai "flaky" sehingga tidak buta), lokal tanpa retry agar flake terlihat.
+  retries: process.env.CI ? 2 : 0,
   reporter: "line",
   use: {
     baseURL: "http://localhost:3000",
@@ -25,7 +27,8 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Lihat catatan di playwright.config.ts — CI pakai server produksi.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

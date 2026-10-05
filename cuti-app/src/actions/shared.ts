@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
-import { sniffFile } from "@/lib/upload";
+import { sniffFile, DI_VERCEL } from "@/lib/upload";
 
 export const STATUS_AKTIF = ["MENUNGGU_ATASAN", "MENUNGGU_HR", "DISETUJUI"];
 
@@ -33,7 +33,7 @@ export async function unggahFoto(fd: FormData, prefix: string): Promise<string |
     const blob = await put(name, buffer as unknown as File, { access: "public" });
     return blob.url;
   }
-  if (process.env.NODE_ENV === "production") return "__GAGAL__:Upload belum dikonfigurasi";
+  if (DI_VERCEL) return "__GAGAL__:Upload belum dikonfigurasi";
   const { writeFile, mkdir } = await import("fs/promises");
   const { default: path } = await import("path");
   const dir = path.join(process.cwd(), "public", "uploads");
@@ -66,7 +66,7 @@ export async function unggahBanyakFoto(fd: FormData, prefix: string): Promise<Fo
       const { put } = await import("@vercel/blob");
       const blob = await put(name, buffer as unknown as File, { access: "public" });
       hasil.push({ path: blob.url, keterangan: (keterangans[i] || "").trim() || null });
-    } else if (process.env.NODE_ENV === "production") {
+    } else if (DI_VERCEL) {
       return { gagal: "Upload belum dikonfigurasi" };
     } else {
       const { writeFile, mkdir } = await import("fs/promises");
