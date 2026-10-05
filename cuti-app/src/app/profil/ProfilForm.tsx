@@ -1,11 +1,11 @@
 "use client";
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { aksiUbahProfil } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export function ProfilForm({ initial }: { initial: { noHp?: string | null; notifWa: boolean } }) {
-  const [state, action] = useFormState(aksiUbahProfil, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiUbahProfil, { error: "" } as { error?: string });
   return (
     <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
       <h2 className="font-bold">Notifikasi WhatsApp</h2>

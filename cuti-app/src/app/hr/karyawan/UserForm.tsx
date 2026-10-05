@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { aksiSimpanUser } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -11,7 +10,7 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
   atasans: { id: string; nama: string }[];
   gajiPending?: boolean;
 }) {
-  const [state, action] = useFormState(aksiSimpanUser, { error: "" } as { error?: string });
+  const [state, action] = useActionState(aksiSimpanUser, { error: "" } as { error?: string });
   const [statusAktif, setStatusAktif] = useState(initial?.statusAktif ?? true);
   // Konfirmasi hanya saat menonaktifkan akun yang tadinya aktif.
   const confirmNonaktif = id && (initial?.statusAktif ?? true) && !statusAktif

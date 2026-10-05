@@ -125,6 +125,10 @@ Nice-to-have items.
 * [x] Review input validation — semua action form pakai zod `safeParse` (10 pemakaian di 8 file); sisanya validasi manual/parsing aman (notif scope `userId`, password min 6, delegasi cek target)
 * [x] Review secret handling — tidak ada `.env` ter-track; scan history bersih (tanpa private key/token)
 * [x] Review API security — `/api/cron` tolak tanpa/salah secret (401, E2E); PDF slip/formulir/laporan cek owner/HR/approver (403/404, E2E)
+* [x] Regression test security headers (CSP/X-Frame/HSTS/Permissions-Policy) + fix `geolocation=()` → `geolocation=(self)` yang mematikan tombol GPS laporan — `tests/security.spec.ts` (21/21), 2026-10-05
+* [x] Upgrade `next` 14.2.35 → **15.5.27** + React 19 untuk menutup audit `next` **critical** (15.5.27 = security backport). Migrasi async `cookies()`/`params`/`searchParams`, `useFormState`→`useActionState`; verified tsc/lint/build + unit 84 + E2E utama 54 + flows 37 + rate-limit 2, 2026-10-05
+* [ ] Sisa audit produksi: `postcss` high (bundled di next) + `uuid` moderate (via exceljs). Hanya bisa ditutup `next@16.3.8` (breaking: ESLint 9 flat config, `next lint` dihapus, `@types` dll) — belum dikerjakan.
+* [ ] (opsional) Migrasi `next lint` → ESLint CLI (`eslint .`) agar siap sebelum Next 16
 
 ---
 

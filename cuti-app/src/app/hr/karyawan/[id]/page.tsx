@@ -4,11 +4,12 @@ import { wajibHR } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
 import { UserForm } from "../UserForm";
-export default async function EditUser({ params }: { params: { id: string } }) {
+export default async function EditUser({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = await wajibHR();
-  const u = await prisma.user.findUnique({ where: { id: params.id } });
+  const u = await prisma.user.findUnique({ where: { id } });
   if (!u) notFound();
   const atasans = await prisma.user.findMany({ where: { statusAktif: true }, select: { id: true, nama: true }, orderBy: { nama: "asc" } });
-  const gajiPending = await prisma.gajiPerubahan.count({ where: { userId: params.id, status: "MENUNGGU" } });
+  const gajiPending = await prisma.gajiPerubahan.count({ where: { userId: id, status: "MENUNGGU" } });
   return (<Shell nama={admin.nama} role={admin.role} isAtasan={true}><h1 className="text-lg font-bold">Edit Karyawan</h1><UserForm id={u.id} atasans={atasans} gajiPending={gajiPending > 0} initial={{ nama: u.nama, email: u.email, nip: u.nip, jabatan: u.jabatan, noHp: u.noHp, tglMasuk: fmtTgl(u.tglMasuk), role: u.role, atasanId: u.atasanId, statusAktif: u.statusAktif, gajiPokok: u.gajiPokok ?? 0, tunjanganTetap: u.tunjanganTetap ?? 0 }} /></Shell>);
 }

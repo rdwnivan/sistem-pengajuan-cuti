@@ -9,11 +9,12 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { delegasiAktifUntuk } from "@/lib/cron";
 import { PutusanForm } from "./PutusanForm";
 
-export default async function Detail({ params }: { params: { id: string } }) {
+export default async function Detail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await userDariSesi();
   if (!user) redirect("/login");
   const p = await prisma.pengajuan.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { jenis: true, pemohon: true, riwayat: { include: { aktor: true }, orderBy: { createdAt: "asc" } } },
   });
   if (!p) notFound();

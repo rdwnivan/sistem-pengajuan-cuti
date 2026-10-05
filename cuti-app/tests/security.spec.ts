@@ -87,3 +87,20 @@ test.describe("SECURITY — IDOR halaman detail", () => {
     expect(r?.status()).toBeGreaterThanOrEqual(400);
   });
 });
+
+test.describe("SECURITY — security headers", () => {
+  test("header keamanan utama terpasang", async ({ page }) => {
+    const h = (await page.request.get("/login")).headers();
+    expect(h["x-content-type-options"]).toBe("nosniff");
+    expect(h["x-frame-options"]).toBe("SAMEORIGIN");
+    expect(h["strict-transport-security"]).toMatch(/max-age=\d+/);
+    expect(h["content-security-policy"]).toContain("object-src 'none'");
+    expect(h["content-security-policy"]).toContain("frame-ancestors 'self'");
+  });
+
+  test("Permissions-Policy izinkan geolocation same-origin (fitur GPS laporan)", async ({ page }) => {
+    const pp = (await page.request.get("/login")).headers()["permissions-policy"] ?? "";
+    expect(pp).toContain("geolocation=(self)");
+    expect(pp).not.toContain("geolocation=()");
+  });
+});

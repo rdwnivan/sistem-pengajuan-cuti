@@ -12,20 +12,17 @@ test.describe.configure({ mode: "serial", timeout: 120000 });
 
 test("brute force diblokir setelah 5 percobaan gagal", async ({ page }) => {
   await page.goto("/login");
-  const stamp = Date.now();
-  await page.locator("input[name=email]").fill(`rate-${stamp}@test.id`);
+  const email = `rate-${Date.now()}@test.id`;
+  // React 19 mereset form (uncontrolled) setelah tiap server action, jadi email
+  // wajib diisi ulang tiap iterasi — kalau tidak, `required` memblokir submit.
   for (let i = 0; i < 6; i++) {
+    await page.locator("input[name=email]").fill(email);
     await page.locator("#password").fill(`salah-${i}`);
-    const masuk = page.getByRole("button", { name: "Masuk" });
-    await masuk.click();
-    // Tunggu submit selesai (error muncul atau tombol siap lagi) sebelum iterasi berikutnya
-    await expect
-      .poll(async () => {
-        const err = await page.getByText(/Email atau password salah|Terlalu banyak percobaan/).count();
-        const ready = await masuk.count();
-        return err > 0 || ready > 0 ? "done" : "wait";
-      }, { timeout: 15000 })
-      .toBe("done");
+    const [resp] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: /Masuk|Memproses/ }).click(),
+    ]);
+    await resp.finished();
   }
   // setelah 5× gagal, error rate limit harus muncul
   await expect(page.getByText("Terlalu banyak percobaan")).toBeVisible({ timeout: 8000 });

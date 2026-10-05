@@ -5,13 +5,14 @@ import { Shell } from "@/components/shell";
 import { fmtTgl } from "@/lib/cuti";
 import { redirect } from "next/navigation";
 
-export default async function Kalender({ searchParams }: { searchParams: { bln?: string } }) {
+export default async function Kalender({ searchParams }: { searchParams: Promise<{ bln?: string }> }) {
+  const sp = await searchParams;
   const user = await wajibLogin();
   const atasan = await isAtasan(user.id);
   const isHR = user.role === "HR_ADMIN";
   if (!atasan && !isHR) redirect("/");
   const now = new Date();
-  const [y, m] = (searchParams.bln ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`).split("-").map(Number);
+  const [y, m] = (sp.bln ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`).split("-").map(Number);
   const awal = new Date(y, m - 1, 1);
   const akhir = new Date(y, m, 0);
   const awalStr = fmtTgl(awal);

@@ -9,11 +9,12 @@ import { SlipForm } from "./SlipForm";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-export default async function HRSlipGaji({ searchParams }: { searchParams: { tahun?: string; bulan?: string; buat?: string; akun?: string } }) {
+export default async function HRSlipGaji({ searchParams }: { searchParams: Promise<{ tahun?: string; bulan?: string; buat?: string; akun?: string }> }) {
+  const sp = await searchParams;
   const user = await wajibHR();
-  const tahun = Number(searchParams.tahun) || new Date().getFullYear();
-  const bulan = searchParams.bulan ? Number(searchParams.bulan) : null;
-  const akun = searchParams.akun || null;
+  const tahun = Number(sp.tahun) || new Date().getFullYear();
+  const bulan = sp.bulan ? Number(sp.bulan) : null;
+  const akun = sp.akun || null;
   const listWhere: { tahun: number; bulan?: number; userId?: string } = { tahun };
   if (bulan) listWhere.bulan = bulan;
   if (akun) listWhere.userId = akun;
@@ -57,7 +58,7 @@ export default async function HRSlipGaji({ searchParams }: { searchParams: { tah
         <span className="ml-auto text-sm font-bold text-emerald-800">Total: Rp {total.toLocaleString("id-ID")}</span>
       </form>
 
-      {searchParams.buat && <SlipForm karyawan={karyawan} />}
+      {sp.buat && <SlipForm karyawan={karyawan} />}
 
       <div className="space-y-2">
         {list.length === 0 && <p className="rounded-xl border bg-white p-4 text-sm text-zinc-500">Belum ada slip untuk filter ini.</p>}
