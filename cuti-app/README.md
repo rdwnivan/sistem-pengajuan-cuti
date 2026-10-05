@@ -6,7 +6,7 @@ Aplikasi pengajuan dan persetujuan cuti karyawan berbasis web. Mobile-first, ber
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router) + React 18 + TypeScript
+- **Framework:** Next.js 15.5.27 (App Router) + React 19 + TypeScript
 - **Styling:** Tailwind CSS
 - **Database:** Prisma ORM — PostgreSQL (dev & produksi)
 - **Validasi:** Zod

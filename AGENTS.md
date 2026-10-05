@@ -347,6 +347,7 @@ Single app in `cuti-app/` — all commands, env, Prisma, and tests run from ther
 - Install: `npm install` (local) / `npm ci` (CI) → `npx prisma generate` — required before `tsc`/`build` (Vercel `buildCommand` is `prisma generate && next build`)
 - Setup: `copy .env.example .env` (Windows) then fill `DATABASE_URL`, `CRON_SECRET` (≥32 chars), `BLOB_READ_WRITE_TOKEN`; `npx prisma db push`; `npm run db:seed` (`SEED_FORCE=true` on empty/CI DB); `npm run dev` → http://localhost:3000 (demo `hr@anime.id` / `anime123`)
 - Verify (CI order in `.github/workflows/ci.yml`): `npx tsc --noEmit` → `npm run lint` → `npm run build` → E2E
+- **CI TIDAK jalan pada push ke branch fitur** — `ci.yml` hanya trigger `push` ke `main` dan `pull_request`. Branch yang di-push tanpa PR tidak pernah menjalankan `verify`/`e2e`, jadi "CI hijau" tidak bisa diklaim dari push branch. Selalu buka PR supaya gate benar-benar dieksekusi; cek dengan `gh run list --branch <branch>`
 - DB: `npm run db:push` (`prisma db push`, no migrations) / `npm run db:seed` (`tsx prisma/seed.ts`, blocked in production without `SEED_FORCE=true`)
 - E2E: `npm run test:e2e` / `npm run test:e2e:ui`; single file `npx playwright test tests/smoke.spec.ts`; filter `-g "nama test"`; config `cuti-app/playwright.config.ts` (`baseURL` localhost:3000, `webServer` `npm run dev`, `reuseExistingServer: !CI`, 120s timeout, `chromium` only)
 
@@ -358,7 +359,7 @@ Single app in `cuti-app/` — all commands, env, Prisma, and tests run from ther
 - `SESSION_SECRET` is **not used** — session auth uses token DB (`Sesi` model); it's in ci.yml env but unused in source code
 
 ## Architecture
-- Next.js 14 App Router + React 18 + TS (`@/*` → `src/*`, `strict:true`, `jsx: preserve`). Server actions in `src/app/actions.ts`; auth guards in `src/lib/auth.ts` (`wajibLogin`/`wajibHR`/`isAtasan`, cookie `sesi-cuti`, 7-day DB `Sesi`).
+- Next.js 15.5.27 App Router + React 19 + TS (`@/*` → `src/*`, `strict:true`, `jsx: preserve`). Server actions in `src/actions/` (9 domain files + barrel); auth guards in `src/lib/auth.ts` (`wajibLogin`/`wajibHR`/`isAtasan`, cookie `sesi-cuti`, 7-day DB `Sesi`).
 - Prisma `prisma/schema.prisma`: `User` (self-relation `AtasanBawahan`), `Pengajuan`, `JenisCuti`, `HariLibur`, `Kuota`, `Delegasi`, `AuditLog`, `Sesi`, `Notifikasi`, `SlipGaji` (`@@unique([userId,tahun,bulan])`), `LaporanLapangan`, `PushSubscription`. No migration files — use `db push`.
 - Flows: Cuti `DIAJUKAN→MENUNGGU_ATASAN→MENUNGGU_HR→DISETUJUI` (+ `DITOLAK`/`DIKEMBALIKAN`/`DIBATALKAN`); Slip `DIBUAT→TERBIT↘DIBATALKAN`; Laporan `DRAFT→MENUNGGU→DISETUJUI`. Unified approval queue at `/persetujuan`.
 - Cron: `vercel.json` `0 0 * * *` → `GET /api/cron?secret=CRON_SECRET` (`src/lib/cron.ts` — reminder H+1, escalate H+3, delegation windows).

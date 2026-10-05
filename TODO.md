@@ -105,7 +105,7 @@ Nice-to-have items.
 * [x] E2E notif tandai semua dibaca — `tests/notifikasi.spec.ts`
 * [x] Smoke halaman kalender & riwayat — `tests/smoke.spec.ts`
 * [x] E2E upload lampiran cuti (wajib tanpa file ditolak, PNG valid diterima, spoof HTML→PDF ditolak) — `tests/lampiran.spec.ts`
-* [ ] (opsional) Ubah `webServer` E2E ke `npm run start` untuk stabilitas lokal — CI sudah hijau; hanya perlu bila flakiness dev lokal mengganggu
+* [ ] (opsional) Ubah `webServer` E2E ke `npm run start` (butuh `npm run build` dulu) untuk stabilitas + kecepatan — 2026-10-06: flakiness ternyata **juga muncul di CI**, bukan cuma dev lokal (2 kelas flake: rate-limit `resp.finished()` → sudah diperbaiki; `slip-batal` `waitForURL` → belum). Pertimbangkan bareng perbaikan flake di atas.
 * [x] Add unit tests for `src/lib/cuti.ts` — hari kerja calculation, masa kerja validation (`cuti-app/unit/cuti.test.ts`, 56 unit total via `npm run test:unit`)
 * [x] Add unit tests for `src/lib/validasi.ts` — all zod schemas (pengajuan, user, jenis, slip, laporan) (`cuti-app/unit/validasi.test.ts`)
 * [x] Add unit tests for `src/lib/rate-limit.ts` + `src/lib/upload.ts` (`cuti-app/unit/rate-limit.test.ts`, `unit/upload.test.ts`)
@@ -126,8 +126,10 @@ Nice-to-have items.
 * [x] Review secret handling — tidak ada `.env` ter-track; scan history bersih (tanpa private key/token)
 * [x] Review API security — `/api/cron` tolak tanpa/salah secret (401, E2E); PDF slip/formulir/laporan cek owner/HR/approver (403/404, E2E)
 * [x] Regression test security headers (CSP/X-Frame/HSTS/Permissions-Policy) + fix `geolocation=()` → `geolocation=(self)` yang mematikan tombol GPS laporan — `tests/security.spec.ts` (21/21), 2026-10-05
-* [x] Upgrade `next` 14.2.35 → **15.5.27** + React 19 untuk menutup audit `next` **critical** (15.5.27 = security backport). Migrasi async `cookies()`/`params`/`searchParams`, `useFormState`→`useActionState`; verified tsc/lint/build + unit 84 + E2E utama 54 + flows 37 + rate-limit 2, 2026-10-05
-* [ ] Sisa audit produksi: `postcss` high (bundled di next) + `uuid` moderate (via exceljs). Hanya bisa ditutup `next@16.3.8` (breaking: ESLint 9 flat config, `next lint` dihapus, `@types` dll) — belum dikerjakan.
+* [x] Upgrade `next` 14.2.35 → **15.5.27** + React 19 untuk menutup audit `next` **critical** (15.5.27 = security backport). Migrasi async `cookies()`/`params`/`searchParams`, `useFormState`→`useActionState`; verified tsc/lint/build + unit 84 + E2E utama 54 + flows 37 + rate-limit 2, 2026-10-05. **Merged ke `main` (`513395e`) + deploy Vercel terverifikasi live + smoke produksi 2026-10-06** (PR #2, CI `verify`+`e2e` hijau first try)
+* [x] Perbaiki flake CI tier rate-limit — `await resp.finished()` di `tests/rate-limit.spec.ts` menggantung sampai timeout test 120s (`response.finished()` tidak punya timeout sendiri, dan pada respons streaming server action Next dev bisa tidak pernah selesai). Diganti `waitForResponse` (predikat dipersempit ke `POST /login`) + barrier reset form uncontrolled; CI hijau first try (`de9a7c1`), 2026-10-06
+* [ ] Sisa audit produksi **4 vuln, 0 critical**: `postcss` high (nested `next/node_modules/postcss@8.4.31`, next pin eksak) + `uuid` moderate (via `exceljs@4.4.0`). Analisis 2026-10-06: keduanya **tidak reachable** di app ini (postcss cuma build-time + CSS first-party; uuid hanya dipakai exceljs `v4()` tanpa argumen `buf`, sedangkan advisory-nya v3/v5/v6 + `buf`). Penting: **`next@16` hanya menutup `postcss`** — `uuid` tetap 3 moderate karena datang dari exceljs, bukan next. Butuh keputusan: (a) terima + monitor advisory, atau (b) tutup `postcss` tanpa ganti framework via `npm overrides` (uji `npm run build` + E2E dulu karena meng-override pin eksak next)
+* [ ] PERBAIKI flake `tests/slip-batal.spec.ts` (CI `main` run 37346398429 merah, rerun hijau): `waitForURL(/\/hr\/slip-gaji/)` **sudah cocok** dengan URL `/hr/slip-gaji?buat=1` saat itu sehingga tidak menunggu redirect `aksiBuatSlip`; filter berikutnya lalu berlomba dengan server action yang masih jalan. Perbaikan: tunggu `buat` hilang dari URL (atau tunggu kartu "Terbit" muncul sebelum filter)
 * [ ] (opsional) Migrasi `next lint` → ESLint CLI (`eslint .`) agar siap sebelum Next 16
 
 ---

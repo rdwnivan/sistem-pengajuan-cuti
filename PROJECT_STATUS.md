@@ -5,8 +5,9 @@
 
 ## Last Updated
 
-* Date: 2026-10-05
-* Session: Security + performance testing; fix GPS Permissions-Policy; upgrade Next 15.5.27 (security) + React 19
+* Date: 2026-10-06 (WIB)
+* Session: Merge + deploy upgrade Next 15.5.27/React 19 ke production; temukan & perbaiki flake E2E
+  rate-limit yang memblokir CI; audit sisa dependensi (postcss/uuid) dianalisis ulang
 
 ---
 
@@ -60,6 +61,65 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
 * **Sisa audit** (`npm audit --omit=dev`): `postcss` high (bundled di next, build-time) + `uuid` moderate (via exceljs) — 4 vuln, tanpa critical. Bisa ditutup dengan `next@16` (breaking) bila diinginkan.
 * Catatan: CI Node 20 sudah cocok; `next lint` masih ada di 15.5 (deprecated, dihapus di 16).
 
+## Merge + Deploy Upgrade ke Production (2026-10-06)
+
+* **CI di branch fitur sebelumnya TIDAK PERNAH JALAN.** `.github/workflows/ci.yml` hanya trigger
+  `push` ke `main` dan `pull_request`; branch `chore/upgrade-next-15` di-push tanpa PR, jadi
+  `verify` + `e2e` tidak pernah dieksekusi untuk `df43aae`. Klaim "CI hijau" di sesi sebelumnya
+  untuk branch ini tidak akurat — yang ada hanya verifikasi lokal.
+  **ATURAN: branch fitur wajib lewat PR, kalau tidak CI tidak jalan.**
+* PR #2 dibuat supaya CI benar-benar jalan:
+  * Attempt 1: `verify` ✓ (1m15s), `e2e` ✗ — tier rate-limit gagal.
+  * Rerun attempt 1: ✓ → menandakan flake, bukan regresi produk.
+* **Bug di test, bukan di produk**: `tests/rate-limit.spec.ts:25` `await resp.finished()` menggantung
+  sampai timeout test 120s. `response.finished()` tidak punya timeout sendiri, dan pada respons
+  streaming server action Next dev promise itu bisa tidak pernah selesai. Diperbaiki di `de9a7c1`:
+  buang `finished()`, sempitkan predikat `waitForResponse` ke `POST /login`, dan tunggu React selesai
+  mereset form uncontrolled sebagai barrier antar-iterasi (semua wait punya timeout eksplisit).
+  Assertion diperiksa masih bisa gagal (loop dimutasi 6→3 percobaan → merah), lalu dikembalikan.
+* CI `de9a7c1`: `verify` ✓ 1m7s, `e2e` ✓ 5m55s (rate-limit ✓) — **hijau first try**.
+* **Merge**: PR #2 di-merge `--rebase` (main historis linear, tanpa merge commit) → `main` = `513395e`.
+  Tidak ada perubahan schema (`cuti-app/prisma/` tidak tersentuh) → **tidak perlu `db push`**.
+* **Deploy Vercel** auto dari `main`, terverifikasi live. Bukti fingerprint build dari `/login`
+  (nama chunk ber-hash): sebelum `117-f1c2a667b15caa05.js` / `fd9d1056-87da80e0c187477b.js` /
+  `webpack-04d67e51c452a149.js` (build Next 14) → sesudah `255-ce8c7c75002f810b.js` /
+  `4bd1b696-c023c6e3521b1417.js` / `webpack-2eb758dea75faf50.js`, yang **sama persis** dengan output
+  `npm run build` Next 15 di lokal.
+* **Smoke produksi** (tanpa sesi): `/login` **200** (halaman publik — memang bukan 307), dan
+  `/slip-gaji`, `/hr`, `/persetujuan`, `/laporan`, `/kalender`, `/riwayat`, `/` semua **307** →
+  `https://cuti-app.vercel.app/login`. Header keamanan utuh, termasuk
+  `Permissions-Policy: geolocation=(self)` (fix GPS ikut live).
+* **CI `main` flaky (1×)**: run `37346398429` gagal di tier flows — `tests/slip-batal.spec.ts:10`
+  tidak menemukan badge "Terbit" (timeout 10s); test lain di tier yang sama lolos, termasuk
+  `slip-rincian.spec.ts` yang juga membuat slip → pembuatan slip sendiri baik-baik saja. Rerun dengan
+  kode sama **hijau** (5m7s) → flake. Akar masalah: `aksiBuatSlip` berakhir
+  `redirect("/hr/slip-gaji")`, sedangkan test memakai `waitForURL(/\/hr\/slip-gaji/)` yang **sudah
+  cocok dengan URL saat itu** (`/hr/slip-gaji?buat=1`) sehingga tidak menunggu apa pun; filter
+  berikutnya lalu berlomba dengan server action yang masih berjalan.
+  `playwright.flows.config.ts` `retries: 0`, jadi satu flake langsung memerahkan job.
+  **Belum diperbaiki** — menunggu keputusan (lihat TODO).
+
+## Audit Sisa — Koreksi Analisis (2026-10-06)
+
+* `npm audit --omit=dev` = **4 vuln (1 high, 3 moderate), 0 critical**.
+* Yang vulnerable **bukan** postcss top-level (8.5.28, sudah aman), melainkan
+  `next/node_modules/postcss@8.4.31` — `next` mem-pin eksak. `next@16.3.8` membawa postcss **8.5.23**.
+* **`next@16` TIDAK menutup `uuid`.** `uuid@8.3.2` masuk lewat `exceljs@4.4.0`, bukan `next`. Jadi naik
+  ke Next 16 menyisakan 3 moderate (uuid), bukan 0. `npm audit fix --force` menyarankan
+  `exceljs@3.4.0` yaitu **turun versi** — saran itu tidak masuk akal.
+* `exceljs@4.4.0` adalah rilis stabil terakhir (hanya ada `4.4.1-prerelease.0`) → **tidak ada** rilis
+  upstream yang memakai `uuid >= 11.1.1`.
+* **`uuid` tidak reachable**: exceljs memakai uuid hanya di
+  `lib/xlsx/xform/sheet/cf-ext/cf-rule-ext-xform.js` sebagai `const {v4: uuidv4} = require('uuid')`
+  lalu `uuidv4()` **tanpa argumen**. Advisory `GHSA-w5hq-g745-h8pq` hanya mengenai v3/v5/v6 **saat
+  `buf` diberikan** → jalur kodenya tidak terpakai. exceljs sendiri hanya dipakai di `/api/laporan`
+  (export Excel HR).
+* **`postcss` tidak reachable**: advisory-nya butuh CSS dari penyerang (stringify `</style>`,
+  `sourceMappingURL` di komentar). Di app ini CSS first-party (Tailwind) dan diproses build-time.
+* Koreksi catatan lama: `uuid@11.1.1` **bukan** ESM-only — paketnya punya `main: dist/cjs/index.js`
+  plus `exports.require`; override CJS secara teknis mungkin, tapi tidak perlu karena tidak reachable.
+* `next@16.3.8` butuh Node `>= 20.9.0` (CI Node 20 aman) dan React `^18.2.0 || ^19.0.0`.
+
 ## Design Notes (bukan bug)
 
 * `isAtasan(userId)` mengecek **relasi** (`atasanId`), bukan `role` — user yang punya bawahan dianggap "atasan" terlepas dari field `role`. Ini memang desain yang dipakai di seluruh app.
@@ -99,7 +159,9 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-Selesai dan siap commit: `tsc`/`lint`/`build` PASS. Unit 61/61 PASS. Suite utama 37/37 PASS, flows 21/21 PASS, rate-limit 2/2 PASS.
+Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
+Deploy Upgrade"). Tidak ada task aktif. Kandidat berikutnya (butuh keputusan user): perbaiki flake
+`tests/slip-batal.spec.ts`, dan/atau naik ke `next@16` (breaking) untuk menutup `postcss`.
 
 ## Current Status
 
@@ -148,14 +210,24 @@ Seed script sudah diperbaiki urutan `deleteMany`-nya (FK-safe) — sebelumnya ga
 ### Root `loading.tsx` dilarang
 Root `src/app/loading.tsx` **tidak boleh** ditambahkan. Root `loading.tsx` membuat Suspense boundary yang menelan `notFound()`, sehingga halaman yang seharusnya 404 (`cuti/[id]`, `slip-gaji/[id]`, `laporan/[id]`, `hr/karyawan/[id]`) mengembalikan status 200 — verified dengan E2E yang gagal. Loading navigasi diimplementasikan via `src/components/NavigationProgress.tsx` (client-side progress bar di root layout) yang tidak menyentuh server rendering.
 
-### React 18 — `useFormStatus` tidak tersedia
-Project pakai React 18.3.1. `useFormStatus` (React 19) **tidak ada** di `react-dom` — memanggilnya merusak render. `SubmitButton` memakai pendekatan manual: `onClick` → set pending, reset via `pathname` change atau timeout 4 detik. **Jangan tambahkan `disabled={pending}`** — itu memblokir form submit (React men-disable button sebelum browser menyelesaikan submit).
+### `useFormStatus` — pendekatan manual dipertahankan
+Sejak upgrade 2026-10-06 project memakai **React 19** (`useFormStatus` kini tersedia), tetapi `SubmitButton`
+sengaja tetap memakai pendekatan manual: `onClick` → set pending, reset via `pathname` change atau timeout
+4 detik. **Jangan tambahkan `disabled={pending}`** — itu memblokir form submit (React men-disable button
+sebelum browser menyelesaikan submit). Perilaku baru React 19 yang wajib diingat: form uncontrolled
+**direset otomatis** setelah tiap server action (dipakai sebagai barrier di `tests/rate-limit.spec.ts`).
 
 ### Fluidity navigasi — prefetch wajib dipertahankan
 Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
 
-### E2E lokal makin flaky — jadikan CI sebagai juri
-Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug. Bila flakiness mengganggu, pertimbangkan ubah `webServer` config E2E ke `npm run start` (butuh `npm run build` dulu) agar stabil & cepat.
+### E2E makin flaky — CI pun bukan juri yang bersih
+Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug.
+
+**Pembaruan 2026-10-06 — flakiness juga muncul di CI**, jadi "CI sebagai juri" tidak lagi cukup sendirian. Dua kelas flake teridentifikasi, keduanya menunggu sinyal yang salah:
+1. `tests/rate-limit.spec.ts` — `await resp.finished()` tanpa timeout pada respons streaming (SUDAH diperbaiki, `de9a7c1`).
+2. `tests/slip-batal.spec.ts` — `waitForURL(/\/hr\/slip-gaji/)` sudah cocok dengan URL saat itu sehingga tidak menunggu redirect (BELUM diperbaiki).
+
+Tier flows & rate-limit memakai `retries: 0`, jadi satu flake langsung memerahkan job. **Verifikasi tiap flake dengan rerun job yang sama**: kalau rerun hijau tanpa perubahan kode, itu flake, bukan regresi produk — dan perbaiki test-nya, karena flake di gate sama merusaknya dengan gate yang tidak pernah jalan.
 
 ---
 
@@ -195,7 +267,7 @@ Suite E2E (kini 91 test; flows 40) melampaui kapasitas dev server lokal: run pan
 
 ## Frontend
 
-* Framework: Next.js 14 App Router
+* Framework: Next.js 15.5.27 App Router (React 19)
 * Language: TypeScript
 * UI library: Tailwind CSS
 * State management: React hooks (no external state lib)
@@ -466,7 +538,9 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ## First Task
 
-Awaiting new requirements. No active task.
+Tidak ada task aktif. Bila melanjutkan: (1) perbaiki flake `tests/slip-batal.spec.ts` — ganti
+`waitForURL(/\/hr\/slip-gaji/)` dengan predikat yang benar-benar menunggu hilangnya `?buat=1`;
+(2) putuskan sisa audit dependensi (`next@16` hanya menutup `postcss`, bukan `uuid`).
 
 ## Files To Inspect
 
@@ -474,6 +548,7 @@ Awaiting new requirements. No active task.
 * `cuti-app/HANDOVER.md` — deploy/security checklists
 * `cuti-app/prisma/schema.prisma` — database schema
 * `cuti-app/src/lib/auth.ts` — auth guards
+* `cuti-app/tests/slip-batal.spec.ts` — flake yang belum diperbaiki
 
 ## Expected Outcome
 
@@ -481,8 +556,10 @@ N/A — no active task.
 
 ## Things To Watch
 
-* `SESSION_SECRET` in ci.yml is unused — can be removed from CI env if desired
-* `cuti-app/HANDOVER.md` may become stale — verify against actual code before relying on it
+* Branch fitur **tidak** menjalankan CI bila di-push tanpa PR (`ci.yml`: `push` hanya `main`).
+* Tier E2E flaky intermiten di CI; `playwright.flows.config.ts` & `playwright.rate-limit.config.ts`
+  memakai `retries: 0`, jadi satu flake langsung memerahkan job.
+* `cuti-app/HANDOVER.md` bisa basi — verifikasi terhadap kode sebelum dipakai.
 
 ---
 
@@ -490,20 +567,23 @@ N/A — no active task.
 
 ## Build
 
-PASS (CI green)
+PASS (`npm run build` Next 15.5.27, 29/29 halaman; CI `verify` hijau di `main`)
 
 ## Tests
 
-PASS (E2E: 18 tests — smoke, slip-gaji, laporan)
+PASS — unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2** (3 tier config).
+Catatan: tier CI flaky secara intermiten (2 kelas flake ditemukan 2026-10-06; satu sudah
+diperbaiki, `slip-batal` belum) — lihat bagian "Merge + Deploy Upgrade" di atas.
 
 ## Lint
 
-PASS
+PASS (`next lint` 0 warning; deprecated, dihapus di Next 16)
 
 ## Deployment
 
-PASS (live at https://cuti-app.vercel.app/)
+PASS — live di https://cuti-app.vercel.app/ (Next 15.5.27 + React 19, `main` = `513395e`)
 
 ## Overall State
 
-Stable
+Stable — upgrade security sudah production; sisa 4 vuln dependensi tanpa critical
+(postcss + uuid, keduanya terbukti tidak reachable — lihat "Audit Sisa").

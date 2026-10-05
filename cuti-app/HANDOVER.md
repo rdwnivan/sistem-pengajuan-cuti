@@ -2,7 +2,7 @@
 
 ## Ringkasan Proyek
 
-Aplikasi web pengajuan cuti + slip gaji + laporan lapangan berbasis Next.js 14 + Prisma + PostgreSQL.
+Aplikasi web pengajuan cuti + slip gaji + laporan lapangan berbasis Next.js 15 + React 19 + Prisma + PostgreSQL.
 
 ## Quickstart (Dev)
 
