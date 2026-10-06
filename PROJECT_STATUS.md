@@ -678,8 +678,9 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
   **23/23** pada semua spec yang menyentuh form cuti (cuti-flow 4, cuti-validasi 5, lampiran 3,
   cron+notifikasi+delegasi 10) dijalankan dengan dev server + DB `neondb_test`. Dua test regresi baru
   (`tests/cuti-validasi.spec.ts`) sudah dicek **merah tanpa perbaikan** (gagal di `option:checked`
-  `-- pilih --` dan di `?jenis=`), hijau dengan perbaikan. Tier utama/rate-limit/build/CI tidak
-  dijalankan ulang sesi ini (di luar cakupan perubahan).
+  `-- pilih --` dan di `?jenis=`), hijau dengan perbaikan. Setelah PR #11 dibuka, **CI hijau**
+  (run `37541258581`, job `verify` + `e2e`, 0 flaky): E2E server produksi **54/54 utama + 39/39 flows
+  + 2/2 rate-limit**, kedua test baru ikut jalan di CI (13/39 dan 14/39).
 * **Temuan sampingan**: `cuti-app/.env.test` tidak bisa dipakai — password `neondb_test` di file itu
   sudah kedaluwarsa (auth gagal walau DB ada). Lihat §10 Known Bugs.
 
@@ -973,13 +974,14 @@ sudah terdokumentasi, bukan regresi. Ketiga tier lalu dijalankan ulang dengan `C
 Verifikasi sesi ini (2026-10-07 lanjutan): PR #8 dan PR #9 dijalankan dengan `CI=1` dari DB bersih →
 **54/54 + 38/38 + 2/2**, 0 flaky.
 
-Verifikasi 2026-10-07 (lanjutan 2 — perbaikan form cuti, belum di-PR): hanya **verifikasi terfokus**,
-bukan ketiga tier. `tsc --noEmit` 0 error; `eslint` pada 4 file yang berubah 0 problem; unit **90/90**
-(tidak ada file unit yang berubah — angka 97/97 di atas berasal dari pencatatan sesi sebelumnya);
-E2E tier flows **23/23** untuk semua spec yang menyentuh form cuti (cuti-flow, cuti-validasi,
-lampiran, cron, notifikasi, delegasi) dijalankan dengan dev server + DB `neondb_test`. Tier utama,
-rate-limit, `npm run build`, dan CI **belum** dijalankan untuk perubahan ini — jalankan ketiganya
-sebelum merge.
+Verifikasi 2026-10-07 (lanjutan 2 — perbaikan form cuti, PR #11): lokal dulu terfokus —
+`tsc --noEmit` 0 error, `eslint` 4 file berubah 0 problem, unit **90/90** (tidak ada file unit yang
+berubah; angka 97/97 di atas dari pencatatan sesi sebelumnya), E2E tier flows **23/23** untuk semua
+spec yang menyentuh form cuti (cuti-flow, cuti-validasi, lampiran, cron, notifikasi, delegasi) dengan
+dev server + DB `neondb_test`. Lalu **CI PR #11 hijau** (run `37541258581`, job `verify` + `e2e`,
+0 flaky): `build` lolos dan E2E di server produksi **54/54 utama + 39/39 flows (termasuk 2 test
+regresi baru) + 2/2 rate-limit**. Catatan angka: flows sekarang **39**, bukan 38 seperti tertulis di
+atas — patch ini menambah 2 test, jadi pencatatan 38 sebelumnya sudah selisih 1.
 
 ## Lint
 
