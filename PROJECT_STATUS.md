@@ -683,6 +683,18 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
   + 2/2 rate-limit**, kedua test baru ikut jalan di CI (13/39 dan 14/39).
 * **Temuan sampingan**: `cuti-app/.env.test` tidak bisa dipakai — password `neondb_test` di file itu
   sudah kedaluwarsa (auth gagal walau DB ada). Lihat §10 Known Bugs.
+* **Temuan sampingan 2 — push ke PR yang sudah terbuka TIDAK memicu CI (perlu diperhatikan)**:
+  run CI hanya terbuat saat PR **dibuka**. Setelah PR #11 open, tiga percobaan berikutnya tidak
+  menghasilkan run sama sekali: push commit docs (`8463196`), push commit kosong (`7bce057`), dan
+  close+reopen PR — semuanya dicek langsung ke API (`/actions/runs?head_sha=<sha>`), bukan hanya
+  `gh run list`. Pada periode yang sama, run `push` ke `main` tetap terbuat normal, dan status
+  GitHub Actions = operational. Jadi gate CI **tidak otomatis berlaku untuk commit setelah PR
+  dibuka**; jangan menganggap "sudah push ke PR" = "sudah diuji CI". Sebelum merge, pastikan ada run
+  untuk **sha tip** (bukan sha lama), mis. `gh api 'repos/<owner>/<repo>/actions/runs?head_sha=<sha>'`.
+  Sisa dugaan yang belum terbukti (perlu dicek di tab Actions / Settings → Billing): kuota menit
+  Actions atau runner yang nyangkut — saat kejadian ada run `CI` di `main` (sha `23f5c14`) berstatus
+  `in_progress` jauh lebih lama dari biasanya (~13 menit, normalnya ~4) dan tidak ada run baru yang
+  dijadwalkan setelahnya.
 
 ## 2026-10-07 (lanjutan) — alias production, smoke pasca-deploy, next/typescript, sapu Sesi
 
