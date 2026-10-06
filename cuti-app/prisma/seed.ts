@@ -33,7 +33,7 @@ async function main() {
   const pimpinan = await prisma.user.create({
     data: { nama: "Kepala Regional", email: "pimpinan@anime.id", nip: nipBaru(), passwordHash: hash, jabatan: "Kepala Regional", tglMasuk: tglMasukLama },
   });
-  const hr = await prisma.user.create({
+  await prisma.user.create({
     data: { nama: "HR Anime", email: "hr@anime.id", nip: nipBaru(), passwordHash: hash, role: "HR_ADMIN", jabatan: "HR Admin", tglMasuk: tglMasukLama, atasanId: pimpinan.id },
   });
   const atasan1 = await prisma.user.create({

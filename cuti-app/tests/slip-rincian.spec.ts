@@ -10,7 +10,6 @@ import { test, expect, login } from "./helpers";
 test.describe("Slip gaji rincian standar", () => {
   test("HR terbitkan slip rincian, karyawan lihat rincian + NIP, PDF ada TTD", async ({ page }) => {
     const now = new Date();
-    const tahun = now.getFullYear();
     const bulan = now.getMonth() + 1;
 
     // 1. HR terbitkan slip karyawan2 (karyawan4, bawahan atasan2 — antrean laporan aman)

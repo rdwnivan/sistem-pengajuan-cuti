@@ -1,4 +1,4 @@
-import { test, expect, login, AKUN } from "./helpers";
+import { test, expect, login } from "./helpers";
 
 test.describe("SECURITY — IDOR & otorisasi API", () => {
   test("slip gaji orang lain Forbidden (403), bukan 200", async ({ page }) => {

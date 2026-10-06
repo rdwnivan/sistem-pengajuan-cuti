@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { userDariSesi, isAtasan } from "@/lib/auth";
 import { NotificationPermission } from "@/components/NotificationPermission";
 import { LogoutButton } from "@/components/LogoutButton";
-import { SubmitButton } from "@/components/SubmitButton";
 
 export function Shell({ nama, role, isAtasan, children }: { nama: string; role: string; isAtasan: boolean; children: React.ReactNode }) {
   return (

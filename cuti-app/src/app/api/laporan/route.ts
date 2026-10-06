@@ -57,7 +57,7 @@ export async function GET(req: Request) {
   }
 
   if (format === "pdf-rekap") {
-    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const { PDFDocument, StandardFonts } = await import("pdf-lib");
     const doc = await PDFDocument.create();
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);

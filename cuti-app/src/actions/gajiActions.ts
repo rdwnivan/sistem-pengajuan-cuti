@@ -1,15 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema, putusanGajiSchema, gajiPerubahanSchema } from "@/lib/validasi";
-import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
-import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
+import { putusanGajiSchema } from "@/lib/validasi";
+import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
-import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-
-import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, ajukanPerubahanGaji } from "./shared";
+import { aktor, ajukanPerubahanGaji } from "./shared";
 
 
 export async function aksiSimpanGajiPokok(_: unknown, fd: FormData) {
@@ -29,7 +24,6 @@ export async function aksiSimpanGajiPokok(_: unknown, fd: FormData) {
   if (res.error) return res;
   redirect("/hr/karyawan");
 }
-
 
 export async function aksiPutusanPerubahanGaji(_: unknown, fd: FormData) {
   const user = await aktor();

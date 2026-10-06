@@ -22,11 +22,11 @@ export async function login(page: Page, peran: Peran) {
   await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
 }
 
-export const test = base.extend<{ loggedIn: Peran }>({
-  loggedIn: async ({ page }, use) => {
-    await use("karyawan" as Peran);
-  },
-});
+// `test` diekspor langsung dari Playwright: dulu ada fixture `loggedIn` di sini,
+// tetapi tidak pernah dipakai spec mana pun (login selalu eksplisit per peran
+// lewat `login(page, peran)`) sehingga dihapus — sekaligus menghilangkan
+// parameter `page` yang tidak terpakai di fixture itu.
+export const test = base;
 
 export { expect };
 
