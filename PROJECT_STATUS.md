@@ -665,6 +665,9 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 * Regresi ada di `tests/cuti-validasi.spec.ts`, termasuk mempertahankan input setelah penolakan
   dan memilih jenis cuti dari `?jenis=`. CI PR sebelumnya lulus untuk `verify` dan `e2e`.
 * Run `37541258581` mencatat 54 test utama, 39 flows, dan 2 rate-limit test lulus.
+* Catatan operasional saat PR tersebut aktif: tiga percobaan setelah PR dibuka (push dokumentasi,
+  commit kosong, lalu close/reopen) tidak membuat CI run; pemeriksaan dilakukan lewat API Actions.
+  Sebelum merge revisi itu, cocokkan status CI dengan SHA tip. Penyebabnya saat itu belum diketahui.
 
 ## 2026-10-07 (lanjutan) — alias production (koreksi), smoke pasca-deploy, next/typescript, sapu Sesi
 
