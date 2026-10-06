@@ -5,13 +5,14 @@
 
 ## Last Updated
 
-* Date: 2026-10-06 (WIB)
-* Session: Housekeeping (hapus 3 branch yang sudah di-merge, segarkan `PROJECT_STATUS.md` +
-  `STAGING.md`), keputusan audit sisa dependensi (**terima vuln + pantau advisory**; snapshot
-  2026-10-07 naik ke 7 vuln karena advisory baru `source-map-js`), dan
-  migrasi `next lint` → ESLint CLI (ESLint 9 flat config, PR #5 **merged** `3ec54ef`). Sesi sebelumnya: merge +
-  deploy upgrade Next 15.5.27/React 19 ke production; akar flake E2E ditemukan & diperbaiki —
-  CI sekarang pakai server produksi + retries (job `e2e` 5–9 menit → ~3 menit, tanpa flaky)
+* Date: 2026-10-07 (WIB)
+* Session: P1 (item 1 + 2 §13) — koreksi catatan audit (**snapshot live ternyata 5 vuln, bukan 7**)
+  + tutup `source-map-js` HIGH lewat bump non-breaking `1.2.1 → 1.2.2` (audit prod jadi
+  **4 vuln: 1 high, 3 moderate**), `crypto.timingSafeEqual` untuk secret cron
+  (`src/lib/aman-sama.ts`), dan rotasi token sesi saat login (`buatSesi`). Sesi sebelumnya:
+  housekeeping (hapus 3 branch ter-merge) + keputusan audit (a) + migrasi `next lint` →
+  ESLint CLI (PR #5 **merged** `3ec54ef`); sebelumnya lagi merge + deploy Next 15.5.27/React 19
+  ke production dengan E2E server produksi + retries (job `e2e` ~3 menit, tanpa flaky)
 
 ---
 
@@ -36,15 +37,19 @@
 * [x] HIGH — cookie `secure` di production (`src/lib/auth.ts`)
 * [x] MED — content sniffing upload (`src/lib/upload.ts`)
 * [x] MED — `SESSION_SECRET` sudah tidak ada di ci.yml; README.md diperbaiki agar tidak menyebutnya lagi
+* [x] LOW — perbandingan secret cron sekarang constant-time (`samaAman()` di `src/lib/aman-sama.ts`,
+  dipakai `src/app/api/cron/route.ts:12`); unit `unit/aman-sama.test.ts`
+* [x] LOW — token sesi dirotasi saat login (`buatSesi` hapus row `Sesi` lama yang ditunjuk cookie
+  setelah token baru dibuat) — `src/lib/auth.ts:10-21`
+* [x] INFO — CSP Analytics: `https://va.vercel-scripts.com` sudah masuk `script-src` + `connect-src`
+  (`next.config.mjs:9-14`) — baris ini dulu masih tercatat sebagai issue di tabel bawah
 
 ## Issues Remaining
 
 | Sev | Issue | Lokasi |
 |-----|-------|--------|
-| LOW | Perbandingan secret cron tidak constant-time (`q !== secret`) — timing attack teoretis | `src/app/api/cron/route.ts:9` |
-| LOW | Session token tidak dirotasi setelah login | `src/lib/auth.ts` |
 | INFO | CSP `script-src 'unsafe-inline'` melemahkan proteksi XSS (dibutuhkan Next.js bootstrap) | `next.config.mjs` |
-o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak memuat `https://va.vercel-scripts.com`, jadi analitik tidak jalan di production | `next.config.mjs` + `layout.tsx` |
+| INFO | Row `Sesi` kedaluwarsa tidak pernah dibersihkan (`userDariSesi` cuma mengembalikan `null`) — baris menumpuk, bukan celah auth | `src/lib/auth.ts:23` |
 
 ## Security + Performance Testing (2026-10-05)
 
@@ -62,7 +67,7 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
   * React 18 → 19; `useFormState` (deprecated) → `useActionState` di 12 form.
 * **Perilaku baru React 19 (penting)**: form uncontrolled **direset otomatis** setelah tiap server action → field email di login kosong setelah gagal. `tests/rate-limit.spec.ts` diperbarui: isi ulang email tiap iterasi (pakai `waitForResponse` agar deterministik).
 * **Verifikasi**: `tsc` 0, `lint` 0, `build` 0, unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2**. (Dua flake dev lokal: kalender `server-side exception` sewaktu suite paralel — lolos terisolasi & rerun penuh; catatan flakiness lama tetap berlaku.)
-* **Sisa audit** (`npm audit --omit=dev`, snapshot 2026-10-05): `postcss` high (bundled di next, build-time) + `uuid` moderate (via exceljs) — 4 vuln, tanpa critical. Bisa ditutup dengan `next@16` (breaking) bila diinginkan. **Angka terbaru (2026-10-07) = 7 vuln** — lihat "Audit Sisa — Koreksi Analisis".
+* **Sisa audit** (`npm audit --omit=dev`, snapshot 2026-10-05): `postcss` high (bundled di next, build-time) + `uuid` moderate (via exceljs) — 4 vuln, tanpa critical. Bisa ditutup dengan `next@16` (breaking) bila diinginkan. **Angka terbaru (2026-10-07, diukur ulang) = 4 vuln (1 high, 3 moderate)** setelah `source-map-js` ditutup — lihat "Audit Sisa — Koreksi Analisis".
 * Catatan: CI Node 20 sudah cocok; `next lint` (deprecated) sudah **diganti** ESLint CLI di PR #5 — lihat "Housekeeping + Migrasi ESLint CLI".
 
 ## Merge + Deploy Upgrade ke Production (2026-10-06)
@@ -149,17 +154,34 @@ yang di-stream Suspense.
 > karena Chromium memperlakukan localhost sebagai secure context. Sudah diverifikasi —
 > kalau tidak, seluruh test login akan gagal.
 
-## Audit Sisa — Koreksi Analisis (2026-10-06, snapshot diperbarui 2026-10-07)
+## Audit Sisa — Koreksi Analisis (2026-10-06; snapshot diukur ulang 2026-10-07)
 
-> **Snapshot 2026-10-07 (WIB): `npm audit --omit=dev` = 7 vuln (2 high, 5 moderate), 0 critical**
-> dari 3 paket — `postcss` (nested `next/node_modules/postcss@8.4.31`), **`source-map-js@1.2.1`
-> (HIGH, advisory baru `GHSA-68fv-2mgg-jv7q`: event-loop DoS lewat indeks section source map)**,
-> dan `uuid` (via `exceljs@4.4.0`). Angka "4 vuln" di bawah adalah snapshot lama 2026-10-06.
+> **Snapshot 2026-10-07 (WIB), DIUKUR ULANG — dan angkanya bukan 7.**
+> Pada tree yang sama (`53666a3`, lockfile belum disentuh) `npm audit --omit=dev` hari ini
+> menghasilkan **5 vuln (2 high, 3 moderate), 0 critical** dari 4 paket: `postcss`
+> (nested `next/node_modules/postcss@8.4.31`, high), `source-map-js@1.2.1`
+> (high, `GHSA-68fv-2mgg-jv7q`), `uuid@8.3.2` (moderate, via `exceljs@4.4.0`), plus `next` +
+> `exceljs` yang ikut tertandai sebagai pembawa. Catatan "7 vuln (2 high, 5 moderate)" yang
+> ditulis sesi sebelumnya **tidak bisa direproduksi**; penyebabnya tidak bisa direkonstruksi
+> (kemungkinan penggabungan advisory yang berbeda antar versi npm/registry) — mulai sekarang
+> yang dicatat adalah angka yang bisa direproduksi beserta perintahnya.
 > **Bukan akibat PR #5**: versi resolved `postcss` + `source-map-js` identik sebelum (`02ecf27`)
-> dan sesudah (`3ec54ef`) PR — yang bertambah adalah advisory di registry, bukan isi lockfile.
+> dan sesudah (`3ec54ef`) PR — advisory di registry yang bergerak, bukan isi lockfile.
 > Pelajaran: angka audit bergerak tanpa perubahan kode, jadi selalu tulis tanggal snapshot.
+>
+> **Sesudah tindakan sesi ini** (`source-map-js` di-bump `1.2.1 → 1.2.2`): `npm audit --omit=dev`
+> = **4 vuln (1 high, 3 moderate), 0 critical** — sisa `postcss` (high) + `uuid`/`next`/`exceljs`.
 
 * `npm audit --omit=dev` (snapshot 2026-10-06) = **4 vuln (1 high, 3 moderate), 0 critical**.
+* **`source-map-js` SUDAH DITUTUP (2026-10-07)** — sebelumnya `1.2.1` (high, `GHSA-68fv-2mgg-jv7q`:
+  event-loop DoS lewat indeks section source map). `npm audit fix --dry-run` menunjukkan fix
+  **1 paket, non-breaking** (`1.2.2` masih memenuhi range `^1.0.2` milik `postcss@8.4.31` dan
+  `^1.2.1` milik `postcss@8.5.28`), jadi tidak butuh `npm overrides` — cukup
+  `npm audit fix` (bukan `--omit=dev`, lihat catatan di bawah). Reachability-nya memang build-time
+  (`postcss` → `source-map-js`, CSS first-party Tailwind), tapi karena fixnya gratis dan menutup
+  satu HIGH, ini dikerjakan alih-alih diterima.
+  **JANGAN pakai `npm audit fix --omit=dev`**: dry-run-nya merencanakan `remove` seluruh
+  devDependencies (typescript, tsx, playwright) — destruktif.
 * Yang vulnerable **bukan** postcss top-level (8.5.28, sudah aman), melainkan
   `next/node_modules/postcss@8.4.31` — `next` mem-pin eksak. `next@16.3.8` membawa postcss **8.5.23**.
 * **`next@16` TIDAK menutup `uuid`.** `uuid@8.3.2` masuk lewat `exceljs@4.4.0`, bukan `next`. Jadi naik
@@ -179,15 +201,20 @@ yang di-stream Suspense.
 * `next@16.3.8` butuh Node `>= 20.9.0` (CI Node 20 aman) dan React `^18.2.0 || ^19.0.0`.
 
 **KEPUTUSAN (2026-10-06, oleh user): opsi (a) — terima vuln (0 critical) + pantau advisory.**
-Keputusan itu dibuat atas snapshot 4 vuln. Untuk snapshot 7 vuln (2026-10-07) penilaian awal:
-**masih berlaku**, karena `source-map-js` juga hanya dipakai build-time (`postcss` → `source-map-js`),
-bukan jalur input user — tetapi **evaluasi tertulisnya belum dikerjakan** (lihat TODO.md item
-"Koreksi + evaluasi ulang catatan audit").
-Alasannya: keduanya terbukti tidak reachable di jalur kode app ini; menutup `postcss` lewat
-`npm overrides` berarti meng-override **pin eksak `next`** (risiko regresi framework demi advisory
-build-time), sedangkan `next@16` pun tetap menyisakan 3 moderate `uuid`. Jadi **tidak** ada alasan
-naik ke Next 16 hanya untuk audit ini. Tindak lanjut: review advisory berkala dan evaluasi ulang
-bila salah satu berubah jadi reachable atau muncul advisory baru.
+**Ditegaskan ulang 2026-10-07** untuk sisa **4 vuln (1 high: `postcss`; 3 moderate: `uuid` + `next`
++ `exceljs` yang ikut tertandai)**, dengan perubahan cakupan: `source-map-js` (yang dulu ikut
+diterima) **dikeluarkan dari daftar terima dan ditutup** karena fixnya ternyata non-breaking 1 paket.
+Alasan (a) tetap sah untuk sisanya: keduanya terbukti tidak reachable di jalur kode app ini
+(`postcss` hanya build-time + CSS first-party; `uuid` hanya dipakai exceljs `v4()` tanpa argumen
+`buf`), menutup `postcss` lewat `npm overrides` berarti meng-override **pin eksak `next`** (risiko
+regresi framework demi advisory build-time), sedangkan `next@16` pun tetap menyisakan 3 moderate
+`uuid`. Jadi **tidak** ada alasan naik ke Next 16 hanya untuk audit ini.
+
+**Jadwal review advisory berkala**: tinjau ulang `npm audit --omit=dev` tiap kali (1) lockfile
+tersentuh, (2) sebelum rilis/major upgrade, dan (3) minimal sekali per bulan — evaluasi ulang bila
+salah satu berubah jadi reachable, naik severity, atau muncul advisory baru pada paket yang sama.
+Selalu catat **tanggal snapshot + angka yang bisa direproduksi**, karena angka audit bergerak tanpa
+perubahan kode (lihat kontradiksi 7 vs 5 di callout atas).
 
 ## Housekeeping + Migrasi ESLint CLI (2026-10-06, lanjutan)
 
@@ -260,8 +287,10 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
 Deploy Upgrade"); tiga flake E2E (`rate-limit`, `slip-batal`, `notifikasi`) **sudah ditutup**
-(PR #3 + PR #4); sisa audit dependensi **diputuskan** (terima + pantau); migrasi ESLint CLI
-**sudah merged** (PR #5, `3ec54ef`). Tidak ada task aktif — lihat "Next Session".
+(PR #3 + PR #4); migrasi ESLint CLI **sudah merged** (PR #5, `3ec54ef`). P1 item 1 + 2 dari §13
+**sedang dikerjakan di branch `security/audit-correction-low-items`**: koreksi snapshot audit
+(5 → 4 vuln setelah `source-map-js` ditutup) + dua security LOW (secret cron constant-time,
+rotasi token sesi saat login). Sisanya (item 3–4) belum tersentuh.
 
 ## Current Status
 
@@ -643,20 +672,24 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ## First Task
 
-Tidak ada task aktif, tapi ada urutan yang disepakati (dipakai sebagai handoff antar sesi):
+Urutan yang disepakati (dipakai sebagai handoff antar sesi). Item 1 & 2 **selesai di sesi
+2026-10-07** (branch `security/audit-correction-low-items`), tersisa:
 
-1. **Koreksi + evaluasi ulang catatan audit** — snapshot 2026-10-07 = **7 vuln (2 high, 5 moderate),
-   0 critical** (advisory baru: `source-map-js`); terbukti bukan akibat PR #5. Perbarui sisa angka
-   "4 vuln" di section "Audit Sisa", nilai reachability `source-map-js`, lalu tegaskan keputusan (a).
-2. **Item security LOW** — `crypto.timingSafeEqual` untuk perbandingan secret cron
-   (`src/app/api/cron/route.ts`) dan rotasi token sesi setelah login (`src/lib/auth.ts`).
+1. ~~**Koreksi + evaluasi ulang catatan audit**~~ — **SELESAI 2026-10-07**. Temuan: snapshot
+   dokumen "7 vuln" **tidak reproducible** (yang terukur 5 vuln pada lockfile yang sama).
+   `source-map-js` ternyata punya fix non-breaking 1 paket → ditutup (`1.2.1 → 1.2.2`),
+   audit prod kini **4 vuln (1 high, 3 moderate)**; keputusan (a) ditegaskan untuk sisa
+   `postcss` + `uuid`. Jadwal review advisory berkala ditulis di section "Audit Sisa".
+2. ~~**Item security LOW**~~ — **SELESAI 2026-10-07**: `samaAman()` (`src/lib/aman-sama.ts`)
+   dipakai `/api/cron` (constant-time, SHA-256 digest) + rotasi token sesi di `buatSesi`
+   (`src/lib/auth.ts`). Unit baru `unit/aman-sama.test.ts`.
 3. **Verifikasi yang butuh manusia/production** — upload di production live (login + submit form
    asli), konfirmasi slip demo dari aplikasi live (TODO.md:32), Web Push di perangkat nyata.
 4. **Backlog opsional** — smoke otomatis pasca-deploy, E2E upload pada mode production build,
    aktifkan `next/typescript` di `eslint.config.mjs`, keputusan pin `next` eksak vs `^15.5.27`.
 
-Sudah selesai: migrasi `next lint` → ESLint CLI (PR #5, squash `3ec54ef`) — CI `verify` + `e2e`
-hijau (54/37/2, 0 flaky) dan `npm run lint` di `main` 0 problem.
+Sudah selesai sebelumnya: migrasi `next lint` → ESLint CLI (PR #5, squash `3ec54ef`) — CI
+`verify` + `e2e` hijau (54/37/2, 0 flaky) dan `npm run lint` di `main` 0 problem.
 
 ## Files To Inspect
 
@@ -693,9 +726,16 @@ PASS (`npm run build` Next 15.5.27, 29/29 halaman; CI `verify` hijau di `main`)
 
 ## Tests
 
-PASS — unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2** (3 tier config, 20 file).
-CI `e2e` hijau **tanpa flaky** setelah pindah ke server produksi (job ~3 menit) — lihat
+PASS — unit **90/90** (+6 dari `unit/aman-sama.test.ts`; 8 file unit), E2E utama **54/54**,
+flows **37/37**, rate-limit **2/2** (3 tier config, tetap 20 file spec). CI `e2e` hijau **tanpa
+flaky** setelah pindah ke server produksi (job ~3 menit) — lihat
 "Infrastruktur E2E — Server Produksi di CI + Retries".
+
+Verifikasi 2026-10-07 (branch `security/audit-correction-low-items`): run lokal dengan dev server
+sempat gagal 2 test `performance.spec.ts` + 1 `notifikasi.spec.ts`; ketiganya **hijau saat
+dijalankan ulang** (performance isolasi 9/9, notifikasi isolasi 2/2) → degradasi dev server yang
+sudah terdokumentasi, bukan regresi. Ketiga tier lalu dijalankan ulang dengan `CI=1`
+(`npm run start`, sama seperti CI) dari DB bersih: **54/54 + 37/37 + 2/2, 0 flaky**.
 
 ## Lint
 
@@ -709,7 +749,9 @@ PASS — live di https://cuti-app.vercel.app/ (Next 15.5.27 + React 19, `main` =
 
 ## Overall State
 
-Stable — upgrade security sudah production; CI andal (tanpa flaky). Sisa audit dependensi bergerak
-dari 4 → **7 vuln (2 high, 5 moderate), 0 critical** (`postcss` + `source-map-js` + `uuid`; semuanya
-terbukti tidak reachable — lihat "Audit Sisa"). Item "koreksi + evaluasi ulang catatan audit" masih
-terbuka di TODO.md.
+Stable — upgrade security sudah production; CI andal (tanpa flaky). Audit produksi **4 vuln
+(1 high, 3 moderate), 0 critical** setelah `source-map-js` HIGH ditutup lewat bump non-breaking
+`1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` + `uuid` diterima dengan alasan reachability yang
+didokumentasikan (lihat "Audit Sisa"). Dua security LOW dari review 2026-09-29 sudah ditutup:
+secret cron constant-time + rotasi token sesi saat login (branch
+`security/audit-correction-low-items`).
