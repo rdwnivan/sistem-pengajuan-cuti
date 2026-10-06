@@ -8,10 +8,16 @@ const COOKIE = "sesi-cuti";
 const EXPIRE_DAYS = 7;
 
 export async function buatSesi(userId: string) {
+  const jar = await cookies();
+  const tokenLama = jar.get(COOKIE)?.value;
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + EXPIRE_DAYS * 86400 * 1000);
   await prisma.sesi.create({ data: { token, userId, expiresAt } });
-  (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
+  // Rotasi token: login ulang (mis. di perangkat bersama) tidak boleh meninggalkan
+  // row Sesi lama yang tetap valid 7 hari. Token baru dibuat lebih dulu supaya tidak
+  // pernah ada jendela tanpa sesi valid bila pembuatan gagal.
+  if (tokenLama) await prisma.sesi.deleteMany({ where: { token: tokenLama } });
+  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
 }
 
 export async function userDariSesi() {
