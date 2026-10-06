@@ -6,15 +6,18 @@
 ## Last Updated
 
 * Date: 2026-10-07 (WIB), lanjutan
-* Session: P1/P2/P3 lanjutan — **alias production ternyata nyangkut** di build sebelum PR #3–#6
-  (chunk live `webpack-2eb758dea75faf50.js` vs build `d9ac5e7` = `webpack-a2a7106df7a920d1.js`,
-  404 di production) → hardening cron + rotasi sesi PR #6 **belum terbukti live**; butuh Promote
-  (dashboard tidak bisa diakses dari mesin ini). Selesai: TODO 163 smoke pasca-deploy + artifact
-  sidik jari (PR #7), TODO 96+142 `next/typescript` + 228 temuan (PR #8), TODO 141 sapu `Sesi`
-  kedaluwarsa (PR #9), TODO 120 ditutup sebagai sudah tercakup. Sesi sebelumnya: koreksi catatan
-  audit (**snapshot live 5 vuln, bukan 7**) + tutup `source-map-js` HIGH lewat bump non-breaking
-  `1.2.1 → 1.2.2` (audit prod jadi **4 vuln: 1 high, 3 moderate**), `crypto.timingSafeEqual` untuk
-  secret cron (`src/lib/aman-sama.ts`), dan rotasi token sesi saat login (`buatSesi`).
+* Session: P1/P2/P3 lanjutan. **Dua koreksi atas pekerjaan saya sendiri di sesi ini** (keduanya
+  sudah dibereskan): (1) smoke pasca-deploy saya mula-mula memakai perbandingan **hash chunk antar
+  lingkungan** — asumsi itu salah dan menghasilkan MISMATCH palsu; diganti verifikasi **SHA commit**
+  via `/api/version` (PR #12). (2) Klaim "alias production nyangkut di build lama" **DICABUT**:
+  `/api/version` membuktikan alias mengikuti `main`; metodenya yang cacat, bukan deployment-nya.
+  Selesai dan merged: TODO 163 smoke pasca-deploy (PR #7) + koreksinya (PR #12), TODO 96+142
+  `next/typescript` + 228 temuan (PR #8), TODO 141 sapu `Sesi` kedaluwarsa (PR #9), TODO 120 ditutup
+  sebagai sudah tercakup, dokumentasi (PR #10). Dua security LOW PR #6 **live** (dikonfirmasi
+  `/api/version` + probe `/api/cron` 401). Sesi sebelumnya: koreksi catatan audit (**snapshot live
+  5 vuln, bukan 7**) + tutup `source-map-js` HIGH lewat bump non-breaking `1.2.1 → 1.2.2` (audit
+  prod jadi **4 vuln: 1 high, 3 moderate**), `crypto.timingSafeEqual` untuk secret cron
+  (`src/lib/aman-sama.ts`), dan rotasi token sesi saat login (`buatSesi`).
 
 ---
 
@@ -287,14 +290,15 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-**P0 yang tertunda: Promote deployment `d9ac5e7` ke alias production Vercel** — alias masih
-menyajikan build sebelum PR #3–#6, jadi dua security LOW PR #6 belum live (bukti di §14 item 1).
-Butuh tangan user; dashboard Vercel tidak bisa diakses dari mesin ini.
+**Tidak ada P0 tertunda.** Alias production mengikuti `main` (dibuktikan `/api/version` → `9ae5f03`
++ smoke MATCH), jadi dua security LOW PR #6 **live**. Klaim sebelumnya ("alias nyangkut, butuh
+Promote") sudah dicabut — lihat §9 dan §14 item 2b.
 
-Sudah selesai di kode (menunggu merge + Promote): upgrade Next 15.5.27 + React 19 live (PR #2/#3/#4),
-migrasi ESLint CLI (PR #5 `3ec54ef`), security PR #6 (`d9ac5e7`), smoke pasca-deploy (PR #7),
-`next/typescript` + dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9). Terbuka: TODO 97
-(keputusan pin `next`, user), TODO 162 (upload di Vercel asli, butuh user), Web Push di perangkat nyata.
+Sudah selesai dan merged: upgrade Next 15.5.27 + React 19 live (PR #2/#3/#4), migrasi ESLint CLI
+(PR #5 `3ec54ef`), security PR #6 (`d9ac5e7`), smoke pasca-deploy (PR #7) + koreksi berbasis SHA
+(PR #12 `9ae5f03`), `next/typescript` + dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9),
+dokumentasi (PR #10). Terbuka (butuh user): TODO 97 (keputusan pin `next`), TODO 162 (upload di
+Vercel asli), Web Push di perangkat nyata.
 
 ## Current Status
 
@@ -542,18 +546,38 @@ Suite E2E (kini 94 test; flows 38) melampaui kapasitas dev server lokal: run pan
 
 # 9. Current Blockers
 
-**Alias production Vercel nyangkut di build lama** (`webpack-2eb758dea75faf50.js`), sedangkan build
-`main` = `d9ac5e7` menghasilkan `webpack-a2a7106df7a920d1.js` (404 di production). Artinya dua
-security LOW dari PR #6 (secret cron constant-time + rotasi token sesi) **belum live**.
+**Tidak ada.** (Dikoreksi 2026-10-07 malam.)
 
-* **Blocker**: butuh Promote dari dashboard Vercel. Mesin ini tidak punya kredensial Vercel —
-  `npx vercel whoami` keluar 1, tidak ada `auth.json` / `VERCEL_TOKEN` / `cuti-app/.vercel/project.json`.
-* **Bukan blocker kode**: hardening-nya sudah ada di `main` dan sudah terbukti di jalur non-alias
-  (`/api/cron` menolak secret salah dengan 401 di E2E dan di production yang disajikan sekarang).
-* **Bukti + cara verifikasi ulang + langkahnya**: §14 item 1.
-* **Cara menutup**: Promote `d9ac5e7` → jalankan `gh workflow run post-deploy-smoke.yml --ref main`
-  → hasilnya harus MATCH. Setelah itu perbarui §14 item 1, §15 (Deployment + Overall State), dan
-  TODO.md item blocked ini.
+Sebelumnya sesi ini mencatat "alias production nyangkut di build lama" — **itu keliru dan sudah
+dicabut.** Bukti pembalik yang definitif:
+
+```
+GET https://cuti-app.vercel.app/api/version
+→ 200 {"sha":"9ae5f03f38714665a30baac9202eeedc32487186","env":"production"}
+```
+
+`9ae5f03` adalah commit **terbaru `main`** saat itu, dan `VERCEL_GIT_COMMIT_SHA` hanya bisa berasal
+dari deployment yang benar-benar melayani request → **alias mengikuti `main`, tidak nyangkut**.
+
+Akar kesalahan: verifikasi saya memakai perbandingan **hash isi chunk runtime antar lingkungan**,
+yang ternyata **tidak sah** (build dari commit yang sama bisa menghasilkan isi chunk berbeda:
+3482 vs 3864 byte untuk nama chunk yang sama). Jadi 404 pada `webpack-a2a7106df7a920d1.js` **bukan**
+bukti alias basi — build dari commit lain memang menghasilkan chunk bernama lain, dan chunk dari
+deployment lawas tidak selalu bisa diakses lagi.
+
+Timeline yang membuktikan alias selalu dekat dengan `main`:
+
+| Waktu | Kejadian |
+|---|---|
+| 19:34 | smoke vs `d9ac5e7` → chunk-nya 404. Commit `d9ac5e7` **tidak memuat** kode smoke (baru ada di PR #7), jadi alias saat itu sudah ≥ PR #7 |
+| 22:46 | smoke vs `23f5c14` → `/api/version` **404** (endpoint baru ada di PR #10, merge 22:52) — konsisten |
+| 23:18 | smoke vs `9ae5f03` → `/api/version` = `9ae5f03` → alias = HEAD `main` |
+
+Dua security LOW PR #6 (secret cron constant-time + rotasi token sesi) karena itu **live**, dan
+`/api/cron` menolak secret salah dengan 401 di production (diverifikasi smoke, tanpa perlu sesi).
+
+Pelajarannya sudah ditulis di §14: jangan verifikasi "deploy mendarat?" dengan hash lintas
+lingkungan — pakai identitas yang dilaporkan deployment itu sendiri (`/api/version`).
 
 Tidak ada blocker lain.
 
@@ -638,16 +662,19 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 
 # 12. Recent Changes
 
-## 2026-10-07 (lanjutan) — alias production, smoke pasca-deploy, next/typescript, sapu Sesi
+## 2026-10-07 (lanjutan) — alias production (koreksi), smoke pasca-deploy, next/typescript, sapu Sesi
 
-* **Temuan utama**: alias `cuti-app.vercel.app` **menyajikan build lama** (`webpack-2eb758dea75faf50.js`,
-  build sebelum PR #3–#6), sedangkan build `d9ac5e7` = `webpack-a2a7106df7a920d1.js` yang **404** di
-  production → hardening cron + rotasi sesi PR #6 belum terbukti live. Butuh Promote; dashboard tidak
-  bisa diakses dari mesin ini. Detail + cara verifikasi: §14 item 1.
-* **TODO 163 (PR #7)**: `post-deploy-smoke.yml` + artifact `chunk-fingerprint` (job `verify`).
-  `workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, tanpa `on: push`.
-  Menjawab "deploy mendarat?" lewat perbandingan sha256 chunk; probe read-only termasuk
-  `/api/cron` 401. Verifikasi: actionlint bersih, skrip dijalankan nyata ke production, CI hijau.
+* **Dua koreksi atas pekerjaan saya sendiri di sesi ini:**
+  1. Klaim awal "alias `cuti-app.vercel.app` menyajikan build lama" **DICABUT**. Bukti pembalik:
+     `GET /api/version` → `{"sha":"9ae5f03…","env":"production"}` = commit `main` terbaru, jadi alias
+     **mengikuti `main`** dan dua security LOW PR #6 **live**. Metode saya (hash isi chunk antar
+     lingkungan) yang cacat — bukan deployment-nya. Detail + timeline: §9 dan §14.
+  2. Smoke versi pertama (PR #7) membandingkan hash chunk sehingga **gagal dengan MISMATCH palsu**.
+     Diganti verifikasi SHA commit via `/api/version` (PR #12 `9ae5f03`); nama/hash chunk turun jadi
+     diagnostik, dan artifact `ci.yml` jadi `build-identity` (+ `commit-sha.txt`).
+* **TODO 163 (PR #7 + koreksi PR #12)**: `post-deploy-smoke.yml` (`workflow_dispatch` manual +
+  `workflow_run` setelah CI sukses di `main`, tanpa `on: push`) + `GET /api/version`. Smoke di
+  `main` **MATCH** terhadap `9ae5f03`. Probe read-only termasuk `/api/cron` 401.
 * **TODO 96 + 142 (PR #8)**: `next/typescript` diaktifkan; 228 temuan dibersihkan (211 di
   `src/actions`) → `eslint .` 0 problem, `tsc` 0, `build` 29/29, E2E 54+37+2.
 * **TODO 141 (PR #9)**: `sesiKedaluwarsa()` jadi satu sumber kebenaran (penolakan + sapu),
@@ -655,8 +682,9 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
   Unit 97/97, spec E2E baru di tier flows (37 → 38).
 * **TODO 120 ditutup**: upload di mode production build sudah tercakup tier flows (`next start`),
   tidak perlu test baru. Sisa: upload di Vercel asli (TODO 162, butuh user).
-* Pelajaran operasional: dengan `CI=1`, E2E menguji **hasil build** — jalankan `npm run build`
-  setelah perubahan terakhir, kalau tidak akan menguji kode lama (sempat terjadi 2×).
+* Pelajaran operasional: (1) dengan `CI=1`, E2E menguji **hasil build** — jalankan `npm run build`
+  setelah perubahan terakhir (sempat menggigit 2×). (2) Jangan verifikasi "deploy mendarat?" dengan
+  hash artefak lintas lingkungan; pakai identitas yang dilaporkan deployment itu sendiri.
 
 ## 2026-09-28
 
@@ -731,22 +759,27 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 
 ## First Task
 
-**P0 — Promote deployment `d9ac5e7` ke alias production** (bukti + cara verifikasi di §14 item 1).
-Alias masih menyajikan build sebelum PR #3–#6, jadi dua security LOW (secret cron constant-time,
-rotasi token sesi) belum live. Buka dashboard Vercel → Deployments: periksa apakah deployment
-`d9ac5e7` berlabel Current/Production, cek ada tidaknya Instant Rollback aktif, lalu **Promote to
-Production** bila perlu. Setelah itu jalankan smoke (lihat di bawah) dan perbarui §14 + §15.
+**Tidak ada P0.** Alias production sudah mengikuti `main` (dibuktikan `/api/version` → `9ae5f03`
+plus smoke MATCH). Yang tersisa adalah pekerjaan yang butuh user, bukan blocker:
 
-Setelah PR #7 merge, buktikan smoke end-to-end (workflow baru baru bisa di-`workflow_dispatch`
-setelah ada di default branch):
+1. **TODO 162** — verifikasi upload di production live (login + submit form berisi lampiran).
+   Langkah siap-jalan ada di `TODO.md`.
+2. **TODO 97** — keputusan pin `next` eksak vs `^15.5.27` (rekomendasi: tetap eksak, karena `npm ci`
+   selalu memakai lockfile sehingga range tidak menambah keamanan di gate).
+3. **Web Push di perangkat nyata** — verifikasi manual sisa.
+4. Opsional: pindahkan `@typescript-eslint/no-unused-vars` ke `warn` (sekarang default
+   eslint-config-next = `warn`, jadi belum memerahkan gate).
+
+Cara memverifikasi deploy kapan saja (tanpa dashboard — pakai ini, **jangan** hash chunk):
 
 ```powershell
-gh workflow run post-deploy-smoke.yml --ref main
-gh run watch   # lihat ringkasan: MATCH = alias menyajikan build commit ini
+(Invoke-WebRequest https://cuti-app.vercel.app/api/version -UseBasicParsing).Content
+# sha harus sama dengan: git rev-parse origin/main
+gh workflow run post-deploy-smoke.yml --ref main   # atau tunggu workflow_run otomatis
 ```
 
-Kalau hasilnya MISMATCH, itu memang artinya deploy belum mendarat — jangan dianggap kegagalan
-smoke-nya.
+Kalau smoke melaporkan MISMATCH, itu berarti alias benar-benar melayani commit lain — bukan
+kegagalan smoke-nya.
 
 Urutan sesi sebelumnya (dipakai sebagai handoff). Item 1–4 **selesai di sesi 2026-10-07**:
 
@@ -798,15 +831,27 @@ N/A — no active task.
 
 ---
 
-# 14. Sesi 2026-10-07 (lanjutan) — Alias Production & TODO 163/96/142/141/120
+# 14. Sesi 2026-10-07 (lanjutan) — Alias Production (koreksi) & TODO 163/96/142/141/120
 
 > Bagian ini adalah catatan kerja sesi; **§15 di bawah adalah status yang berlaku**.
 > Beberapa baris di §15 masih menggambarkan keadaan sebelum Promote (lihat item 1).
 
-## 1. Alias production MENYANGKUT — hardening cron + rotasi sesi belum live (BELUM SELESAI)
+## 1. Alias production — kesimpulan awal "MENYANGKUT" DICABUT (alias ternyata mengikuti `main`)
 
 Pertanyaan sesi ini: "deploy `d9ac5e7` benar-benar live di alias production?" **Jawabannya tidak
 (yang terukur), dan penyebabnya belum bisa dipastikan dari sisi saya.**
+
+> ### ⚠️ KOREKSI (2026-10-07 malam) — kesimpulan di item ini SALAH
+>
+> Kesimpulan "alias nyangkut di build lama" **dicabut**. Bukti pembalik:
+> `GET https://cuti-app.vercel.app/api/version` → `{"sha":"9ae5f03…","env":"production"}`, yaitu
+> commit `main` terbaru saat itu → **alias mengikuti `main`**.
+>
+> Yang salah adalah **metodenya**: perbandingan **hash isi chunk antar lingkungan** tidak sah
+> (build commit sama bisa menghasilkan isi berbeda: 3482 vs 3864 byte pada nama chunk yang sama),
+> dan 404 pada `webpack-a2a7106df7a920d1.js` hanya berarti "chunk dari deployment lain", **bukan**
+> "alias basi". Rincian timeline + pelajaran ada di §9 dan item 2 di bawah. Sisa item ini
+> dipertahankan apa adanya sebagai catatan proses (termasuk kesalahan saya), bukan sebagai fakta.
 
 Bukti terukur (fingerprint, bukan dugaan):
 
@@ -857,8 +902,43 @@ Bug yang ditemukan saat drill dan diperbaiki: `jq // empty` pada payload 404 men
 `"null"` yang bocor ke panggilan API berikutnya.
 
 Catatan: `workflow_dispatch` pada workflow **baru** baru muncul setelah file ini ada di default
-branch, jadi smoke belum pernah dijalankan dari GitHub. Setelah PR #7 merge, jalankan
-`gh workflow run post-deploy-smoke.yml` untuk membuktikan MATCH/MISMATCH end-to-end.
+branch.
+
+### 2b. KOREKSI: smoke berbasis hash chunk GAGAL — diganti verifikasi SHA commit (PR #12)
+
+Setelah PR #7 merge, smoke langsung terpicu otomatis dan **gagal dua kali** dengan MISMATCH. Saya
+awalnya melaporkan kegagalan itu sebagai "perilaku yang benar". **Itu keliru**: kegagalan tersebut
+alarm palsu.
+
+Bukti (semua untuk `main` = `9e6fa07`):
+
+| Sumber | Nama chunk | Isi |
+|---|---|---|
+| build lokal bersih | `webpack-2eb758dea75faf50.js` | **3482 byte** |
+| artifact CI | `webpack-2eb758dea75faf50.js` | sha256 `833567d5…` |
+| disajikan alias | `webpack-2eb758dea75faf50.js` | **3864 byte**, sha256 `7a2c7668…` |
+
+Nama chunk konsisten, **isinya tidak** → perbandingan hash antar lingkungan tidak sah, jadi
+"expected" vs "live" bukan pembanding yang bermakna.
+
+Perbaikan (PR #12, `9ae5f03`):
+
+* `src/app/api/version/route.ts` → `{ sha, env }` dari `VERCEL_GIT_COMMIT_SHA` saat runtime
+  (`cache-control: no-store`). Ini melaporkan deployment yang benar-benar menjawab request.
+* `ci.yml`: artifact `chunk-fingerprint` → **`build-identity`** (+ `commit-sha.txt`), langkah
+  inline dipindah ke `cuti-app/scripts/fingerprint.mjs` supaya bisa dijalankan lokal.
+* `post-deploy-smoke.yml`: keputusan = **SHA commit vs SHA live**; nama/hash chunk jadi diagnostik.
+  Input manual baru `expected_sha`. Dipertahankan: fail-fast "HTML `/login` harus menunjuk chunk
+  yang benar-benar 200" + seluruh probe read-only. `/api/version` 404 → "TIDAK BISA DITENTUKAN" +
+  gagal (bukan hijau diam-diam).
+
+Verifikasi: `actionlint` bersih; `tsc` 0; `eslint .` 0; endpoint diuji di server produksi lokal
+(dengan/tanpa `VERCEL_GIT_COMMIT_SHA`); skrip smoke dijalankan nyata untuk ketiga cabang keputusan
+(404 → gagal, MATCH → lulus, MISMATCH → gagal). CI PR #12 hijau, dan smoke di `main` (`9ae5f03`)
+**sukses dengan MATCH** terhadap `/api/version` yang melaporkan `9ae5f03`.
+
+**Pelajaran**: untuk pertanyaan "deploy mendarat?", bandingkan **identitas yang dilaporkan
+deployment itu sendiri**, jangan hash artefak lintas lingkungan.
 
 ## 3. TODO 96 + 142 — `next/typescript` + dead import (SELESAI, PR #8)
 
@@ -935,20 +1015,39 @@ AKTIF** sejak PR #8 — lihat §14 item 3. `next lint` sudah dipensiunkan (dihap
 
 ## Deployment
 
-**PERHATIAN — alias production masih menyajikan build LAMA.** Yang terukur: alias menyajikan
-`webpack-2eb758dea75faf50.js` (build sebelum PR #3–#6), sedangkan build `main` = `d9ac5e7`
-menghasilkan `webpack-a2a7106df7a920d1.js` (404 di production). Artinya dua security LOW PR #6
-belum live. Dashboard Vercel belum bisa diperiksa dari mesin ini (tanpa kredensial) → **butuh
-Promote to Production**. Bukti, cara verifikasi ulang, dan statusnya ada di §14 item 1.
+PASS — alias production **mengikuti `main`, tidak nyangkut**. Bukti (dari deployment yang menjawab,
+bukan dari tebakan):
 
-`main` = **`d9ac5e7`** (merge squash PR #6).
+```
+GET https://cuti-app.vercel.app/api/version
+→ 200 {"sha":"9ae5f03f38714665a30baac9202eeedc32487186","env":"production"}
+```
+
+Smoke pasca-deploy di `main` juga **MATCH** terhadap commit `9ae5f03` (run `37545856292`). Jadi dua
+security LOW PR #6 (secret cron constant-time + rotasi token sesi) **live** — diperkuat probe
+`/api/cron` yang mengembalikan 401 untuk secret salah/tanpa secret di production.
+
+Catatan koreksi: klaim "alias nyangkut di build lama" (versi dokumen sebelumnya, berbasis
+perbandingan hash chunk) **dicabut** — metodenya tidak sah. Rincian: §9 dan §14 item 2b.
+
+`main` = **`9ae5f03`** (PR #8 `78eeb2e` → PR #9 `9d72e14` → PR #7 `23f5c14` → PR #10 `9e6fa07`
+→ PR #12 `9ae5f03`, semuanya squash). PR #11 (`fix/cuti-form-reset-react19`) berasal dari sesi lain.
+
+Cara memverifikasi kapan saja tanpa dashboard:
+
+```powershell
+(Invoke-WebRequest https://cuti-app.vercel.app/api/version -UseBasicParsing).Content
+# sha harus = git rev-parse origin/main
+```
 
 ## Overall State
 
-Stable secara kode, dengan **satu tindakan deployment yang tertunda**: alias Vercel nyangkut di
-build lama (§14 item 1). Audit produksi **4 vuln (1 high, 3 moderate), 0 critical** setelah
-`source-map-js` HIGH ditutup lewat bump non-breaking `1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` +
-`uuid` diterima dengan alasan reachability yang didokumentasikan (lihat "Audit Sisa"). Dua security
-LOW dari review 2026-09-29 sudah **di kode** (secret cron constant-time + rotasi token sesi saat
-login, PR #6 `d9ac5e7`) tetapi **belum terbukti live** sampai alias di-Promote. Housekeeping row
-`Sesi` kedaluwarsa ditutup di PR #9.
+Stable — **tidak ada blocker**. Alias production mengikuti `main` (`/api/version` melaporkan
+`9ae5f03`), smoke pasca-deploy MATCH, dan dua security LOW dari review 2026-09-29 **live**:
+secret cron constant-time + rotasi token sesi saat login (PR #6 `d9ac5e7`). Housekeeping row `Sesi`
+kedaluwarsa ditutup (PR #9); `next/typescript` aktif dengan `eslint .` 0 problem (PR #8); smoke
+pasca-deploy berbasis SHA commit (PR #7 + koreksi PR #12). Audit produksi **4 vuln (1 high,
+3 moderate), 0 critical** setelah `source-map-js` HIGH ditutup lewat bump non-breaking
+`1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` + `uuid` diterima dengan alasan reachability yang
+didokumentasikan (lihat "Audit Sisa"). Sisa terbuka: TODO 162 (upload di Vercel asli, butuh user),
+TODO 97 (keputusan pin `next`, user), Web Push di perangkat nyata.

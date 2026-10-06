@@ -161,14 +161,15 @@ Nice-to-have items.
 * [x] Verify database migration process (`prisma db push`)
 * [x] Add rollback procedure (Vercel instant rollback + DB backup) — `ROLLBACK.md`: kapan rollback, promote deployment lama, matriks keputusan schema (kolom baru = kode saja cukup; kolom dihapus = DB juga), PITR Neon via branch, verifikasi read-only, forward-fix, pelajaran insiden `notifWa`
 * [x] Configure staging environment - KEPUTUSAN: staging **lokal saja**, tanpa URL publik (data salinan production + akun demo mudah ditebak = terlalu berisiko dibuka ke internet). STAGING.md ditulis ulang: Neon branch + db push + build + start + E2E reuse server; .env tetap dev; larangan seed/FONNTE. Dukungan E2E_BASE_URL dibatalkan + di-revert.
-* [!] **Promote deployment `d9ac5e7` ke alias production** — alias `cuti-app.vercel.app` masih
-  menyajikan `webpack-2eb758dea75faf50.js` (build sebelum PR #3–#6), sedangkan build `d9ac5e7`
-  menghasilkan `webpack-a2a7106df7a920d1.js` dan chunk itu **404** di production. Jadi dua security
-  LOW PR #6 (secret cron constant-time + rotasi token sesi) **belum live**. Dashboard Vercel tidak
-  bisa diperiksa dari mesin ini (tanpa kredensial): `vercel whoami` keluar 1, tidak ada `auth.json`
-  / `VERCEL_TOKEN` / `.vercel/project.json`. **Blocker: butuh tangan user** — buka Deployments,
-  pastikan `d9ac5e7` berlabel Current/Production, cek Instant Rollback, lalu Promote. Verifikasi
-  ulang + bukti ada di `PROJECT_STATUS.md` §14 item 1.
+* [x] ~~**Promote deployment `d9ac5e7` ke alias production**~~ — **DICABUT 2026-10-07: alias TIDAK
+  pernah nyangkut.** Premisnya ("alias menyajikan build lama") berasal dari verifikasi saya yang
+  membandingkan **hash isi chunk antar lingkungan** — asumsi itu terbukti salah (build commit yang
+  sama bisa menghasilkan isi chunk berbeda: 3482 vs 3864 byte pada nama chunk `webpack-2eb758d…`
+  yang sama). Bukti pembalik definitif:
+  `GET https://cuti-app.vercel.app/api/version` → `{"sha":"9ae5f03…","env":"production"}` = commit
+  `main` terbaru, dan `VERCEL_GIT_COMMIT_SHA` hanya bisa datang dari deployment yang benar-benar
+  melayani request. Smoke `main` juga MATCH. Jadi dua security LOW PR #6 **live**. Tidak perlu
+  Promote. Rincian + timeline di `PROJECT_STATUS.md` §9 dan §14 item 2b.
 * [ ] Verifikasi upload di production **live** (login + submit form asli → menulis DB/Blob production) — gate `DI_VERCEL` sudah behavior-preserving, tapi jalur ini belum pernah dibuktikan end-to-end. **Langkah siap dijalankan user (TODO 162):**
   1. Buka https://cuti-app.vercel.app/login, login `karyawan1@anime.id` / `anime123` (akun demo).
   2. Menu **Cuti → Ajukan**, pilih jenis yang **wajib lampiran** (mis. "Sakit (wajib surat)" bila ada), isi tanggal + alasan.
@@ -178,7 +179,7 @@ Nice-to-have items.
   6. Uji negatif (opsional, cepat): unggah file HTML yang di-rename `.pdf` → harus **ditolak** (sniffing magic bytes).
   7. Catat hasilnya (berhasil/gagal + pesan) ke `PROJECT_STATUS.md` §14; kalau gagal, cek `BLOB_READ_WRITE_TOKEN` di Vercel env (Production).
   8. Setelah selesai, batalkan pengajuan uji itu dari UI agar DB production tetap bersih.
-* [x] Smoke otomatis pasca-deploy ke production supaya verifikasi deploy tidak manual — **SELESAI 2026-10-07** (PR #7): `.github/workflows/post-deploy-smoke.yml` (`workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, **tanpa `on: push`**) membandingkan sha256 chunk runtime build commit (artifact `chunk-fingerprint` dari job `verify` `ci.yml`) dengan chunk yang disajikan alias → MATCH/MISMATCH, plus probe read-only (`/login` 200, chunk 200, `/api/cron` secret salah & tanpa secret 401, 8 rute terproteksi 307 → `/login`). MISMATCH = run merah. Verifikasi: actionlint bersih, skrip dijalankan nyata dari Git Bash terhadap production (13/13 probe OK), tabel kebenaran keputusan diuji; CI PR #7 hijau + artifact benar-benar terunggah. Setelah merge: `gh workflow run post-deploy-smoke.yml --ref main`.
+* [x] Smoke otomatis pasca-deploy ke production supaya verifikasi deploy tidak manual — **SELESAI & MERGED 2026-10-07** (PR #7 `23f5c14`, **dikoreksi PR #12 `9ae5f03`**): `.github/workflows/post-deploy-smoke.yml` (`workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, **tanpa `on: push`**) memverifikasi **SHA commit** yang dilaporkan `GET /api/version` deployment yang melayani alias vs commit yang diharapkan → MATCH/MISMATCH, plus fail-fast "HTML `/login` harus menunjuk chunk yang benar-benar 200" dan probe read-only (`/login` 200, `/api/cron` secret salah & tanpa secret 401, 8 rute terproteksi 307 → `/login`). MISMATCH = run merah. **Koreksi penting**: versi pertama (PR #7) membandingkan **hash isi chunk antar lingkungan** — asumsi itu SALAH dan menghasilkan MISMATCH palsu (build commit sama bisa berisi chunk berbeda: 3482 vs 3864 byte pada nama chunk yang sama). Artifact `ci.yml` ikut diganti `chunk-fingerprint` → `build-identity` (berisi `commit-sha.txt`), dan langkah inline-nya dipindah ke `cuti-app/scripts/fingerprint.mjs`. Verifikasi: actionlint bersih, `tsc`/`eslint` 0, endpoint diuji di server produksi lokal (dengan/tanpa `VERCEL_GIT_COMMIT_SHA`), skrip smoke dijalankan nyata untuk 3 cabang (404 → gagal, MATCH → lulus, MISMATCH → gagal); CI PR #7 & #12 hijau, dan smoke di `main` **sukses MATCH** terhadap `/api/version` = `9ae5f03`. Jalankan manual: `gh workflow run post-deploy-smoke.yml --ref main`.
 
 ---
 
