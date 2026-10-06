@@ -1,15 +1,37 @@
 import { prisma } from "@/lib/prisma";
 import { fmtTgl } from "@/lib/cuti";
 import { kirimWAkeUser, notifApp } from "@/lib/notif";
+import { sesiKedaluwarsa } from "@/lib/auth";
 
 const HARI_MS = 86400000;
 
-export interface HasilCron { reminder: number; eskalasi: number; detail: string[] }
+export interface HasilCron { reminder: number; eskalasi: number; detail: string[]; sesiDibersihkan: number }
+
+/**
+ * Buang row `Sesi` yang masa berlakunya sudah lewat. `userDariSesi` hanya
+ * mengembalikan `null` untuk sesi kedaluwarsa (row-nya tetap ada), jadi tanpa
+ * sapu ini tabel `Sesi` menumpuk tanpa batas. Aman: predikatnya SAMA dengan
+ * penolakan di `userDariSesi` (`sesiKedaluwarsa`), jadi tidak mungkin menghapus
+ * sesi yang masih valid. Dijalankan cron harian.
+ */
+export async function sapuSesiKedaluwarsa(sekarang = new Date()): Promise<number> {
+  const semua = await prisma.sesi.findMany({ select: { id: true, expiresAt: true } });
+  const mati = semua.filter((s) => sesiKedaluwarsa(s, sekarang)).map((s) => s.id);
+  if (mati.length === 0) return 0;
+  const { count } = await prisma.sesi.deleteMany({ where: { id: { in: mati } } });
+  return count;
+}
 
 export async function jalankanReminderEskalasi(): Promise<HasilCron> {
   const detail: string[] = [];
   let reminder = 0;
   let eskalasi = 0;
+  // Housekeeping harian: row Sesi kedaluwarsa tidak pernah terpakai lagi
+  // (ditolak userDariSesi) tetapi juga tidak pernah dihapus. Lihat
+  // sapuSesiKedaluwarsa(). Dijalankan paling awal supaya hitungannya tidak
+  // bergantung pada hasil reminder/eskalasi di bawah.
+  const sesiDibersihkan = await sapuSesiKedaluwarsa();
+  if (sesiDibersihkan > 0) detail.push(`sesi kedaluwarsa dibersihkan: ${sesiDibersihkan}`);
   const now = new Date();
 
   const antrean = await prisma.pengajuan.findMany({
@@ -68,7 +90,7 @@ export async function jalankanReminderEskalasi(): Promise<HasilCron> {
       }
     }
   }
-  return { reminder, eskalasi, detail };
+  return { reminder, eskalasi, detail, sesiDibersihkan };
 }
 
 async function cariHRPertama(): Promise<string | null> {

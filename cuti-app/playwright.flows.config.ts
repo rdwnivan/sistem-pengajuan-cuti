@@ -12,7 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests",
-  testMatch: ["cuti-flow.spec.ts", "delegasi.spec.ts", "gaji-flow.spec.ts", "cron.spec.ts", "laporan-acc.spec.ts", "slip-rincian.spec.ts", "laporan-kebun.spec.ts", "notifikasi.spec.ts", "hr-crud.spec.ts", "cuti-validasi.spec.ts", "profil.spec.ts", "slip-batal.spec.ts", "lampiran.spec.ts"],
+  testMatch: ["cuti-flow.spec.ts", "delegasi.spec.ts", "gaji-flow.spec.ts", "cron.spec.ts", "laporan-acc.spec.ts", "slip-rincian.spec.ts", "laporan-kebun.spec.ts", "notifikasi.spec.ts", "hr-crud.spec.ts", "cuti-validasi.spec.ts", "profil.spec.ts", "slip-batal.spec.ts", "lampiran.spec.ts", "sesi-kedaluwarsa.spec.ts"],
   fullyParallel: false,
   workers: 1,
   // Samakan dengan tier utama: di CI boleh retry (Playwright tetap menandai test

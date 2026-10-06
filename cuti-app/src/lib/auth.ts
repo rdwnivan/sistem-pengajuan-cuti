@@ -24,8 +24,21 @@ export async function userDariSesi() {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const sesi = await prisma.sesi.findUnique({ where: { token }, include: { user: true } });
-  if (!sesi || sesi.expiresAt < new Date() || !sesi.user.statusAktif) return null;
+  if (!sesi || sesiKedaluwarsa(sesi, new Date()) || !sesi.user.statusAktif) return null;
   return sesi.user;
+}
+
+/**
+ * Satu-satunya sumber kebenaran "sesi sudah tidak berlaku karena waktu".
+ * Dipakai `userDariSesi` (menolak sesi) DAN sapu `Sesi` kedaluwarsa di
+ * `/api/cron` (menghapus row) — sengaja satu fungsi supaya penghapusan tidak
+ * pernah menyimpang dari penolakan: kalau predikatnya beda, sapu bisa membuang
+ * sesi yang masih valid, atau membiarkan row yang sudah mati.
+ * Batas mengikuti penolakan lama (`expiresAt < now`): tepat di `expiresAt`
+ * dianggap sudah kedaluwarsa.
+ */
+export function sesiKedaluwarsa(sesi: { expiresAt: Date }, sekarang = new Date()): boolean {
+  return sesi.expiresAt < sekarang;
 }
 
 export async function wajibLogin() {
