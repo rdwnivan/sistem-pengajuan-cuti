@@ -1,15 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema, putusanGajiSchema, gajiPerubahanSchema } from "@/lib/validasi";
-import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
-import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
-import { kirimWebPush } from "@/lib/web-push";
-import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-
-import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, ajukanPerubahanGaji } from "./shared";
+import { hashPassword } from "@/lib/auth";
+import { userSchema, jenisSchema } from "@/lib/validasi";
+import { parseTglInput } from "@/lib/cuti";
+import { aktor, ajukanPerubahanGaji } from "./shared";
 
 
 export async function aksiSimpanUser(_: unknown, fd: FormData) {
@@ -63,7 +58,6 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
   redirect("/hr/karyawan");
 }
 
-
 export async function aksiSimpanJenis(_: unknown, fd: FormData) {
   const admin = await aktor();
   if (admin.role !== "HR_ADMIN") return { error: "Hanya HR" };
@@ -91,7 +85,6 @@ export async function aksiSimpanJenis(_: unknown, fd: FormData) {
   redirect("/hr/jenis");
 }
 
-
 export async function aksiTambahLibur(fd: FormData): Promise<void> {
   const admin = await aktor();
   if (admin.role !== "HR_ADMIN") redirect("/hr");
@@ -105,7 +98,6 @@ export async function aksiTambahLibur(fd: FormData): Promise<void> {
   }
   redirect("/hr/libur");
 }
-
 
 export async function aksiHapusLibur(fd: FormData) {
   const admin = await aktor();

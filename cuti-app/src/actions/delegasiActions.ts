@@ -1,16 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema, putusanGajiSchema, gajiPerubahanSchema } from "@/lib/validasi";
-import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
-import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
-import { kirimWebPush } from "@/lib/web-push";
-import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-
-import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, ajukanPerubahanGaji } from "./shared";
-
+import { isAtasan } from "@/lib/auth";
+import { parseTglInput } from "@/lib/cuti";
+import { notifApp } from "@/lib/notif";
+import { aktor } from "./shared";
 
 export async function aksiSimpanDelegasi(_: unknown, fd: FormData) {
   const user = await aktor();
@@ -31,14 +25,13 @@ export async function aksiSimpanDelegasi(_: unknown, fd: FormData) {
   }
   if (tglSelesai < tglMulai) return { error: "Tanggal selesai sebelum mulai" };
   await prisma.delegasi.updateMany({ where: { dariId: user.id, aktif: true }, data: { aktif: false } });
-  const d = await prisma.delegasi.create({
+  await prisma.delegasi.create({
     data: { dariId: user.id, keId, tglMulai: parseTglInput(tglMulai), tglSelesai: parseTglInput(tglSelesai) },
   });
   await prisma.auditLog.create({ data: { aktorId: user.id, aksi: "DELEGASI_BUAT", catatan: `Delegasi ke ${target.nama} ${tglMulai}→${tglSelesai}` } });
   await notifApp(keId, "Anda ditunjuk sebagai delegasi", `${user.nama} menunjuk Anda menyetujui cuti ${tglMulai}→${tglSelesai}.`, undefined, "DELEGASI");
   redirect("/delegasi");
 }
-
 
 export async function aksiBatalDelegasi(fd: FormData): Promise<void> {
   const user = await aktor();

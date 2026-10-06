@@ -1,7 +1,7 @@
 "use client";
 import { useState, useActionState } from "react";
 import { aksiPutusan } from "@/actions";
-import { ErrorMsg, btnCls, inputCls, Field } from "@/components/ui";
+import { ErrorMsg, inputCls, Field } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export function PutusanForm({ id }: { id: string }) {

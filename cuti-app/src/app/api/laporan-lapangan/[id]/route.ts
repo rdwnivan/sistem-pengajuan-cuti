@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const lihat = url.searchParams.get("lihat") === "1";
   if (url.searchParams.get("format") === "pdf") {
     if (l.status !== "DISETUJUI") return Response.json({ error: "PDF hanya untuk laporan disetujui" }, { status: 400 });
-    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const { PDFDocument, StandardFonts } = await import("pdf-lib");
     const doc = await PDFDocument.create();
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);

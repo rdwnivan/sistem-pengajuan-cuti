@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { wajibLogin } from "@/lib/auth";
 import { Badge } from "@/components/ui";
-import { Shell } from "@/components/shell";
 import { namaBulan } from "@/lib/pdf";
 import { MonthSelector } from "./MonthSelector";
 

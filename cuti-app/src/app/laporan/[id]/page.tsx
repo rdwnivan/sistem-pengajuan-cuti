@@ -9,8 +9,6 @@ import { aksiKirimLaporan, aksiBatalLaporan } from "@/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PutusanLaporanForm } from "./PutusanLaporanForm";
 
-const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
 export default async function LaporanDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await wajibLogin();

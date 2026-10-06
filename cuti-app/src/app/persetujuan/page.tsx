@@ -22,7 +22,7 @@ export default async function Persetujuan() {
 
   type Row = { id: string; jumlahHariKerja: number; tglMulai: Date; tglSelesai: Date; status: string; updatedAt: Date; jenis: { nama: string }; pemohon: { nama: string } };
   let list: Row[] = [];
-  let viaDelegasiIds: string[] = [];
+  const viaDelegasiIds: string[] = [];
   if (isHR) {
     list = await prisma.pengajuan.findMany({
       where: { OR: [{ status: "MENUNGGU_HR" }, { status: "MENUNGGU_ATASAN" }] },

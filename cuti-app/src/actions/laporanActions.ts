@@ -1,15 +1,11 @@
 "use server";
 import { redirect } from "next/navigation";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buatSesi, keluar as keluarSesi, userDariSesi, hashPassword, isAtasan } from "@/lib/auth";
-import { ajukanSchema, loginSchema, putusanSchema, userSchema, jenisSchema, slipSchema, laporanSchema, putusanLaporanSchema, putusanGajiSchema, gajiPerubahanSchema } from "@/lib/validasi";
-import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
-import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
+import { isAtasan } from "@/lib/auth";
+import { laporanSchema, putusanLaporanSchema } from "@/lib/validasi";
+import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
-import { approverEfektif, delegasiAktifUntuk } from "@/lib/cron";
-
-import { STATUS_AKTIF, aktor, BULAN_NAMA, unggahFoto, unggahBanyakFoto, ajukanPerubahanGaji } from "./shared";
+import { aktor, unggahFoto, unggahBanyakFoto } from "./shared";
 
 
 export async function aksiBuatLaporan(_: unknown, fd: FormData) {
@@ -48,7 +44,6 @@ export async function aksiBuatLaporan(_: unknown, fd: FormData) {
   redirect(`/laporan/${l.id}`);
 }
 
-
 export async function aksiKirimLaporan(fd: FormData): Promise<void> {
   const user = await aktor();
   const id = (fd.get("id") as string) || "";
@@ -62,7 +57,6 @@ export async function aksiKirimLaporan(fd: FormData): Promise<void> {
   await kirimWebPush(l.approverId!, "Laporan lapangan menunggu Anda", `${user.nama} mengirim laporan "${l.judul}" untuk di-acc.`);
   redirect(`/laporan/${id}`);
 }
-
 
 export async function aksiPutusanLaporan(_: unknown, fd: FormData) {
   const user = await aktor();
@@ -85,7 +79,6 @@ export async function aksiPutusanLaporan(_: unknown, fd: FormData) {
   await kirimWebPush(l.pembuatId, `Laporan Anda: ${statusBaru}`, `Laporan "${l.judul}" berstatus ${statusBaru}.${catatan ? " Catatan: " + catatan : ""}`);
   redirect(`/laporan/${l.id}`);
 }
-
 
 export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
   const user = await aktor();
@@ -140,7 +133,6 @@ export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
   }
   redirect(`/laporan/${id}`);
 }
-
 
 export async function aksiBatalLaporan(fd: FormData) {
   const user = await aktor();

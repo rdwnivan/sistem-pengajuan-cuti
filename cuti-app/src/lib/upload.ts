@@ -41,7 +41,7 @@ export async function sniffFile(f: File): Promise<FileValid> {
   // Signature PDF/JPG/PNG pendek (< 12 byte); baca sisanya bila perlu.
   const head = buffer.subarray(0, 12);
 
-  for (const [key, sig] of Object.entries(SIGNATURE)) {
+  for (const sig of Object.values(SIGNATURE)) {
     if (sig.bytes.every((b, i) => head[i] === b)) {
       return { buffer, ext: sig.ext, mime: sig.mime };
     }
