@@ -93,8 +93,10 @@ Nice-to-have items.
 * [x] `src/lib/pdf.ts` — `teksAman()` kini dipakai konsisten di 4 route PDF (slip, formulir, laporan-lapangan, rekap laporan); sebelumnya formulir + rekap `drawText` langsung (crash WinAnsi untuk karakter non-Latin)
 * [x] `cuti-app/HANDOVER.md` — perbaiki baris struktur `src/app/actions.ts` yang basi → `src/actions/`
 * [x] `cuti-app/dev-server3.log` — ternyata tidak ter-track di git (hanya di disk, sudah di `.gitignore`); hapus dari disk lokal
-* [ ] Aktifkan `next/typescript` di `cuti-app/eslint.config.mjs` — sengaja belum aktif saat migrasi ESLint CLI agar hasil lint identik; ukur dulu berapa temuan baru, kerjakan sebagai PR terpisah
-* [ ] Putuskan pin `next` eksak (`"15.5.27"`) vs `"^15.5.27"` di `cuti-app/package.json` — kalau tetap eksak, catat alasannya
+* [x] Aktifkan `next/typescript` di `cuti-app/eslint.config.mjs` — **SELESAI 2026-10-07** (PR #8). Temuan diukur dulu: mengaktifkan aturan = **228 problem** (226 `no-unused-vars`, 1 `prefer-const` yang merupakan ERROR di `src/app/persetujuan/page.tsx`, 1 dari file config) → semuanya dibersihkan. Sesudah: `eslint .` **0 problem** dengan `next/typescript` aktif, `tsc` 0, `build` 29/29, E2E 54+37+2. Jebakan yang dicatat: parameter fixture Playwright **wajib** object-destructuring.
+* [x] Bersihkan dead import di `src/actions/*.ts` — **SELESAI 2026-10-07** (PR #8, bersama TODO 96): `buatSesi`, `keluarSesi`, `hashPassword`, `isAtasan` dan seluruh schema/helper lain yang tidak terpakai dibuang per file (211 temuan di `src/actions`). Bukti tidak ada yang kelebihan dibuang: `tsc --noEmit` 0 error + E2E 3 tier hijau. Fixture `loggedIn` di `tests/helpers.ts` ternyata dead code dan dihapus.
+* [ ] Putuskan pin `next` eksak (`"15.5.27"`) vs `"^15.5.27"` di `cuti-app/package.json` — kalau tetap eksak, catat alasannya. **KEPUTUSAN USER, bukan kode** (belum diputuskan).
+* [x] Bersihkan row `Sesi` yang kedaluwarsa — **SELESAI 2026-10-07** (PR #9): `sesiKedaluwarsa()` di `src/lib/auth.ts` jadi **satu sumber kebenaran** yang dipakai penolakan `userDariSesi` DAN sapu `sapuSesiKedaluwarsa()` (`src/lib/cron.ts`, dipanggil awal cron harian `/api/cron`); jumlah terhapus dikembalikan sebagai `sesiDibersihkan`. Unit `unit/sesi.test.ts` (7/7) + E2E `tests/sesi-kedaluwarsa.spec.ts` (tier flows): cookie kedaluwarsa ditolak → row dihapus cron → sesi yang masih valid **tidak** ikut terhapus. Batas: kedaluwarsa hanya bila `expiresAt < now` (tepat di `expiresAt` masih valid).
 
 ---
 
@@ -117,7 +119,7 @@ Nice-to-have items.
 * [x] Add E2E test for cron reminder H+1 / eskalasi H+3 (`cuti-app/tests/cron.spec.ts` — endpoint 200 + struktur; umur H+1/H+3 belum disimulasikan)
 * [x] Add E2E test for notifikasi in-app end-to-end (`cuti-app/tests/notifikasi.spec.ts` — ajukan → notif + badge atasan → setujui → notif karyawan → cleanup batalkan; di tier flows/serial karena stateful)
 * [x] Add E2E test for gaji change approval flow (HR submit → atasan approve) (`cuti-app/tests/gaji-flow.spec.ts`; `gaji-perubahan.spec.ts` lama yang lemah dihapus)
-* [ ] E2E endpoint upload pada mode production build (`next start`) secara eksplisit — sekarang baru tercakup lewat tier CI non-Vercel
+* [x] E2E endpoint upload pada mode production build (`next start`) secara eksplisit — **DITUTUP 2026-10-07 sebagai sudah tercakup** (TODO 120), tidak perlu test baru: (1) `tests/lampiran.spec.ts` sudah memuat `test("file valid (PNG) diterima dan tampil di detail")`; (2) file itu ada di `testMatch` `playwright.flows.config.ts`; (3) ketiga config memakai `webServer.command = process.env.CI ? "npm run start" : "npm run dev"`; (4) job CI `e2e` menjalankan `npm run build` lalu tier flows. Jadi jalur upload + gate `DI_VERCEL` sudah dieksekusi di bawah `next start`, bukan hanya dev. Yang **belum** terbukti adalah upload di Vercel asli — itu TODO terpisah di bagian Deployment.
 
 ---
 
@@ -138,8 +140,8 @@ Nice-to-have items.
 * [x] Pakai `crypto.timingSafeEqual` untuk perbandingan secret cron — **SELESAI 2026-10-07**: helper murni `samaAman()` di `src/lib/aman-sama.ts` (di-hash SHA-256 dulu, jadi `timingSafeEqual` tidak pernah melempar saat panjang beda + panjang rahasia tidak bocor); dipakai di `src/app/api/cron/route.ts:12` untuk **kedua** cabang (query `?secret=` dan header `Authorization: Bearer`). Semantik dipertahankan: `CRON_SECRET` kosong tetap 500, secret salah/absen tetap 401. Unit baru `unit/aman-sama.test.ts` (6 kasus). Diverifikasi lewat `security.spec.ts` (secret salah → 401) + `cron.spec.ts` (query & Bearer benar → 200).
 * [x] Rotasi token sesi setelah login — **SELESAI 2026-10-07** di `src/lib/auth.ts:10-21`: `buatSesi` membaca token dari cookie `sesi-cuti` saat ini, membuat token baru, lalu `sesi.deleteMany` row lamanya (create dulu supaya tidak ada jendela tanpa sesi valid). Alasan konkret dari kode: token selalu dibuat server-side saat login sehingga session-fixation tidak mungkin — sisa risiko nyata adalah login ulang meninggalkan row `Sesi` lama yang tetap valid 7 hari. Signature `buatSesi` tidak berubah; satu-satunya pemanggil (`cutiActions.ts:39`) tidak perlu diedit. Diverifikasi lewat tier rate-limit (6 login berurutan akun sama) + tier utama.
 * [x] **Koreksi + evaluasi ulang catatan audit produksi** — **SELESAI 2026-10-07**. Hasil: (1) angka dokumen "7 vuln (2 high, 5 moderate)" **tidak reproducible** — pada lockfile yang sama (`53666a3`) `npm audit --omit=dev` = **5 vuln (2 high, 3 moderate), 0 critical**; penyebab selisih tidak bisa direkonstruksi, jadi mulai sekarang hanya angka reproducible + perintahnya yang dicatat. (2) Reachability `source-map-js` (jalur `postcss` → `source-map-js`) memang build-time/CSS first-party, **tetapi** `npm audit fix --dry-run` menunjukkan fix **1 paket non-breaking** (`1.2.2` memenuhi `^1.0.2` milik `postcss@8.4.31` dan `^1.2.1` milik `postcss@8.5.28`) → **ditutup**, bukan diterima: audit prod turun ke **4 vuln (1 high, 3 moderate)**. **PERINGATAN: jangan pakai `npm audit fix --omit=dev`** — dry-run-nya merencanakan `remove` seluruh devDependencies (typescript, tsx, playwright). (3) Keputusan (a) ditegaskan untuk sisa `postcss` + `uuid` (alasan lama tetap sah: tidak reachable, `npm overrides` = meng-override pin eksak `next`, `next@16` pun sisa `uuid`), plus **jadwal review advisory berkala** (saat lockfile tersentuh, sebelum rilis/major upgrade, minimal 1×/bulan) — detail di `PROJECT_STATUS.md` §"Audit Sisa".
-* [ ] Bersihkan row `Sesi` yang kedaluwarsa — `userDariSesi` hanya mengembalikan `null` untuk sesi lewat masa berlaku, row-nya tidak pernah dihapus (`src/lib/auth.ts:23`), jadi tabel menumpuk. Bukan celah auth (token kedaluwarsa tetap ditolak). Kandidat: sapu bersih di `/api/cron` harian.
-* [ ] Bersihkan dead import di `src/actions/*.ts` — `buatSesi`, `keluarSesi`, `hashPassword`, `isAtasan` masih diimpor di 8 file padahal hanya sebagian terpakai (`buatSesi` cuma dipakai `cutiActions.ts:39`); warisan pemecahan `actions.ts`. Belum jadi temuan lint karena `next/typescript` belum aktif — kerjakan bersama PR itu.
+* [x] ~~Bersihkan row `Sesi` yang kedaluwarsa~~ — dipindah & **SELESAI** di Technical Debt (PR #9).
+* [x] ~~Bersihkan dead import di `src/actions/*.ts`~~ — dipindah & **SELESAI** di Technical Debt (PR #8).
 
 ---
 
@@ -159,8 +161,24 @@ Nice-to-have items.
 * [x] Verify database migration process (`prisma db push`)
 * [x] Add rollback procedure (Vercel instant rollback + DB backup) — `ROLLBACK.md`: kapan rollback, promote deployment lama, matriks keputusan schema (kolom baru = kode saja cukup; kolom dihapus = DB juga), PITR Neon via branch, verifikasi read-only, forward-fix, pelajaran insiden `notifWa`
 * [x] Configure staging environment - KEPUTUSAN: staging **lokal saja**, tanpa URL publik (data salinan production + akun demo mudah ditebak = terlalu berisiko dibuka ke internet). STAGING.md ditulis ulang: Neon branch + db push + build + start + E2E reuse server; .env tetap dev; larangan seed/FONNTE. Dukungan E2E_BASE_URL dibatalkan + di-revert.
-* [ ] Verifikasi upload di production **live** (login + submit form asli → menulis DB/Blob production) — gate `DI_VERCEL` sudah behavior-preserving, tapi jalur ini belum pernah dibuktikan end-to-end
-* [ ] Smoke otomatis pasca-deploy ke production supaya verifikasi deploy tidak manual (sekarang 6 rute dicek tangan)
+* [!] **Promote deployment `d9ac5e7` ke alias production** — alias `cuti-app.vercel.app` masih
+  menyajikan `webpack-2eb758dea75faf50.js` (build sebelum PR #3–#6), sedangkan build `d9ac5e7`
+  menghasilkan `webpack-a2a7106df7a920d1.js` dan chunk itu **404** di production. Jadi dua security
+  LOW PR #6 (secret cron constant-time + rotasi token sesi) **belum live**. Dashboard Vercel tidak
+  bisa diperiksa dari mesin ini (tanpa kredensial): `vercel whoami` keluar 1, tidak ada `auth.json`
+  / `VERCEL_TOKEN` / `.vercel/project.json`. **Blocker: butuh tangan user** — buka Deployments,
+  pastikan `d9ac5e7` berlabel Current/Production, cek Instant Rollback, lalu Promote. Verifikasi
+  ulang + bukti ada di `PROJECT_STATUS.md` §14 item 1.
+* [ ] Verifikasi upload di production **live** (login + submit form asli → menulis DB/Blob production) — gate `DI_VERCEL` sudah behavior-preserving, tapi jalur ini belum pernah dibuktikan end-to-end. **Langkah siap dijalankan user (TODO 162):**
+  1. Buka https://cuti-app.vercel.app/login, login `karyawan1@anime.id` / `anime123` (akun demo).
+  2. Menu **Cuti → Ajukan**, pilih jenis yang **wajib lampiran** (mis. "Sakit (wajib surat)" bila ada), isi tanggal + alasan.
+  3. Lampirkan file **PNG atau PDF asli** (≤ 2 MB) → klik **Kirim Pengajuan**.
+  4. Harapan: redirect ke detail pengajuan, lampiran tampil sebagai tautan/gambar, dan **tidak** muncul "Upload lampiran belum dikonfigurasi" (pesan itu = `BLOB_READ_WRITE_TOKEN` tidak terbaca di Vercel).
+  5. Cek bukti di dashboard Vercel: **Storage → Blob** ada objek baru, dan **Logs** function tidak memuat error upload.
+  6. Uji negatif (opsional, cepat): unggah file HTML yang di-rename `.pdf` → harus **ditolak** (sniffing magic bytes).
+  7. Catat hasilnya (berhasil/gagal + pesan) ke `PROJECT_STATUS.md` §14; kalau gagal, cek `BLOB_READ_WRITE_TOKEN` di Vercel env (Production).
+  8. Setelah selesai, batalkan pengajuan uji itu dari UI agar DB production tetap bersih.
+* [x] Smoke otomatis pasca-deploy ke production supaya verifikasi deploy tidak manual — **SELESAI 2026-10-07** (PR #7): `.github/workflows/post-deploy-smoke.yml` (`workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, **tanpa `on: push`**) membandingkan sha256 chunk runtime build commit (artifact `chunk-fingerprint` dari job `verify` `ci.yml`) dengan chunk yang disajikan alias → MATCH/MISMATCH, plus probe read-only (`/login` 200, chunk 200, `/api/cron` secret salah & tanpa secret 401, 8 rute terproteksi 307 → `/login`). MISMATCH = run merah. Verifikasi: actionlint bersih, skrip dijalankan nyata dari Git Bash terhadap production (13/13 probe OK), tabel kebenaran keputusan diuji; CI PR #7 hijau + artifact benar-benar terunggah. Setelah merge: `gh workflow run post-deploy-smoke.yml --ref main`.
 
 ---
 
@@ -176,7 +194,7 @@ Move completed tasks here periodically.
 * [x] Delegasi — atasan→atasan, HR→HR, same-tier only
 * [x] Web Push — VAPID + Service Worker + subscribe endpoint
 * [x] Cron — reminder H+1 + eskalasi H+3 (Vercel cron)
-* [x] E2E tests — 73 Playwright (49 utama + 22 flows + 2 rate-limit, 3 tier config) + 78 unit (`npm run test:unit`)
+* [x] E2E tests — 94 Playwright (54 utama + 38 flows + 2 rate-limit, 3 tier config) + 97 unit (`npm run test:unit`)
 * [x] CI/CD — GitHub Actions verify + e2e
 * [x] Deploy — Vercel live
 
