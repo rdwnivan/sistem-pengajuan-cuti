@@ -5,14 +5,16 @@
 
 ## Last Updated
 
-* Date: 2026-10-07 (WIB)
-* Session: P1 (item 1 + 2 §13) — koreksi catatan audit (**snapshot live ternyata 5 vuln, bukan 7**)
-  + tutup `source-map-js` HIGH lewat bump non-breaking `1.2.1 → 1.2.2` (audit prod jadi
-  **4 vuln: 1 high, 3 moderate**), `crypto.timingSafeEqual` untuk secret cron
-  (`src/lib/aman-sama.ts`), dan rotasi token sesi saat login (`buatSesi`). Sesi sebelumnya:
-  housekeeping (hapus 3 branch ter-merge) + keputusan audit (a) + migrasi `next lint` →
-  ESLint CLI (PR #5 **merged** `3ec54ef`); sebelumnya lagi merge + deploy Next 15.5.27/React 19
-  ke production dengan E2E server produksi + retries (job `e2e` ~3 menit, tanpa flaky)
+* Date: 2026-10-07 (WIB), lanjutan
+* Session: P1/P2/P3 lanjutan — **alias production ternyata nyangkut** di build sebelum PR #3–#6
+  (chunk live `webpack-2eb758dea75faf50.js` vs build `d9ac5e7` = `webpack-a2a7106df7a920d1.js`,
+  404 di production) → hardening cron + rotasi sesi PR #6 **belum terbukti live**; butuh Promote
+  (dashboard tidak bisa diakses dari mesin ini). Selesai: TODO 163 smoke pasca-deploy + artifact
+  sidik jari (PR #7), TODO 96+142 `next/typescript` + 228 temuan (PR #8), TODO 141 sapu `Sesi`
+  kedaluwarsa (PR #9), TODO 120 ditutup sebagai sudah tercakup. Sesi sebelumnya: koreksi catatan
+  audit (**snapshot live 5 vuln, bukan 7**) + tutup `source-map-js` HIGH lewat bump non-breaking
+  `1.2.1 → 1.2.2` (audit prod jadi **4 vuln: 1 high, 3 moderate**), `crypto.timingSafeEqual` untuk
+  secret cron (`src/lib/aman-sama.ts`), dan rotasi token sesi saat login (`buatSesi`).
 
 ---
 
@@ -285,12 +287,14 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
-Deploy Upgrade"); tiga flake E2E (`rate-limit`, `slip-batal`, `notifikasi`) **sudah ditutup**
-(PR #3 + PR #4); migrasi ESLint CLI **sudah merged** (PR #5, `3ec54ef`). P1 item 1 + 2 dari §13
-**sedang dikerjakan di branch `security/audit-correction-low-items`**: koreksi snapshot audit
-(5 → 4 vuln setelah `source-map-js` ditutup) + dua security LOW (secret cron constant-time,
-rotasi token sesi saat login). Sisanya (item 3–4) belum tersentuh.
+**P0 yang tertunda: Promote deployment `d9ac5e7` ke alias production Vercel** — alias masih
+menyajikan build sebelum PR #3–#6, jadi dua security LOW PR #6 belum live (bukti di §14 item 1).
+Butuh tangan user; dashboard Vercel tidak bisa diakses dari mesin ini.
+
+Sudah selesai di kode (menunggu merge + Promote): upgrade Next 15.5.27 + React 19 live (PR #2/#3/#4),
+migrasi ESLint CLI (PR #5 `3ec54ef`), security PR #6 (`d9ac5e7`), smoke pasca-deploy (PR #7),
+`next/typescript` + dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9). Terbuka: TODO 97
+(keputusan pin `next`, user), TODO 162 (upload di Vercel asli, butuh user), Web Push di perangkat nyata.
 
 ## Current Status
 
@@ -323,9 +327,9 @@ Semua P0 security selesai:
 ## Catatan Teknis Penting
 
 ### Arsitektur test: 3 tier terpisah
-Suite E2E dibagi 3 tier (dibuat sesi prototype, jangan digabung) — total 20 file spec, 93 test:
+Suite E2E dibagi 3 tier (dibuat sesi prototype, jangan digabung) — total **21 file spec, 94 test**:
 1. **Suite utama** (`npx playwright test`) — 6 file, **54 test**: smoke, slip-gaji, laporan, security, performance, confirm-dialog. `testIgnore` di `playwright.config.ts` mengecualikan 14 file sisanya.
-2. **Flows** (`npx playwright test --config=playwright.flows.config.ts`) — 13 file serial worker 1, **37 test**: cron, cuti-flow, cuti-validasi, delegasi, gaji-flow, hr-crud, lampiran, laporan-acc, laporan-kebun, notifikasi, profil, slip-batal, slip-rincian. Test stateful (buat data lalu cleanup sendiri).
+2. **Flows** (`npx playwright test --config=playwright.flows.config.ts`) — 14 file serial worker 1, **38 test**: cron, cuti-flow, cuti-validasi, delegasi, gaji-flow, hr-crud, lampiran, laporan-acc, laporan-kebun, notifikasi, profil, sesi-kedaluwarsa, slip-batal, slip-rincian. Test stateful (buat data lalu cleanup sendiri).
 3. **Rate-limit** (`npx playwright test --config=playwright.rate-limit.config.ts`) — 1 file, **2 test**, serial worker 1, timeout 120s (6× bcrypt cost 10 membuat Next dev macet bila paralel).
 Jalankan berurutan dari DB bersih (re-seed sekali di awal). Filter per-file via CLI (`npx playwright test tests/x.spec.ts`) sering "No tests found" misterius — gunakan full run per tier sebagai gantinya.
 
@@ -352,7 +356,7 @@ sebelum browser menyelesaikan submit). Perilaku baru React 19 yang wajib diingat
 Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
 
 ### E2E makin flaky — CI pun bukan juri yang bersih
-Suite E2E (kini 93 test; flows 37) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug.
+Suite E2E (kini 94 test; flows 38) melampaui kapasitas dev server lokal: run panjang bikin server jenuh → timeout masif di test belakangan (pernah 9–11 gagal, 10,8 menit) walau `.next` bersih. Test yang sama **lolos di production build lokal dan di CI** (fresh). Pola menyelesaikan: (1) jalankan spec yang dicurigai secara terisolasi dulu; (2) kalau full-run lokal gagal tapi isolasi/prod/CI hijau → itu degradasi dev, bukan bug.
 
 **Pembaruan 2026-10-06 — flakiness juga muncul di CI**, jadi "CI sebagai juri" tidak lagi cukup sendirian. Tiga kelas flake teridentifikasi, semuanya **menunggu sinyal yang salah** (bukan bug produk):
 1. `tests/rate-limit.spec.ts` — `await resp.finished()` tanpa timeout pada respons streaming. Diperbaiki di `de9a7c1`.
@@ -538,7 +542,20 @@ Suite E2E (kini 93 test; flows 37) melampaui kapasitas dev server lokal: run pan
 
 # 9. Current Blockers
 
-None.
+**Alias production Vercel nyangkut di build lama** (`webpack-2eb758dea75faf50.js`), sedangkan build
+`main` = `d9ac5e7` menghasilkan `webpack-a2a7106df7a920d1.js` (404 di production). Artinya dua
+security LOW dari PR #6 (secret cron constant-time + rotasi token sesi) **belum live**.
+
+* **Blocker**: butuh Promote dari dashboard Vercel. Mesin ini tidak punya kredensial Vercel —
+  `npx vercel whoami` keluar 1, tidak ada `auth.json` / `VERCEL_TOKEN` / `cuti-app/.vercel/project.json`.
+* **Bukan blocker kode**: hardening-nya sudah ada di `main` dan sudah terbukti di jalur non-alias
+  (`/api/cron` menolak secret salah dengan 401 di E2E dan di production yang disajikan sekarang).
+* **Bukti + cara verifikasi ulang + langkahnya**: §14 item 1.
+* **Cara menutup**: Promote `d9ac5e7` → jalankan `gh workflow run post-deploy-smoke.yml --ref main`
+  → hasilnya harus MATCH. Setelah itu perbarui §14 item 1, §15 (Deployment + Overall State), dan
+  TODO.md item blocked ini.
+
+Tidak ada blocker lain.
 
 ---
 
@@ -597,7 +614,49 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ---
 
+## Decision 4
+
+Date: 2026-10-07
+
+Decision:
+Predikat "sesi kedaluwarsa" adalah **satu fungsi** (`sesiKedaluwarsa()` di `src/lib/auth.ts`) yang dipakai
+DUA tempat: penolakan di `userDariSesi` dan penghapusan di `sapuSesiKedaluwarsa()` (`src/lib/cron.ts`,
+dipanggil cron harian). Dulu hanya ada di `userDariSesi` sebagai ekspresi inline.
+
+Reason:
+Saat ini ada dua perilaku yang butuh definisi "kedaluwarsa" yang sama persis: menolak sesi, dan
+menghapus row yang sudah mati. Kalau keduanya ditulis terpisah, keduanya bisa menyimpang — sapu bisa
+menghapus sesi yang masih valid, atau membiarkan row yang sudah mati. Satu fungsi membuat
+penyimpangan itu mustahil secara struktural.
+
+Impact:
+Perubahan aturan masa berlaku sesi harus dilakukan di `sesiKedaluwarsa()` saja, dan **kedua** jalur
+ikut berubah (auth + sweeper) — termasuk testnya (`unit/sesi.test.ts`). Batas yang berlaku dan sudah
+diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih valid.
+
+---
+
 # 12. Recent Changes
+
+## 2026-10-07 (lanjutan) — alias production, smoke pasca-deploy, next/typescript, sapu Sesi
+
+* **Temuan utama**: alias `cuti-app.vercel.app` **menyajikan build lama** (`webpack-2eb758dea75faf50.js`,
+  build sebelum PR #3–#6), sedangkan build `d9ac5e7` = `webpack-a2a7106df7a920d1.js` yang **404** di
+  production → hardening cron + rotasi sesi PR #6 belum terbukti live. Butuh Promote; dashboard tidak
+  bisa diakses dari mesin ini. Detail + cara verifikasi: §14 item 1.
+* **TODO 163 (PR #7)**: `post-deploy-smoke.yml` + artifact `chunk-fingerprint` (job `verify`).
+  `workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, tanpa `on: push`.
+  Menjawab "deploy mendarat?" lewat perbandingan sha256 chunk; probe read-only termasuk
+  `/api/cron` 401. Verifikasi: actionlint bersih, skrip dijalankan nyata ke production, CI hijau.
+* **TODO 96 + 142 (PR #8)**: `next/typescript` diaktifkan; 228 temuan dibersihkan (211 di
+  `src/actions`) → `eslint .` 0 problem, `tsc` 0, `build` 29/29, E2E 54+37+2.
+* **TODO 141 (PR #9)**: `sesiKedaluwarsa()` jadi satu sumber kebenaran (penolakan + sapu),
+  `sapuSesiKedaluwarsa()` dipanggil cron harian, `sesiDibersihkan` dikembalikan di respons.
+  Unit 97/97, spec E2E baru di tier flows (37 → 38).
+* **TODO 120 ditutup**: upload di mode production build sudah tercakup tier flows (`next start`),
+  tidak perlu test baru. Sisa: upload di Vercel asli (TODO 162, butuh user).
+* Pelajaran operasional: dengan `CI=1`, E2E menguji **hasil build** — jalankan `npm run build`
+  setelah perubahan terakhir, kalau tidak akan menguji kode lama (sempat terjadi 2×).
 
 ## 2026-09-28
 
@@ -672,8 +731,24 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ## First Task
 
-Urutan yang disepakati (dipakai sebagai handoff antar sesi). Item 1 & 2 **selesai di sesi
-2026-10-07** (branch `security/audit-correction-low-items`), tersisa:
+**P0 — Promote deployment `d9ac5e7` ke alias production** (bukti + cara verifikasi di §14 item 1).
+Alias masih menyajikan build sebelum PR #3–#6, jadi dua security LOW (secret cron constant-time,
+rotasi token sesi) belum live. Buka dashboard Vercel → Deployments: periksa apakah deployment
+`d9ac5e7` berlabel Current/Production, cek ada tidaknya Instant Rollback aktif, lalu **Promote to
+Production** bila perlu. Setelah itu jalankan smoke (lihat di bawah) dan perbarui §14 + §15.
+
+Setelah PR #7 merge, buktikan smoke end-to-end (workflow baru baru bisa di-`workflow_dispatch`
+setelah ada di default branch):
+
+```powershell
+gh workflow run post-deploy-smoke.yml --ref main
+gh run watch   # lihat ringkasan: MATCH = alias menyajikan build commit ini
+```
+
+Kalau hasilnya MISMATCH, itu memang artinya deploy belum mendarat — jangan dianggap kegagalan
+smoke-nya.
+
+Urutan sesi sebelumnya (dipakai sebagai handoff). Item 1–4 **selesai di sesi 2026-10-07**:
 
 1. ~~**Koreksi + evaluasi ulang catatan audit**~~ — **SELESAI 2026-10-07**. Temuan: snapshot
    dokumen "7 vuln" **tidak reproducible** (yang terukur 5 vuln pada lockfile yang sama).
@@ -682,11 +757,16 @@ Urutan yang disepakati (dipakai sebagai handoff antar sesi). Item 1 & 2 **selesa
    `postcss` + `uuid`. Jadwal review advisory berkala ditulis di section "Audit Sisa".
 2. ~~**Item security LOW**~~ — **SELESAI 2026-10-07**: `samaAman()` (`src/lib/aman-sama.ts`)
    dipakai `/api/cron` (constant-time, SHA-256 digest) + rotasi token sesi di `buatSesi`
-   (`src/lib/auth.ts`). Unit baru `unit/aman-sama.test.ts`.
-3. **Verifikasi yang butuh manusia/production** — upload di production live (login + submit form
-   asli), konfirmasi slip demo dari aplikasi live (TODO.md:32), Web Push di perangkat nyata.
-4. **Backlog opsional** — smoke otomatis pasca-deploy, E2E upload pada mode production build,
-   aktifkan `next/typescript` di `eslint.config.mjs`, keputusan pin `next` eksak vs `^15.5.27`.
+   (`src/lib/auth.ts`). Unit baru `unit/aman-sama.test.ts`. **Menunggu Promote** (item P0 di atas).
+3. ~~**Verifikasi yang butuh manusia/production**~~ — **SEBAGIAN**: upload di production live (TODO
+   162) langkahnya sudah disiapkan di TODO.md; konfirmasi slip demo dari aplikasi live + Web Push di
+   perangkat nyata masih terbuka.
+4. ~~**Backlog opsional**~~ — **SELESAI**: smoke pasca-deploy (PR #7), `next/typescript` +
+   dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9); TODO 120 ditutup karena sudah tercakup.
+   Sisa: keputusan pin `next` eksak vs `^15.5.27` (TODO 97, keputusan user).
+
+Belum tersentuh/terbuka: TODO 97 (keputusan user), TODO 162 (butuh tangan user), TODO 120 (ditutup),
+serta PR #7/#8/#9 yang **belum di-merge** saat dokumen ini ditulis.
 
 Sudah selesai sebelumnya: migrasi `next lint` → ESLint CLI (PR #5, squash `3ec54ef`) — CI
 `verify` + `e2e` hijau (54/37/2, 0 flaky) dan `npm run lint` di `main` 0 problem.
@@ -718,7 +798,115 @@ N/A — no active task.
 
 ---
 
-# 14. Current Health
+# 14. Sesi 2026-10-07 (lanjutan) — Alias Production & TODO 163/96/142/141/120
+
+> Bagian ini adalah catatan kerja sesi; **§15 di bawah adalah status yang berlaku**.
+> Beberapa baris di §15 masih menggambarkan keadaan sebelum Promote (lihat item 1).
+
+## 1. Alias production MENYANGKUT — hardening cron + rotasi sesi belum live (BELUM SELESAI)
+
+Pertanyaan sesi ini: "deploy `d9ac5e7` benar-benar live di alias production?" **Jawabannya tidak
+(yang terukur), dan penyebabnya belum bisa dipastikan dari sisi saya.**
+
+Bukti terukur (fingerprint, bukan dugaan):
+
+| Sumber | Chunk runtime `webpack-*.js` | SHA256 |
+|---|---|---|
+| `https://cuti-app.vercel.app/login` (live) | `webpack-2eb758dea75faf50.js` | `31126c0e…e99f` |
+| Build bersih dari commit `d9ac5e7` (lokal, `rm -rf .next`) | `webpack-a2a7106df7a920d1.js` | `e034c06b…63dc` |
+
+* `GET https://cuti-app.vercel.app/_next/static/chunks/webpack-a2a7106df7a920d1.js` → **404**:
+  build `d9ac5e7` **belum pernah** disajikan oleh alias.
+* Chunk yang disajikan live **sama persis** dengan yang tercatat di "Merge + Deploy Upgrade ke
+  Production" (baris `webpack-2eb758dea75faf50.js`), yaitu build `main` **sebelum** PR #3, #4, #5,
+  dan #6. Artinya alias masih menunjuk build lama, jadi **secret cron constant-time + rotasi token
+  sesi (PR #6) belum live**.
+* Build lokal mereproduksi nama+hash yang sama dua kali (sebelum dan sesudah `rm -rf .next`), jadi
+  perbandingan sidik jari ini deterministik dan sah dipakai sebagai bukti.
+* `git`: `main` lokal = `origin/main` = **`d9ac5e7`** (PR #6 di-merge squash). Tidak ada
+  `git branch -r` lain selain `origin/main` sampai sesi ini membuat cabang fitur baru.
+
+**Yang TIDAK bisa saya lakukan**: memeriksa dashboard/API Vercel. Di mesin ini `npx vercel whoami`
+keluar 1, tidak ada `auth.json`, tidak ada `VERCEL_TOKEN`, dan tidak ada `cuti-app/.vercel/project.json`.
+Karena itu pertanyaan "deployment `d9ac5e7` berlabel Current/Production?" dan "ada Instant Rollback
+aktif?" **belum terjawab** — butuh Promote dari dashboard (atau token). Setelah Promote, status ini
+harus diperbarui dan diverifikasi ulang dengan perintah di bawah.
+
+Cara memverifikasi ulang (tanpa dashboard):
+
+```powershell
+# harus menghasilkan build commit yang diharapkan, bukan build lama
+(Invoke-WebRequest https://cuti-app.vercel.app/login -UseBasicParsing).Content |
+  Select-String -Pattern 'chunks/(webpack-[0-9a-f.-]+\.js)' -AllMatches |
+  ForEach-Object { $_.Matches.Groups[1].Value }
+# build d9ac5e7 = webpack-a2a7106df7a920d1.js ; GET chunk itu harus 200, bukan 404
+```
+
+## 2. TODO 163 — smoke pasca-deploy (SELESAI, PR #7)
+
+`post-deploy-smoke.yml` + artifact `chunk-fingerprint` dari job `verify` `ci.yml`. Menjawab
+"deploy mendarat?" dengan membandingkan sha256 chunk build commit (artifact CI) vs chunk yang
+disajikan alias, plus probe read-only (`/login` 200, chunk 200, `/api/cron` secret salah & tanpa
+secret 401, 8 rute terproteksi 307). MISMATCH = run merah. **Tidak ada `on: push`** — hanya
+`workflow_dispatch` (manual) + `workflow_run` setelah CI sukses di `main`.
+
+Verifikasi: `actionlint` 1.7.12 bersih; skrip smoke dijalankan nyata dari Git Bash terhadap
+production (13/13 probe OK); tabel kebenaran keputusan diuji langsung; CI PR #7 **hijau**
+(`verify` 1m14s, `e2e` 3m9s) dan artifact `chunk-fingerprint` (351 B) benar-benar terunggah.
+Bug yang ditemukan saat drill dan diperbaiki: `jq // empty` pada payload 404 mengembalikan string
+`"null"` yang bocor ke panggilan API berikutnya.
+
+Catatan: `workflow_dispatch` pada workflow **baru** baru muncul setelah file ini ada di default
+branch, jadi smoke belum pernah dijalankan dari GitHub. Setelah PR #7 merge, jalankan
+`gh workflow run post-deploy-smoke.yml` untuk membuktikan MATCH/MISMATCH end-to-end.
+
+## 3. TODO 96 + 142 — `next/typescript` + dead import (SELESAI, PR #8)
+
+Angka **diukur**, bukan perkiraan: mengaktifkan `next/typescript` = **228 problem** (226
+`no-unused-vars`, 1 `prefer-const` yang merupakan **ERROR** di `src/app/persetujuan/page.tsx`, 1
+`import/no-anonymous-default-export` dari file config probe). Sebaran 211 di `src/actions`.
+Sesudah dibersihkan: `eslint .` **0 problem**, `tsc` 0, `build` 29/29, E2E **54 + 37 + 2**.
+
+Jebakan yang tercatat: parameter fixture Playwright **wajib** object-destructuring
+(`async ({ page }, use)`); menggantinya dengan `async (_fixtures, use)` membuat seluruh suite gagal
+dimuat (`First argument must use the object destructuring pattern`) dan `tsc` tidak menangkapnya.
+Fixture `loggedIn` di `tests/helpers.ts` ternyata dead code dan dihapus.
+
+## 4. TODO 141 — sapu row `Sesi` kedaluwarsa (SELESAI, PR #9)
+
+`sesiKedaluwarsa()` diekspor dari `src/lib/auth.ts` dan dipakai **dua** tempat: penolakan di
+`userDariSesi` dan penghapusan di `sapuSesiKedaluwarsa()` (`src/lib/cron.ts`, dipanggil awal cron
+harian). Satu sumber kebenaran supaya penghapusan tidak menyimpang dari penolakan. Jumlah terhapus
+dikembalikan sebagai `sesiDibersihkan`.
+
+**Batas masa berlaku (dicatat agar tidak salah lagi)**: kedaluwarsa HANYA bila `expiresAt < now`.
+Tepat di `expiresAt` sesi **masih valid**; 1 ms sesudahnya baru kedaluwarsa. Ini perilaku lama yang
+dipertahankan; ekspektasi awal test sempat terbalik dan **test-nya** yang diperbaiki.
+Verifikasi: `unit/sesi.test.ts` 7/7, `tests/sesi-kedaluwarsa.spec.ts` (tier flows) membuktikan
+cookie kedaluwarsa ditolak → row dihapus cron → dan sesi yang masih valid **tidak** ikut terhapus.
+
+## 5. TODO 120 — upload di mode production build (SELESAI, dokumentasi saja)
+
+Ternyata **sudah tercakup**, tidak perlu test baru:
+
+* `tests/lampiran.spec.ts` termasuk `test("file valid (PNG) diterima dan tampil di detail")`.
+* File itu ada di `testMatch` `playwright.flows.config.ts`.
+* Ketiga config memakai `webServer.command = process.env.CI ? "npm run start" : "npm run dev"`.
+* Job CI `e2e` menjalankan `npm run build` sebelum tier, lalu menjalankan tier flows.
+
+Jadi jalur upload (termasuk gate `DI_VERCEL`) sudah dijalankan di bawah `next start` di CI, **bukan
+hanya mode dev**. Yang belum pernah dibuktikan adalah upload di Vercel asli (TODO 162).
+
+## 6. Operasional: jalankan `npm run build` SETELAH perubahan terakhir
+
+Saat memverifikasi sapu `Sesi`, tier E2E `CI=1` gagal karena `next start` masih menyajikan build
+**lama** (`sesiDibersihkan` undefined). Dengan `CI=1` server yang diuji adalah **hasil build**,
+bukan sumber terkini — build dulu, baru E2E. Ini pernah menggigit dua kali (dulu juga pada
+gate upload `lampiran.spec.ts`).
+
+---
+
+# 15. Current Health
 
 ## Build
 
@@ -726,8 +914,8 @@ PASS (`npm run build` Next 15.5.27, 29/29 halaman; CI `verify` hijau di `main`)
 
 ## Tests
 
-PASS — unit **90/90** (+6 dari `unit/aman-sama.test.ts`; 8 file unit), E2E utama **54/54**,
-flows **37/37**, rate-limit **2/2** (3 tier config, tetap 20 file spec). CI `e2e` hijau **tanpa
+PASS — unit **97/97** (9 file unit, termasuk `unit/sesi.test.ts`), E2E utama **54/54**,
+flows **38/38**, rate-limit **2/2** (3 tier config, **21 file spec**). CI `e2e` hijau **tanpa
 flaky** setelah pindah ke server produksi (job ~3 menit) — lihat
 "Infrastruktur E2E — Server Produksi di CI + Retries".
 
@@ -737,21 +925,30 @@ dijalankan ulang** (performance isolasi 9/9, notifikasi isolasi 2/2) → degrada
 sudah terdokumentasi, bukan regresi. Ketiga tier lalu dijalankan ulang dengan `CI=1`
 (`npm run start`, sama seperti CI) dari DB bersih: **54/54 + 37/37 + 2/2, 0 flaky**.
 
+Verifikasi sesi ini (2026-10-07 lanjutan): PR #8 dan PR #9 dijalankan dengan `CI=1` dari DB bersih →
+**54/54 + 38/38 + 2/2**, 0 flaky.
+
 ## Lint
 
-PASS (`npm run lint` = `eslint .`, ESLint 9 flat config, **0 problem**) — identik dengan baseline
-`next lint`. `next lint` sudah dipensiunkan (dihapus di Next 16); lihat "Housekeeping + Migrasi
-ESLint CLI". Catatan: `next/typescript` belum diaktifkan (agar hasil lint tidak berubah).
+PASS (`npm run lint` = `eslint .`, ESLint 9 flat config, **0 problem**) dengan **`next/typescript`
+AKTIF** sejak PR #8 — lihat §14 item 3. `next lint` sudah dipensiunkan (dihapus di Next 16).
 
 ## Deployment
 
-PASS — live di https://cuti-app.vercel.app/ (Next 15.5.27 + React 19, `main` = `917a89c`)
+**PERHATIAN — alias production masih menyajikan build LAMA.** Yang terukur: alias menyajikan
+`webpack-2eb758dea75faf50.js` (build sebelum PR #3–#6), sedangkan build `main` = `d9ac5e7`
+menghasilkan `webpack-a2a7106df7a920d1.js` (404 di production). Artinya dua security LOW PR #6
+belum live. Dashboard Vercel belum bisa diperiksa dari mesin ini (tanpa kredensial) → **butuh
+Promote to Production**. Bukti, cara verifikasi ulang, dan statusnya ada di §14 item 1.
+
+`main` = **`d9ac5e7`** (merge squash PR #6).
 
 ## Overall State
 
-Stable — upgrade security sudah production; CI andal (tanpa flaky). Audit produksi **4 vuln
-(1 high, 3 moderate), 0 critical** setelah `source-map-js` HIGH ditutup lewat bump non-breaking
-`1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` + `uuid` diterima dengan alasan reachability yang
-didokumentasikan (lihat "Audit Sisa"). Dua security LOW dari review 2026-09-29 sudah ditutup:
-secret cron constant-time + rotasi token sesi saat login (branch
-`security/audit-correction-low-items`).
+Stable secara kode, dengan **satu tindakan deployment yang tertunda**: alias Vercel nyangkut di
+build lama (§14 item 1). Audit produksi **4 vuln (1 high, 3 moderate), 0 critical** setelah
+`source-map-js` HIGH ditutup lewat bump non-breaking `1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` +
+`uuid` diterima dengan alasan reachability yang didokumentasikan (lihat "Audit Sisa"). Dua security
+LOW dari review 2026-09-29 sudah **di kode** (secret cron constant-time + rotasi token sesi saat
+login, PR #6 `d9ac5e7`) tetapi **belum terbukti live** sampai alias di-Promote. Housekeeping row
+`Sesi` kedaluwarsa ditutup di PR #9.
