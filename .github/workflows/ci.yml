@@ -32,6 +32,31 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+      # Sidik jari build (nama + sha256 chunk runtime webpack). Dipakai
+      # `post-deploy-smoke.yml` untuk menjawab "deploy commit ini sudah
+      # mendarat?" tanpa menebak dari dashboard Vercel. Cara kerja: nama chunk
+      # webpack di-hash dari isi modul, jadi build yang sama menghasilkan nama
+      # yang sama di mesin mana pun.
+      - name: Fingerprint build (untuk post-deploy smoke)
+        run: |
+          node -e '
+            const { createHash } = require("node:crypto");
+            const { readFileSync, writeFileSync, readdirSync } = require("node:fs");
+            const name = readdirSync(".next/static/chunks").find((f) => /^webpack-.*\.js$/.test(f));
+            const sha = createHash("sha256").update(readFileSync(`.next/static/chunks/${name}`)).digest("hex");
+            writeFileSync("chunk-name.txt", name + "\n");
+            writeFileSync("chunk-sha256.txt", sha + "\n");
+            console.log(`[fingerprint] ${name} sha256=${sha}`);
+          '
+      - name: Upload fingerprint
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: chunk-fingerprint
+          path: |
+            cuti-app/chunk-name.txt
+            cuti-app/chunk-sha256.txt
+          if-no-files-found: error
+          retention-days: 90
 
   e2e:
     runs-on: ubuntu-latest
