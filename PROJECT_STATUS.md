@@ -8,7 +8,7 @@
 * Date: 2026-10-06 (WIB)
 * Session: Housekeeping (hapus 3 branch yang sudah di-merge, segarkan `PROJECT_STATUS.md` +
   `STAGING.md`), keputusan audit sisa dependensi (**terima 4 vuln + pantau advisory**), dan
-  migrasi `next lint` → ESLint CLI (ESLint 9 flat config, PR #5). Sesi sebelumnya: merge +
+  migrasi `next lint` → ESLint CLI (ESLint 9 flat config, PR #5 **merged** `3ec54ef`). Sesi sebelumnya: merge +
   deploy upgrade Next 15.5.27/React 19 ke production; akar flake E2E ditemukan & diperbaiki —
   CI sekarang pakai server produksi + retries (job `e2e` 5–9 menit → ~3 menit, tanpa flaky)
 
@@ -53,7 +53,7 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
 
 ## Framework Upgrade (2026-10-05) — Next 14.2.35 → 15.5.27 + React 19
 
-* **Tujuan**: menutup audit `next` **critical** (Next 15.5.27 = jalur security backport; install 16.3.8 hanya untuk sisa `postcss`, tapi butuh migrasi ESLint 9 flat config + `next lint` dihapus → tidak dipilih). Blocker ESLint-nya sendiri **sudah dibereskan** 2026-10-06 (PR #5) — lihat "Housekeeping + Migrasi ESLint CLI".
+* **Tujuan**: menutup audit `next` **critical** (Next 15.5.27 = jalur security backport; install 16.3.8 hanya untuk sisa `postcss`, tapi butuh migrasi ESLint 9 flat config + `next lint` dihapus → tidak dipilih). Blocker ESLint-nya sendiri **sudah dibereskan** 2026-10-06 (PR #5, merged `3ec54ef`) — lihat "Housekeeping + Migrasi ESLint CLI".
 * **Perubahan kode (breaking Next 15)**:
   * `cookies()` jadi async → `await cookies()` di `src/lib/auth.ts`.
   * `params`/`searchParams` jadi Promise → `await` di 3 API route (`slip`, `formulir`, `laporan-lapangan` GET/POST) + 8 halaman (`kalender`, `laporan`, `laporan/baru`, `hr/slip-gaji`, `profil`, `slip-gaji/[id]`, `cuti/[id]`, `hr/karyawan/[id]`, `laporan/[id]`).
@@ -183,7 +183,7 @@ bila salah satu berubah jadi reachable atau muncul advisory baru.
   ketiganya masuk `main` lewat **squash merge**, sehingga `git branch --merged main` **tidak**
   menunjukkannya (ancestry berbeda) — verifikasi dilakukan dengan membandingkan isi tree terhadap
   `main`, bukan status merged. SHA sebelum hapus (untuk restore): `de9a7c1`, `bb3ca08`, `7371346`.
-* **`next lint` → ESLint CLI** (PR #5, branch `chore/eslint-cli-flat-config`): `next lint`
+* **`next lint` → ESLint CLI** (PR #5, di-merge squash sebagai `3ec54ef`): `next lint`
   deprecated dan **dihapus di Next 16**, jadi gate lint dipindah ke ESLint CLI `eslint .`.
   * `cuti-app/eslint.config.mjs` (baru) — flat config ESLint 9. `eslint-config-next@15.5.27`
     belum mengekspor flat config, jadi `next/core-web-vitals` dibungkus `FlatCompat`
@@ -200,6 +200,11 @@ bila salah satu berubah jadi reachable atau muncul advisory baru.
   * Verifikasi lokal: `eslint .` **0 problem** (identik dengan baseline `next lint`
     "No ESLint warnings or errors"), `tsc` 0, unit **84/84**, `build` **29/29 halaman**. Tidak ada
     kode runtime yang berubah (devDependency + tooling saja).
+  * Verifikasi CI (PR #5, `verify` + `e2e`): **54 + 37 + 2 lulus first try, 0 flaky**, job `e2e`
+    3m14s. Setelah merge, `npm run lint` di `main` juga 0 problem.
+  * Catatan Next 16: Next 15.5.27 **sudah sadar flat config** di jalur build
+    (`next/dist/lib/eslint/runLintCheck.js` mencari `eslint.config.mjs` lalu `loadESLint({useFlatConfig:true})`),
+    jadi langkah lint saat `next build` tetap berjalan — bukan diam-diam jadi no-op.
 
 ## Design Notes (bukan bug)
 
@@ -243,7 +248,7 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
 Deploy Upgrade"); tiga flake E2E (`rate-limit`, `slip-batal`, `notifikasi`) **sudah ditutup**
 (PR #3 + PR #4); sisa audit dependensi **diputuskan** (terima + pantau); migrasi ESLint CLI
-dikerjakan di PR #5. Tidak ada task aktif — lihat "Next Session".
+**sudah merged** (PR #5, `3ec54ef`). Tidak ada task aktif — lihat "Next Session".
 
 ## Current Status
 
@@ -629,9 +634,8 @@ Tidak ada task aktif. Status kandidat terakhir:
 
 1. **Sisa audit dependensi — SUDAH DIPUTUSKAN (2026-10-06, user)**: terima 4 vuln (0 critical) +
    pantau advisory. Jangan naik ke `next@16` hanya untuk audit ini (`uuid` tetap 3 moderate).
-2. **Migrasi `next lint` → ESLint CLI — DIKERJAKAN di PR #5** (`chore/eslint-cli-flat-config`);
-   lokal sudah terverifikasi (lint 0, tsc 0, unit 84/84, build 29/29), menunggu CI + merge.
-   Setelah merged: tandai item TODO.md ini `[x]`.
+2. **Migrasi `next lint` → ESLint CLI — SELESAI & MERGED** (PR #5, squash `3ec54ef`);
+   CI `verify` + `e2e` hijau (54/37/2, 0 flaky) dan `npm run lint` di `main` 0 problem.
 3. **Kandidat berikutnya (belum dikerjakan)** — item security LOW yang masih terbuka:
    perbandingan secret cron belum constant-time (`src/app/api/cron/route.ts`) dan token sesi
    tidak dirotasi setelah login (`src/lib/auth.ts`).
