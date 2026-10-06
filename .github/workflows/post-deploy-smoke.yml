@@ -1,15 +1,21 @@
 name: Post-deploy smoke
 
-# Menjawab "deploy commit X sudah benar-benar mendarat di production?" tanpa
-# menebak dari dashboard Vercel: bandingkan sidik jari chunk build commit itu
-# (artifact CI) dengan chunk yang benar-benar disajikan alias production.
+# Menjawab "deploy commit X sudah benar-benar mendarat di production?" dengan
+# membandingkan SHA commit yang DILAPORKAN deployment yang melayani
+# (`GET /api/version`) terhadap commit yang dimaksud.
+#
+# Kenapa BUKAN hash chunk (percobaan pertama yang gagal):
+# build dari commit yang sama bisa menghasilkan isi chunk runtime webpack yang
+# berbeda antar lingkungan — terukur nama `webpack-2eb758d…` yang sama persis
+# tetapi 3482 byte di satu lingkungan dan 3864 byte di lingkungan lain. Jadi
+# perbandingan hash lintas lingkungan melaporkan MISMATCH palsu. Nama/hash chunk
+# sekarang hanya informasional.
 #
 # Trigger sengaja hanya dua:
-#   1. `workflow_dispatch` — manual, untuk menyelidiki commit tertentu
-#      (mis. branch ci/post-deploy-smoke).
+#   1. `workflow_dispatch` — manual, untuk menyelidiki commit tertentu.
 #   2. `workflow_run` setelah workflow CI sukses di `main` — push ke `main`
-#      memang momen deploy production. Job-nya dibatasi `head_branch == main`,
-#      jadi PR dari fork TIDAK pernah masuk ke sini.
+#      memang momen deploy production. Job dibatasi `head_branch == main`, jadi
+#      PR dari fork tidak pernah masuk.
 # TIDAK ada `on: push`: smoke ini memukul production.
 on:
   workflow_dispatch:
@@ -18,8 +24,12 @@ on:
         description: "URL yang diperiksa"
         required: false
         default: "https://cuti-app.vercel.app"
+      expected_sha:
+        description: "Commit SHA yang diharapkan (40 hex). Kosongkan = pakai commit workflow ini."
+        required: false
+        default: ""
       fail_on_mismatch:
-        description: "Gagalkan run bila sidik jari chunk tidak cocok"
+        description: "Gagalkan run bila versi live tidak cocok / tidak bisa ditentukan"
         type: boolean
         required: false
         default: true
@@ -28,7 +38,7 @@ on:
     types: [completed]
     branches: [main]
 
-# Smoke hanya membaca production + mengunduh artifact CI.
+# read-all cukup: smoke hanya membaca production + mengunduh artifact CI.
 permissions: read-all
 
 concurrency:
@@ -44,9 +54,10 @@ jobs:
     env:
       # SEMUA nilai dari event/input masuk lewat `env`, tidak pernah
       # diinterpolasi ke dalam skrip shell (template injection). Input
-      # `base_url` bisa diketik manusia, jadi ini wajib.
+      # `base_url`/`expected_sha` bisa diketik manusia, jadi ini wajib.
       BASE_URL: ${{ github.event.inputs.base_url || 'https://cuti-app.vercel.app' }}
       FAIL_ON_MISMATCH: ${{ github.event.inputs.fail_on_mismatch || 'true' }}
+      INPUT_EXPECTED_SHA: ${{ github.event.inputs.expected_sha || '' }}
       EVENT_NAME: ${{ github.event_name }}
       REPO: ${{ github.repository }}
       # workflow_run: commit yang barusan di-CI/deploy. dispatch: commit branch ini.
@@ -62,7 +73,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Bandingkan sidik jari + probe read-only
+      - name: Bandingkan versi live + probe read-only
         id: smoke
         env:
           GH_TOKEN: ${{ github.token }}
@@ -70,83 +81,89 @@ jobs:
           set -uo pipefail
           FAIL=0
           STATUS=""
+          SHA_RE='^[0-9a-f]{40}$'
 
-          # --- 1. Sidik jari yang SEHARUSNYA live (artifact CI commit ini) ---
-          EXPECTED_AVAILABLE=false
+          if printf '%s' "$INPUT_EXPECTED_SHA" | grep -qE "$SHA_RE"; then
+            EXPECTED_SHA=$(printf '%s' "$INPUT_EXPECTED_SHA" | tr 'A-F' 'a-f')
+          else
+            EXPECTED_SHA=$(printf '%s' "$TARGET_SHA" | tr 'A-F' 'a-f')
+          fi
+          echo "commit yang diharapkan: ${EXPECTED_SHA}"
+
+          # --- Identitas build commit ini (artifact CI) — hanya diagnostik ---
+          BUILD_CHUNK=""
           RUN_ID=""
           for i in 1 2 3 4 5 6; do
-            RUN_ID=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${TARGET_SHA}&status=completed&per_page=10" \
+            RUN_ID=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${EXPECTED_SHA}&status=completed&per_page=10" \
               --jq '[.workflow_runs[]? | select(.conclusion=="success") | .id] | first // empty' 2>/dev/null) || RUN_ID=""
             # Wajib numerik: `gh api` bisa mengembalikan payload error yang bukan id.
             case "${RUN_ID}" in
               ''|*[!0-9]*) RUN_ID="" ;;
             esac
             [ -n "${RUN_ID}" ] && break
-            echo "run CI untuk ${TARGET_SHA} belum terlihat, ulang 15s (percobaan ${i}/6)"
+            echo "run CI untuk ${EXPECTED_SHA} belum terlihat, ulang 15s (percobaan ${i}/6)"
             sleep 15
           done
-          if [ -z "${RUN_ID}" ]; then
-            echo "::warning::Tidak ada run CI sukses untuk ${TARGET_SHA} — perbandingan sidik jari dilewati."
-          else
+          if [ -n "${RUN_ID}" ]; then
             ART_ID=$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/artifacts" \
-              --jq '[.artifacts[]? | select(.name=="chunk-fingerprint") | .id] | first // empty' 2>/dev/null) || ART_ID=""
+              --jq '[.artifacts[]? | select(.name=="build-identity" or .name=="chunk-fingerprint") | .id] | first // empty' 2>/dev/null) || ART_ID=""
             case "${ART_ID}" in
               ''|*[!0-9]*) ART_ID="" ;;
             esac
-            if [ -z "${ART_ID}" ]; then
-              echo "::warning::Artifact chunk-fingerprint tidak ada di run CI ${RUN_ID} (run sebelum PR ini merge?) — perbandingan dilewati."
-            else
+            if [ -n "${ART_ID}" ]; then
               gh api "repos/${REPO}/actions/artifacts/${ART_ID}/zip" > artifact.zip 2>/dev/null
-              if unzip -o -q artifact.zip -d expected/ 2>/dev/null; then
-                EXPECTED_NAME=$(tr -d '[:space:]' < expected/chunk-name.txt)
-                EXPECTED_SHA=$(tr -d '[:space:]' < expected/chunk-sha256.txt)
-                # Artifact datang dari workflow lain — validasi bentuknya sebelum
-                # dipakai, jangan percaya isinya begitu saja.
-                if printf '%s' "${EXPECTED_NAME}" | grep -qE '^webpack-[0-9a-f.-]+\.js$' \
-                  && printf '%s' "${EXPECTED_SHA}" | grep -qE '^[0-9a-f]{64}$'; then
-                  EXPECTED_AVAILABLE=true
-                else
-                  echo "::warning::Isi artifact chunk-fingerprint tidak berbentuk seperti yang diharapkan — diabaikan."
-                  EXPECTED_NAME=""
-                  EXPECTED_SHA=""
-                fi
+              if unzip -o -q artifact.zip -d expected/ 2>/dev/null && [ -f expected/chunk-name.txt ]; then
+                BUILD_CHUNK=$(tr -d '[:space:]' < expected/chunk-name.txt)
+                # Artifact dari workflow lain — validasi bentuknya sebelum dipakai.
+                printf '%s' "${BUILD_CHUNK}" | grep -qE '^webpack-[0-9a-f.-]+\.js$' || BUILD_CHUNK=""
               fi
             fi
           fi
-          {
-            echo "expected_available=${EXPECTED_AVAILABLE}"
-            echo "expected_name=${EXPECTED_NAME:-}"
-            echo "expected_sha=${EXPECTED_SHA:-}"
-          } >> "$GITHUB_OUTPUT"
-          echo "expected: ${EXPECTED_NAME:-<tidak ada>} ${EXPECTED_SHA:-}"
-
-          # --- 2. Sidik jari build yang SEDANG disajikan alias ---
-          LOGIN=$(curl -sS -o login.html -w '%{http_code}' "${BASE_URL}/login")
-          echo "GET /login -> ${LOGIN}"
-          LIVE_NAME=""
-          LIVE_SHA=""
-          if [ "${LOGIN}" != "200" ]; then
-            echo "::error::GET ${BASE_URL}/login -> ${LOGIN} (diharapkan 200)"
-            FAIL=1
+          if [ -n "${BUILD_CHUNK}" ]; then
+            echo "chunk build commit itu (diagnostik): ${BUILD_CHUNK}"
           else
-            LIVE_NAME=$(grep -oE 'chunks/webpack-[0-9a-f.-]+\.js' login.html | head -n1 | sed 's|chunks/||')
-            if [ -z "${LIVE_NAME}" ]; then
+            echo "chunk build commit itu: tidak tersedia (diagnostik dilewati)"
+          fi
+
+          # --- Versi yang SEDANG dilayani alias -----------------------------
+          VCODE=$(curl -sS -o version.json -w '%{http_code}' "${BASE_URL}/api/version")
+          LIVE_SHA=""
+          if [ "${VCODE}" = "200" ]; then
+            LIVE_SHA=$(node -e '
+              const fs = require("node:fs");
+              try {
+                const j = JSON.parse(fs.readFileSync("version.json", "utf8"));
+                const s = typeof j.sha === "string" ? j.sha.toLowerCase() : "";
+                console.log(/^[0-9a-f]{40}$/.test(s) ? s : "");
+              } catch { console.log(""); }
+            ')
+          fi
+          echo "GET /api/version -> ${VCODE}; sha live: ${LIVE_SHA:-<tidak ada>}"
+
+          # --- Fail-fast: HTML produksi tidak boleh menunjuk aset yang 404 ---
+          # Menangkap gejala "HTML dari build A, aset dari build B".
+          LOGIN=$(curl -sS -o login.html -w '%{http_code}' "${BASE_URL}/login")
+          LIVE_CHUNK=""
+          if [ "${LOGIN}" = "200" ]; then
+            LIVE_CHUNK=$(grep -oE 'chunks/webpack-[0-9a-f.-]+\.js' login.html | head -n1 | sed 's|chunks/||')
+            if [ -z "${LIVE_CHUNK}" ]; then
               echo "::error::Tidak ada referensi chunk webpack di HTML /login."
               FAIL=1
             else
-              CODE=$(curl -sS -o live-chunk.js -w '%{http_code}' "${BASE_URL}/_next/static/chunks/${LIVE_NAME}")
-              echo "GET /_next/static/chunks/${LIVE_NAME} -> ${CODE}"
-              if [ "${CODE}" != "200" ]; then
-                echo "::error::Chunk ${LIVE_NAME} direferensikan HTML /login tapi ${CODE} — alias menyajikan HTML dari satu build dan aset dari build lain (gejala alias nyangkut)."
-                FAIL=1
+              CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${BASE_URL}/_next/static/chunks/${LIVE_CHUNK}")
+              if [ "${CODE}" = "200" ]; then
+                echo "OK   chunk ${LIVE_CHUNK} -> 200"
               else
-                LIVE_SHA=$(sha256sum live-chunk.js | cut -d' ' -f1)
+                echo "::error::Chunk ${LIVE_CHUNK} direferensikan HTML /login tapi ${CODE} — HTML dan aset berasal dari build berbeda."
+                FAIL=1
               fi
             fi
+          else
+            echo "::error::GET ${BASE_URL}/login -> ${LOGIN} (diharapkan 200)"
+            FAIL=1
           fi
-          echo "live: ${LIVE_NAME:-<tidak ada>} ${LIVE_SHA:-}"
 
-          # --- 3. Probe read-only (tanpa login, tanpa tulis DB/Blob) ---
+          # --- Probe read-only (tanpa login, tanpa tulis DB/Blob) -----------
           code_of() { curl -sS -o /dev/null -w '%{http_code}' "$1"; }
           expect_code() { # url yang-diharapkan label
             local got
@@ -178,32 +195,44 @@ jobs:
             expect_login_redirect "$p"
           done
 
-          # --- 4. Putusan sidik jari ---
-          if [ "${EXPECTED_AVAILABLE}" = "true" ] && [ -n "${LIVE_SHA}" ]; then
-            if [ "${EXPECTED_SHA}" = "${LIVE_SHA}" ]; then
-              STATUS="MATCH: alias production menyajikan build ${TARGET_SHA}."
-              echo "${STATUS}"
+          # --- Putusan versi -------------------------------------------------
+          if [ "${LIVE_SHA}" = "${EXPECTED_SHA}" ]; then
+            STATUS="MATCH: alias production melayani commit ${EXPECTED_SHA}."
+            echo "${STATUS}"
+          elif [ -n "${LIVE_SHA}" ]; then
+            STATUS="MISMATCH: alias melayani commit ${LIVE_SHA}, diharapkan ${EXPECTED_SHA}."
+            echo "::error::${STATUS} Artinya deploy commit itu BELUM live (alias nyangkut di deployment lama / ada Instant Rollback). Periksa dashboard Vercel lalu Promote to Production."
+            if [ "${EVENT_NAME}" = "workflow_run" ] || [ "${FAIL_ON_MISMATCH}" = "true" ]; then
+              FAIL=1
             else
-              STATUS="MISMATCH: alias production menyajikan ${LIVE_NAME}, sedangkan build ${TARGET_SHA} adalah ${EXPECTED_NAME}."
-              echo "::error::${STATUS} Artinya deploy commit ini BELUM live (alias nyangkut di deployment lama / ada Instant Rollback). Periksa dashboard Vercel lalu Promote to Production."
-              if [ "${EVENT_NAME}" = "workflow_run" ] || [ "${FAIL_ON_MISMATCH}" = "true" ]; then
-                FAIL=1
-              else
-                echo "::warning::fail_on_mismatch=false → mismatch tidak menggagalkan run."
-              fi
+              echo "::warning::fail_on_mismatch=false → mismatch tidak menggagalkan run."
+            fi
+          elif [ "${VCODE}" = "404" ]; then
+            # Endpoint belum ada di alias = alias masih build lama (sebelum PR
+            # yang menambahkan /api/version). Tetap sinyal nyangkut.
+            STATUS="TIDAK BISA DITENTUKAN: ${BASE_URL}/api/version -> 404, jadi alias masih build lama (endpoint belum ada)."
+            echo "::warning::${STATUS}"
+            if [ "${EVENT_NAME}" = "workflow_run" ] || [ "${FAIL_ON_MISMATCH}" = "true" ]; then
+              FAIL=1
             fi
           else
-            STATUS="Sidik jari tidak bisa dibandingkan (artifact CI tidak tersedia); probe read-only tetap dijalankan."
+            STATUS="TIDAK BISA DITENTUKAN: /api/version -> ${VCODE} tanpa sha 40-hex; versi alias tidak diketahui."
+            echo "::warning::${STATUS}"
+            if [ "${FAIL_ON_MISMATCH}" = "true" ]; then
+              FAIL=1
+            fi
           fi
 
           {
             echo "status=${STATUS}"
-            echo "live_name=${LIVE_NAME}"
             echo "live_sha=${LIVE_SHA}"
-            echo "probe_fail=${FAIL}"
+            echo "expected_sha=${EXPECTED_SHA}"
+            echo "live_chunk=${LIVE_CHUNK}"
+            echo "build_chunk=${BUILD_CHUNK}"
+            echo "verdict_fail=${FAIL}"
           } >> "$GITHUB_OUTPUT"
-          # Probe yang gagal tidak menghentikan langkah (supaya ringkasan selalu
-          # ditulis); statusnya dibaca langkah berikutnya.
+          # Tidak `exit 1` di sini supaya ringkasan selalu ditulis; statusnya
+          # dibaca langkah berikutnya.
           exit 0
 
       - name: Ringkasan
@@ -212,22 +241,26 @@ jobs:
           {
             echo "## Post-deploy smoke — \`${BASE_URL}\`"
             echo ""
-            echo "* commit diperiksa: \`${TARGET_SHA}\`"
-            echo "* chunk live: \`${{ steps.smoke.outputs.live_name }}\` (sha256 \`${{ steps.smoke.outputs.live_sha }}\`)"
-            if [ "${{ steps.smoke.outputs.expected_available }}" = "true" ]; then
-              echo "* chunk build commit itu: \`${{ steps.smoke.outputs.expected_name }}\` (sha256 \`${{ steps.smoke.outputs.expected_sha }}\`)"
-            else
-              echo "* chunk build commit itu: tidak tersedia (artifact CI tidak ada)"
-            fi
-            echo "* hasil: ${{ steps.smoke.outputs.status }}"
+            echo "| Item | Nilai |"
+            echo "|---|---|"
+            echo "| commit diharapkan | \`${{ steps.smoke.outputs.expected_sha }}\` |"
+            echo "| commit dilayani alias | \`${{ steps.smoke.outputs.live_sha }}\` |"
+            echo "| chunk live | \`${{ steps.smoke.outputs.live_chunk }}\` |"
+            echo "| chunk build commit itu (diagnostik) | \`${{ steps.smoke.outputs.build_chunk }}\` |"
             echo ""
-            echo "Probe read-only yang dijalankan: \`/login\` 200, chunk-nya 200, \`/api/cron\`"
-            echo "(secret salah & tanpa secret) 401, dan 8 rute terproteksi 307 → \`/login\`."
+            echo "**Hasil: ${{ steps.smoke.outputs.status }}**"
+            echo ""
+            echo "Probe read-only: \`/login\` 200 + chunk-nya 200, \`/api/cron\` (secret salah &"
+            echo "tanpa secret) 401, dan 8 rute terproteksi 307 → \`/login\`."
             echo "Smoke ini **tidak** login dan **tidak** menulis apa pun ke DB/Blob production."
+            echo ""
+            echo "> Hash isi chunk **tidak** dibandingkan antar lingkungan: build commit yang sama"
+            echo "> bisa punya isi chunk berbeda (terukur 3482 vs 3864 byte pada nama chunk yang sama),"
+            echo "> jadi perbandingan itu menghasilkan MISMATCH palsu. Yang menentukan adalah SHA commit."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Gagalkan run bila ada yang tidak sesuai
-        if: steps.smoke.outputs.probe_fail != '0'
+        if: steps.smoke.outputs.verdict_fail != '0'
         run: |
           echo "::error::Post-deploy smoke menemukan ketidaksesuaian — lihat ringkasan di atas."
           exit 1
