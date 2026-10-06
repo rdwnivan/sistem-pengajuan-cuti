@@ -6,9 +6,11 @@
 ## Last Updated
 
 * Date: 2026-10-06 (WIB)
-* Session: Merge + deploy upgrade Next 15.5.27/React 19 ke production; audit sisa dependensi
-  (postcss/uuid) dianalisis ulang; akar flake E2E ditemukan & diperbaiki — CI sekarang pakai
-  server produksi + retries (job `e2e` 5–9 menit → ~3 menit, tanpa flaky)
+* Session: Housekeeping (hapus 3 branch yang sudah di-merge, segarkan `PROJECT_STATUS.md` +
+  `STAGING.md`), keputusan audit sisa dependensi (**terima 4 vuln + pantau advisory**), dan
+  migrasi `next lint` → ESLint CLI (ESLint 9 flat config, PR #5). Sesi sebelumnya: merge +
+  deploy upgrade Next 15.5.27/React 19 ke production; akar flake E2E ditemukan & diperbaiki —
+  CI sekarang pakai server produksi + retries (job `e2e` 5–9 menit → ~3 menit, tanpa flaky)
 
 ---
 
@@ -51,7 +53,7 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
 
 ## Framework Upgrade (2026-10-05) — Next 14.2.35 → 15.5.27 + React 19
 
-* **Tujuan**: menutup audit `next` **critical** (Next 15.5.27 = jalur security backport; install 16.3.8 hanya untuk sisa `postcss`, tapi butuh migrasi ESLint 9 flat config + `next lint` dihapus → tidak dipilih).
+* **Tujuan**: menutup audit `next` **critical** (Next 15.5.27 = jalur security backport; install 16.3.8 hanya untuk sisa `postcss`, tapi butuh migrasi ESLint 9 flat config + `next lint` dihapus → tidak dipilih). Blocker ESLint-nya sendiri **sudah dibereskan** 2026-10-06 (PR #5) — lihat "Housekeeping + Migrasi ESLint CLI".
 * **Perubahan kode (breaking Next 15)**:
   * `cookies()` jadi async → `await cookies()` di `src/lib/auth.ts`.
   * `params`/`searchParams` jadi Promise → `await` di 3 API route (`slip`, `formulir`, `laporan-lapangan` GET/POST) + 8 halaman (`kalender`, `laporan`, `laporan/baru`, `hr/slip-gaji`, `profil`, `slip-gaji/[id]`, `cuti/[id]`, `hr/karyawan/[id]`, `laporan/[id]`).
@@ -60,7 +62,7 @@ o | Vercel Analytics + SpeedInsights **diblokir CSP** — `script-src` tidak mem
 * **Perilaku baru React 19 (penting)**: form uncontrolled **direset otomatis** setelah tiap server action → field email di login kosong setelah gagal. `tests/rate-limit.spec.ts` diperbarui: isi ulang email tiap iterasi (pakai `waitForResponse` agar deterministik).
 * **Verifikasi**: `tsc` 0, `lint` 0, `build` 0, unit **84/84**, E2E utama **54/54**, flows **37/37**, rate-limit **2/2**. (Dua flake dev lokal: kalender `server-side exception` sewaktu suite paralel — lolos terisolasi & rerun penuh; catatan flakiness lama tetap berlaku.)
 * **Sisa audit** (`npm audit --omit=dev`): `postcss` high (bundled di next, build-time) + `uuid` moderate (via exceljs) — 4 vuln, tanpa critical. Bisa ditutup dengan `next@16` (breaking) bila diinginkan.
-* Catatan: CI Node 20 sudah cocok; `next lint` masih ada di 15.5 (deprecated, dihapus di 16).
+* Catatan: CI Node 20 sudah cocok; `next lint` (deprecated) sudah **diganti** ESLint CLI di PR #5 — lihat "Housekeeping + Migrasi ESLint CLI".
 
 ## Merge + Deploy Upgrade ke Production (2026-10-06)
 
@@ -167,6 +169,38 @@ yang di-stream Suspense.
   plus `exports.require`; override CJS secara teknis mungkin, tapi tidak perlu karena tidak reachable.
 * `next@16.3.8` butuh Node `>= 20.9.0` (CI Node 20 aman) dan React `^18.2.0 || ^19.0.0`.
 
+**KEPUTUSAN (2026-10-06, oleh user): opsi (a) — terima 4 vuln (0 critical) + pantau advisory.**
+Alasannya: keduanya terbukti tidak reachable di jalur kode app ini; menutup `postcss` lewat
+`npm overrides` berarti meng-override **pin eksak `next`** (risiko regresi framework demi advisory
+build-time), sedangkan `next@16` pun tetap menyisakan 3 moderate `uuid`. Jadi **tidak** ada alasan
+naik ke Next 16 hanya untuk audit ini. Tindak lanjut: review advisory berkala dan evaluasi ulang
+bila salah satu berubah jadi reachable atau muncul advisory baru.
+
+## Housekeeping + Migrasi ESLint CLI (2026-10-06, lanjutan)
+
+* **Housekeeping**: 3 branch yang sudah di-merge dihapus (lokal + remote) —
+  `chore/upgrade-next-15`, `ci/e2e-prod-server-retries`, `fix/flake-slip-batal`. Penting:
+  ketiganya masuk `main` lewat **squash merge**, sehingga `git branch --merged main` **tidak**
+  menunjukkannya (ancestry berbeda) — verifikasi dilakukan dengan membandingkan isi tree terhadap
+  `main`, bukan status merged. SHA sebelum hapus (untuk restore): `de9a7c1`, `bb3ca08`, `7371346`.
+* **`next lint` → ESLint CLI** (PR #5, branch `chore/eslint-cli-flat-config`): `next lint`
+  deprecated dan **dihapus di Next 16**, jadi gate lint dipindah ke ESLint CLI `eslint .`.
+  * `cuti-app/eslint.config.mjs` (baru) — flat config ESLint 9. `eslint-config-next@15.5.27`
+    belum mengekspor flat config, jadi `next/core-web-vitals` dibungkus `FlatCompat`
+    (`@eslint/eslintrc` ^3). `extends` sengaja **tetap sama** seperti `.eslintrc.json` lama —
+    `next/typescript` **tidak** diaktifkan supaya hasil lint tidak berubah (itu perubahan terpisah).
+  * `.eslintrc.json` dihapus (tidak dibaca lagi di flat config); `eslint` ^8.57 → **^9.39**;
+    script `lint` → `eslint .`.
+  * Cakupan jadi lebih luas: `next lint` hanya melint `app/pages/components/lib/src`,
+    `eslint .` juga melint `tests/`, `unit/`, dan file config. `ignores` eksplisit ditambahkan
+    untuk `.next/`, `next-env.d.ts`, `playwright-report/`, `test-results/`, `public/uploads/`.
+  * Satu temuan baru: `react-hooks/rules-of-hooks` salah menandai fixture Playwright
+    (`async ({ page }, use) => ...`) sebagai React Hook → aturan itu dimatikan khusus `tests/**`
+    (bukan kode React, jadi aturan itu memang tidak berlaku di sana).
+  * Verifikasi lokal: `eslint .` **0 problem** (identik dengan baseline `next lint`
+    "No ESLint warnings or errors"), `tsc` 0, unit **84/84**, `build` **29/29 halaman**. Tidak ada
+    kode runtime yang berubah (devDependency + tooling saja).
+
 ## Design Notes (bukan bug)
 
 * `isAtasan(userId)` mengecek **relasi** (`atasanId`), bukan `role` — user yang punya bawahan dianggap "atasan" terlepas dari field `role`. Ini memang desain yang dipakai di seluruh app.
@@ -208,9 +242,8 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
 Deploy Upgrade"); tiga flake E2E (`rate-limit`, `slip-batal`, `notifikasi`) **sudah ditutup**
-(PR #3 + PR #4). Tidak ada task aktif. Kandidat berikutnya: keputusan sisa audit dependensi
-(terima + pantau, atau tutup `postcss` via `npm overrides`) dan migrasi `next lint` → ESLint CLI
-sebagai persiapan Next 16 — lihat "Next Session".
+(PR #3 + PR #4); sisa audit dependensi **diputuskan** (terima + pantau); migrasi ESLint CLI
+dikerjakan di PR #5. Tidak ada task aktif — lihat "Next Session".
 
 ## Current Status
 
@@ -592,17 +625,16 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ## First Task
 
-Tidak ada task aktif. Urutan kandidat berikutnya:
+Tidak ada task aktif. Status kandidat terakhir:
 
-1. **Sisa audit dependensi** — `npm audit --omit=dev`: 1 high `postcss` + 3 moderate `uuid`,
-   0 critical (keduanya terbukti tidak reachable, lihat "Audit Sisa — Koreksi Analisis").
-   Pilihan: (a) terima 4 vuln + pantau advisory, atau (b) tutup `postcss` via `npm overrides`
-   — wajib uji `npm run build` + ketiga tier E2E dulu karena meng-override pin eksak `next`.
-   **`next@16` tidak menutup `uuid`** — uuid datang dari `exceljs`, bukan next.
-2. **Migrasi `next lint` → ESLint CLI (`eslint .`)** — `next lint` dihapus di Next 16; butuh
-   ESLint 9 + flat config. Kecil, risiko rendah, jadi prasyarat alami sebelum upgrade Next 16.
-3. **Item security LOW yang masih terbuka** — perbandingan secret cron belum constant-time
-   (`src/app/api/cron/route.ts`) dan token sesi tidak dirotasi setelah login (`src/lib/auth.ts`).
+1. **Sisa audit dependensi — SUDAH DIPUTUSKAN (2026-10-06, user)**: terima 4 vuln (0 critical) +
+   pantau advisory. Jangan naik ke `next@16` hanya untuk audit ini (`uuid` tetap 3 moderate).
+2. **Migrasi `next lint` → ESLint CLI — DIKERJAKAN di PR #5** (`chore/eslint-cli-flat-config`);
+   lokal sudah terverifikasi (lint 0, tsc 0, unit 84/84, build 29/29), menunggu CI + merge.
+   Setelah merged: tandai item TODO.md ini `[x]`.
+3. **Kandidat berikutnya (belum dikerjakan)** — item security LOW yang masih terbuka:
+   perbandingan secret cron belum constant-time (`src/app/api/cron/route.ts`) dan token sesi
+   tidak dirotasi setelah login (`src/lib/auth.ts`).
 
 ## Files To Inspect
 
@@ -610,7 +642,7 @@ Tidak ada task aktif. Urutan kandidat berikutnya:
 * `cuti-app/HANDOVER.md` — deploy/security checklists
 * `cuti-app/prisma/schema.prisma` — database schema
 * `cuti-app/src/lib/auth.ts` — auth guards
-* `cuti-app/package.json` + `cuti-app/.eslintrc*` — titik mulai migrasi ESLint CLI
+* `cuti-app/package.json` + `cuti-app/eslint.config.mjs` — gate lint (ESLint 9 flat config)
 * `cuti-app/playwright*.config.ts` — 3 tier E2E (wajib dijalankan sebelum rilis dependensi)
 
 ## Expected Outcome
@@ -645,7 +677,9 @@ CI `e2e` hijau **tanpa flaky** setelah pindah ke server produksi (job ~3 menit) 
 
 ## Lint
 
-PASS (`next lint` 0 warning; deprecated, dihapus di Next 16)
+PASS (`npm run lint` = `eslint .`, ESLint 9 flat config, **0 problem**) — identik dengan baseline
+`next lint`. `next lint` sudah dipensiunkan (dihapus di Next 16); lihat "Housekeeping + Migrasi
+ESLint CLI". Catatan: `next/typescript` belum diaktifkan (agar hasil lint tidak berubah).
 
 ## Deployment
 
