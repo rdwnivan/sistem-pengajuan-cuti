@@ -207,8 +207,10 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 ## Current Task
 
 Upgrade Next 15.5.27 + React 19 **sudah merged ke `main` dan live di production** (lihat "Merge +
-Deploy Upgrade"). Tidak ada task aktif. Kandidat berikutnya (butuh keputusan user): perbaiki flake
-`tests/slip-batal.spec.ts`, dan/atau naik ke `next@16` (breaking) untuk menutup `postcss`.
+Deploy Upgrade"); tiga flake E2E (`rate-limit`, `slip-batal`, `notifikasi`) **sudah ditutup**
+(PR #3 + PR #4). Tidak ada task aktif. Kandidat berikutnya: keputusan sisa audit dependensi
+(terima + pantau, atau tutup `postcss` via `npm overrides`) dan migrasi `next lint` → ESLint CLI
+sebagai persiapan Next 16 — lihat "Next Session".
 
 ## Current Status
 
@@ -590,9 +592,17 @@ Cannot determine atasan status from `role` field alone. Always use `isAtasan()` 
 
 ## First Task
 
-Tidak ada task aktif. Bila melanjutkan: (1) perbaiki flake `tests/slip-batal.spec.ts` — ganti
-`waitForURL(/\/hr\/slip-gaji/)` dengan predikat yang benar-benar menunggu hilangnya `?buat=1`;
-(2) putuskan sisa audit dependensi (`next@16` hanya menutup `postcss`, bukan `uuid`).
+Tidak ada task aktif. Urutan kandidat berikutnya:
+
+1. **Sisa audit dependensi** — `npm audit --omit=dev`: 1 high `postcss` + 3 moderate `uuid`,
+   0 critical (keduanya terbukti tidak reachable, lihat "Audit Sisa — Koreksi Analisis").
+   Pilihan: (a) terima 4 vuln + pantau advisory, atau (b) tutup `postcss` via `npm overrides`
+   — wajib uji `npm run build` + ketiga tier E2E dulu karena meng-override pin eksak `next`.
+   **`next@16` tidak menutup `uuid`** — uuid datang dari `exceljs`, bukan next.
+2. **Migrasi `next lint` → ESLint CLI (`eslint .`)** — `next lint` dihapus di Next 16; butuh
+   ESLint 9 + flat config. Kecil, risiko rendah, jadi prasyarat alami sebelum upgrade Next 16.
+3. **Item security LOW yang masih terbuka** — perbandingan secret cron belum constant-time
+   (`src/app/api/cron/route.ts`) dan token sesi tidak dirotasi setelah login (`src/lib/auth.ts`).
 
 ## Files To Inspect
 
@@ -600,7 +610,8 @@ Tidak ada task aktif. Bila melanjutkan: (1) perbaiki flake `tests/slip-batal.spe
 * `cuti-app/HANDOVER.md` — deploy/security checklists
 * `cuti-app/prisma/schema.prisma` — database schema
 * `cuti-app/src/lib/auth.ts` — auth guards
-* `cuti-app/tests/slip-batal.spec.ts` — flake yang belum diperbaiki
+* `cuti-app/package.json` + `cuti-app/.eslintrc*` — titik mulai migrasi ESLint CLI
+* `cuti-app/playwright*.config.ts` — 3 tier E2E (wajib dijalankan sebelum rilis dependensi)
 
 ## Expected Outcome
 
@@ -608,9 +619,14 @@ N/A — no active task.
 
 ## Things To Watch
 
-* Branch fitur **tidak** menjalankan CI bila di-push tanpa PR (`ci.yml`: `push` hanya `main`).
-* Tier E2E flaky intermiten di CI; `playwright.flows.config.ts` & `playwright.rate-limit.config.ts`
-  memakai `retries: 0`, jadi satu flake langsung memerahkan job.
+* Branch fitur **tidak** menjalankan CI bila di-push tanpa PR (`ci.yml`: `push` hanya `main`,
+  plus `pull_request`). Push branch tanpa PR = 0 job; selalu buka PR lalu cek
+  `gh run list --branch <branch>`.
+* Ketiga config E2E memakai `retries: process.env.CI ? 2 : 0` (lokal tanpa retry). Job CI yang
+  hijau **bisa** berarti lulus di percobaan kedua — periksa penanda `flaky` di log bila meragukan.
+  Job `e2e` normalnya ~3 menit; kalau kembali 5–9 menit, curigai ada test yang retry.
+* E2E wajib dari DB bersih (`$env:SEED_FORCE="true"; npx tsx prisma/seed.ts`) dan `.env` lokal
+  wajib tetap `neondb_dev` — jangan pernah diarahkan ke `neondb` production.
 * `cuti-app/HANDOVER.md` bisa basi — verifikasi terhadap kode sebelum dipakai.
 
 ---

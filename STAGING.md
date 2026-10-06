@@ -1,13 +1,10 @@
 # Staging Lokal
 
 > Keputusan: staging **hanya di lokal**, tidak ada URL publik.
-> Project Vercel `cuti-app-staging` sudah **dihapus** (2026-09-30) — kalau masih
-> melihat URL-nya di истории/docs, abaikan, sudah tidak ada.
->
-
-> Keputusan: staging **hanya di lokal**, tidak ada URL publik.
 > Alasannya: staging berisi salinan data production — kalau live, siapa pun
 > bisa membuka dan login pakai akun demo yang mudah ditebak.
+> Project Vercel `cuti-app-staging` sudah **dihapus** (2026-09-30) — kalau masih
+> melihat URL-nya di docs, abaikan, sudah tidak ada.
 >
 > Cara kerja: build production (`next build` + `next start`) dijalankan di
 > laptop menunjuk ke database branch `staging` di Neon. Mirip production
