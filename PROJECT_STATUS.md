@@ -352,6 +352,21 @@ sengaja tetap memakai pendekatan manual: `onClick` → set pending, reset via `p
 sebelum browser menyelesaikan submit). Perilaku baru React 19 yang wajib diingat: form uncontrolled
 **direset otomatis** setelah tiap server action (dipakai sebagai barrier di `tests/rate-limit.spec.ts`).
 
+**Reset itu juga terjadi saat action MENGEMBALIKAN error** — inilah akar bug "harus klik Kirim
+Pengajuan dua kali" (§12 "2026-10-07 lanjutan 2"). Karena itu `aksiAjukan` mengembalikan `nilai`
+(`NilaiAjukan`, `src/lib/validasi.ts`) dan `src/app/cuti/baru/Form.tsx` memasangnya kembali sebagai
+`defaultValue`. Dua hal yang mudah merusak perbaikan ini:
+
+1. Jangan hapus `key={...}#${list.length}` pada `<select name="jenisId">` — React hanya menerapkan
+   `defaultValue` select **saat mount**, jadi tanpa remount pilihan jenis hilang setelah reset (dan
+   `?jenis=` tidak terpasang karena opsinya dimuat async via `/api/jenis`). Input teks tidak butuh ini.
+2. **Lampiran tetap tidak bisa dipulihkan** (`form.reset()` mengosongkan `input[type=file]`, dan browser
+   melarang mengisi file secara programatik). Kalau pengajuan ditolak, user harus memilih file lagi —
+   keterbatasan yang diterima, bukan bug yang belum diperbaiki.
+
+Form lain (11 file `useActionState` lain, mis. `laporan/baru`) masih memakai pola lama sehingga isian
+hilang saat ditolak — lihat TODO.md.
+
 ### Fluidity navigasi — prefetch wajib dipertahankan
 Semua halaman `ƒ` (dynamic, karena `cookies()`). Di Next 14, `<Link>` dynamic **tidak** di-prefetch kecuali `prefetch` dipasang eksplisit. Tanpa itu tiap klik tunggu round-trip server (~350–585ms ke Neon). Dengan `prefetch` di nav (`shell.tsx`) + kartu dashboard (`page.tsx`), terukur via production build: **Slip Gaji 346→75ms, Laporan 585→92ms, Notifikasi 347→68ms**. Catatan: prefetch **dinonaktifkan di dev**, jadi peningkatan hanya terasa di production — jangan buang prop `prefetch` karena "tidak terasa bedanya di localhost". Jangan pasang `prefetch` di daftar panjang tak terbatas (boros query); di app ini aman karena nav & kartu jumlahnya tetap.
 
@@ -563,7 +578,7 @@ Tidak ada blocker lain.
 
 | ID | Bug | Severity | Status |
 | --- | --- | --- | --- |
-| (none) | | | |
+| A4F2-1 | Kredensial `DATABASE_URL` di `cuti-app/.env.test` (DB `neondb_test`) kedaluwarsa → `prisma db push`/seed/E2E lokal gagal `P1000 Authentication failed`. DB-nya ada dan bisa diakses memakai user/password dari `.env` dengan nama database diganti `neondb_test`. | Low (dev only) | Belum diperbaiki — butuh password terbaru dari dashboard Neon |
 
 ---
 
@@ -637,6 +652,36 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 ---
 
 # 12. Recent Changes
+
+## 2026-10-07 (lanjutan 2) — bug "klik Kirim Pengajuan dua kali" (reset form React 19)
+
+* **Gejala user**: mengajukan cuti terasa butuh klik tombol **Kirim Pengajuan** dua kali (atau lebih)
+  sebelum benar-benar terkirim.
+* **Akar masalah (terbukti, bukan dugaan)**: klik pertama **memang sudah submit** (`POST /cuti/baru` → 200),
+  tapi server menolaknya (mis. `Minimal pengajuan H-3`). React 19 memanggil `requestFormReset` untuk
+  **setiap** submit action — termasuk saat action mengembalikan `{ error }`
+  (`react-dom/cjs/react-dom-client.development.js:9326-9345`, `startHostTransition`) — sehingga seluruh
+  isian uncontrolled terhapus. Klik berikutnya lalu **tidak mengirim apa pun** karena field `required`
+  sudah kosong (native validation; terukur `posts=0`). User harus mengisi ulang semua dulu.
+  Lampiran yang sudah dipilih juga hilang (`input[type=file]` → 0 file) — ini tidak bisa dipulihkan.
+* **Repro 3 langkah (Playwright, di DB `neondb_test`)**: klik#1 → error tampil + semua field `""`;
+  klik#2 tanpa isi ulang → `posts=0`; isi ulang + klik#3 → `303` → `/cuti/<id>`. Screenshot kondisi
+  setelah klik#1 memperlihatkan form kosong + satu baris error merah.
+* **Perbaikan**: `aksiAjukan` (`src/actions/cutiActions.ts`) mengembalikan `nilai` (`NilaiAjukan` di
+  `src/lib/validasi.ts`, diambil dari FormData mentah) di **setiap** jalur error lewat helper `err()`;
+  `src/app/cuti/baru/Form.tsx` memasangnya kembali sebagai `defaultValue` untuk semua field + `key`
+  pada `<select name="jenisId">` (select butuh remount, lihat §"useFormStatus").
+* **Bug sekunder yang ikut ditemukan & diperbaiki**: deep link `/cuti/baru?jenis=<id>` tidak pernah
+  memilih jenisnya (`value=""`) karena opsi `/api/jenis` dimuat async setelah mount — `key` yang sama
+  (menyertakan `list.length`) memperbaikinya.
+* **Verifikasi**: `tsc --noEmit` 0 error; `eslint` 4 file berubah 0 problem; unit **90/90**; E2E flows
+  **23/23** pada semua spec yang menyentuh form cuti (cuti-flow 4, cuti-validasi 5, lampiran 3,
+  cron+notifikasi+delegasi 10) dijalankan dengan dev server + DB `neondb_test`. Dua test regresi baru
+  (`tests/cuti-validasi.spec.ts`) sudah dicek **merah tanpa perbaikan** (gagal di `option:checked`
+  `-- pilih --` dan di `?jenis=`), hijau dengan perbaikan. Tier utama/rate-limit/build/CI tidak
+  dijalankan ulang sesi ini (di luar cakupan perubahan).
+* **Temuan sampingan**: `cuti-app/.env.test` tidak bisa dipakai — password `neondb_test` di file itu
+  sudah kedaluwarsa (auth gagal walau DB ada). Lihat §10 Known Bugs.
 
 ## 2026-10-07 (lanjutan) — alias production, smoke pasca-deploy, next/typescript, sapu Sesi
 
@@ -927,6 +972,14 @@ sudah terdokumentasi, bukan regresi. Ketiga tier lalu dijalankan ulang dengan `C
 
 Verifikasi sesi ini (2026-10-07 lanjutan): PR #8 dan PR #9 dijalankan dengan `CI=1` dari DB bersih →
 **54/54 + 38/38 + 2/2**, 0 flaky.
+
+Verifikasi 2026-10-07 (lanjutan 2 — perbaikan form cuti, belum di-PR): hanya **verifikasi terfokus**,
+bukan ketiga tier. `tsc --noEmit` 0 error; `eslint` pada 4 file yang berubah 0 problem; unit **90/90**
+(tidak ada file unit yang berubah — angka 97/97 di atas berasal dari pencatatan sesi sebelumnya);
+E2E tier flows **23/23** untuk semua spec yang menyentuh form cuti (cuti-flow, cuti-validasi,
+lampiran, cron, notifikasi, delegasi) dijalankan dengan dev server + DB `neondb_test`. Tier utama,
+rate-limit, `npm run build`, dan CI **belum** dijalankan untuk perubahan ini — jalankan ketiganya
+sebelum merge.
 
 ## Lint
 

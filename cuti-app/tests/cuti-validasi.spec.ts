@@ -109,3 +109,65 @@ test("kuota tidak cukup ditolak (kuota tahun tertentu dihabiskan)", async ({ pag
     await prisma.$disconnect();
   }
 });
+
+/**
+ * Regresi "harus klik Kirim dua kali": React 19 mereset form uncontrolled setiap
+ * action di-submit — termasuk saat action mengembalikan error — sehingga isian user
+ * dulu terhapus dan klik berikutnya malah diblokir validasi HTML. Action sekarang
+ * mengembalikan `nilai` yang dipasang ulang sebagai defaultValue di Form.
+ * Jangan hapus assertion nilai: tanpa itu bug ini tidak ketahuan.
+ */
+test("isian form bertahan saat pengajuan ditolak, cukup perbaiki lalu kirim sekali", async ({ page }) => {
+  await login(page, "karyawan2");
+  await page.goto("/cuti/baru");
+  await page.waitForFunction(() => document.querySelectorAll('select[name="jenisId"] option').length > 1, {}, { timeout: 8000 });
+
+  const besok = new Date();
+  besok.setDate(besok.getDate() + 1);
+  const lusa = new Date();
+  lusa.setDate(lusa.getDate() + 2);
+  const alasan = "Uji isian dipertahankan saat pengajuan ditolak server";
+
+  await page.locator('select[name="jenisId"]').selectOption({ label: "Tahunan (min H-3)" });
+  await page.locator('input[name="tglMulai"]').fill(isoLocal(besok));
+  await page.locator('input[name="tglSelesai"]').fill(isoLocal(lusa));
+  await page.locator('textarea[name="alasan"]').fill(alasan);
+  await page.locator('input[name="picPengganti"]').fill("Rekan Pengganti");
+  await page.locator('input[name="kontakSelamaCuti"]').fill("081234567890");
+  await page.getByRole("button", { name: "Kirim Pengajuan" }).click();
+
+  await expect(page.getByText(/Minimal pengajuan H-3/).first()).toBeVisible({ timeout: 10000 });
+  await expect(page).toHaveURL(/\/cuti\/baru/);
+
+  // Seluruh isian harus masih ada — bukan cuma pesan errornya.
+  await expect(page.locator('select[name="jenisId"] option:checked')).toHaveText(/Tahunan/);
+  await expect(page.locator('input[name="tglMulai"]')).toHaveValue(isoLocal(besok));
+  await expect(page.locator('input[name="tglSelesai"]')).toHaveValue(isoLocal(lusa));
+  await expect(page.locator('textarea[name="alasan"]')).toHaveValue(alasan);
+  await expect(page.locator('input[name="picPengganti"]')).toHaveValue("Rekan Pengganti");
+  await expect(page.locator('input[name="kontakSelamaCuti"]')).toHaveValue("081234567890");
+
+  // Perbaiki tanggalnya saja: satu klik harus langsung terkirim tanpa isi ulang.
+  const r = seninSetelah(5);
+  await page.locator('input[name="tglMulai"]').fill(r.mulai);
+  await page.locator('input[name="tglSelesai"]').fill(r.selesai);
+  await page.getByRole("button", { name: "Kirim Pengajuan" }).click();
+  await page.waitForURL(/\/cuti\/[a-zA-Z0-9]{20,}$/, { timeout: 20000 });
+  await expect(page.getByText("Menunggu Atasan").first()).toBeVisible({ timeout: 15000 });
+
+  // Cleanup: batalkan supaya tidak meninggalkan state untuk test lain.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Batalkan Pengajuan" }).click();
+  await page.waitForURL("/", { timeout: 20000 });
+});
+
+test("deep link ?jenis= memilih jenis cuti setelah daftar opsi dimuat", async ({ page }) => {
+  await login(page, "karyawan2");
+  const daftar = (await page.evaluate(async () => (await fetch("/api/jenis")).json())) as { id: string; nama: string }[];
+  const tahunan = daftar.find((j) => j.nama === "Tahunan");
+  if (!tahunan) throw new Error("jenis Tahunan tidak ada di seed");
+
+  await page.goto(`/cuti/baru?jenis=${tahunan.id}`);
+  await page.waitForFunction(() => document.querySelectorAll('select[name="jenisId"] option').length > 1, {}, { timeout: 8000 });
+  await expect(page.locator('select[name="jenisId"]')).toHaveValue(tahunan.id);
+});
