@@ -26,6 +26,8 @@ jobs:
         run: npm ci
       - name: Prisma generate
         run: npx prisma generate
+      - name: Dependency compatibility
+        run: npm run test:dependencies && npm run test:sdk
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Lint

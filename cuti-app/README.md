@@ -19,6 +19,8 @@ Next.js dan `eslint-config-next` dipin ke versi eksak yang sama. Pembaruan dilak
 
 Zod dipin eksak ke 4.6.7 untuk GHSA-mrhx-c7xc-m3w5. Override khusus `@vercel/cli-config` memakai `$zod` agar pin transitive 4.1.11 tidak membawa versi rentan melalui Blob/OIDC; versi Blob/OIDC/CLI-config tetap. Hapus override setelah upstream menerima Zod yang ditambal. Verifikasi perubahan rantai ini dengan `npm run test:sdk` (config, token dummy, dan Blob PUT ke endpoint lokal; tanpa kredensial/Blob production) serta audit, unit, build, dan E2E. Batas panjang string form tetap UTF-16 lewat helper `teks()` agar migrasi Zod tidak mengubah password maupun batas input HTML.
 
+PostCSS dipin **8.5.28**, versi yang sudah dipakai pipeline Tailwind, dan override `$postcss` menyatukan resolusi termasuk pin lama Next 15 untuk menutup advisory XSS/source map. Override khusus ExcelJS memakai UUID **11.1.1** (patch buffer bounds, tetap mendukung `require` CommonJS dan `v4()` tanpa opsi yang dipakai ExcelJS). Ini melampaui range UUID bawaan ExcelJS; perubahan v1/v7, browser UMD, dan dukungan Node lama pada major 9–11 tidak dipakai jalur ekspor server aplikasi. `npm run test:dependencies` menguji regresi CSS/source map/buffer serta ekspor-baca ulang Excel dengan conditional formatting yang menjalankan UUID. CI menjalankannya bersama tes SDK; audit produksi, build dan E2E tetap wajib sebelum rilis. Hapus override setelah Next/ExcelJS membawa dependency ditambal secara native dan seluruh gate tetap lulus.
+
 ## Fitur
 
 **Karyawan**

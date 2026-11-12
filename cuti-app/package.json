@@ -13,6 +13,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:unit": "tsx --test \"unit/*.test.ts\"",
     "test:sdk": "node --test scripts/vercel-sdk.test.mjs",
+    "test:dependencies": "node --test scripts/dependency-compat.test.mjs",
     "test:e2e:flows": "playwright test --config=playwright.flows.config.ts"
   },
   "dependencies": {
@@ -42,13 +43,17 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "15.5.29",
     "pg": "^8.23.0",
-    "postcss": "^8.4.39",
+    "postcss": "8.5.28",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   },
   "overrides": {
+    "postcss": "$postcss",
+    "exceljs": {
+      "uuid": "11.1.1"
+    },
     "@vercel/cli-config": {
       "zod": "$zod"
     }

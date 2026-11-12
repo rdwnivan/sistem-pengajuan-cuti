@@ -25,6 +25,20 @@ test.describe("SECURITY — IDOR & otorisasi API", () => {
     expect(r.status()).toBe(403);
   });
 
+  test("rekap /api/laporan sebagai HR menghasilkan workbook Excel yang bisa dibaca", async ({ page }) => {
+    await login(page, "hr");
+    const response = await page.request.get("/api/laporan?format=excel");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(Uint8Array.from(await response.body()).buffer);
+    const sheet = workbook.getWorksheet("Rekap Cuti");
+    expect(sheet).toBeDefined();
+    expect(sheet!.getCell("A1").value).toBe("Pemohon");
+    expect(sheet!.getCell("H1").value).toBe("Diajukan");
+  });
+
   test("/api/approver tanpa sesi → 401", async ({ page, context }) => {
     await context.clearCookies();
     const r = await page.request.get("/api/approver");
