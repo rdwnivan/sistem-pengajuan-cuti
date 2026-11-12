@@ -14,6 +14,7 @@
     "test:unit": "tsx --test \"unit/*.test.ts\"",
     "test:sdk": "node --test scripts/vercel-sdk.test.mjs",
     "test:dependencies": "node --test scripts/dependency-compat.test.mjs",
+    "test:tooling": "node --test scripts/tooling-compat.test.mjs",
     "test:e2e:flows": "playwright test --config=playwright.flows.config.ts"
   },
   "dependencies": {
@@ -50,6 +51,9 @@
     "typescript": "^5.5.3"
   },
   "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.1"
+    },
     "postcss": "$postcss",
     "exceljs": {
       "uuid": "11.1.1"
