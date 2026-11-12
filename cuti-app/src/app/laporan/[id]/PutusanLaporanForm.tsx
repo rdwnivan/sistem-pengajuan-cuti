@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useState, useActionState } from "react";
 import { aksiPutusanLaporan } from "@/actions";
 import { ErrorMsg, Field, inputCls } from "@/components/ui";
@@ -9,7 +10,7 @@ export function PutusanLaporanForm({ laporanId }: { laporanId: string }) {
   const [opsi, setOpsi] = useState<"setuju" | "tolak" | "kembalikan" | null>(null);
 
   return (
-    <form action={action} className="space-y-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
+    <ActionForm action={action} className="space-y-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
       <input type="hidden" name="laporanId" value={laporanId} />
       <h2 className="font-bold text-amber-900">Keputusan Anda</h2>
       <Field label="Catatan (wajib untuk tolak/kembalikan)">
@@ -27,6 +28,6 @@ export function PutusanLaporanForm({ laporanId }: { laporanId: string }) {
         </SubmitButton>
       </div>
       <ErrorMsg msg={state?.error} />
-    </form>
+    </ActionForm>
   );
 }

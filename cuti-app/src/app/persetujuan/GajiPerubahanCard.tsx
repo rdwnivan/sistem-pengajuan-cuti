@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useActionState } from "react";
 import { Badge, ErrorMsg, inputCls } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -46,7 +47,7 @@ export function GajiPerubahanCard({ g }: { g: GajiPerubahanData }) {
 
       <p className="text-xs italic text-zinc-600">Alasan: {g.alasan}</p>
 
-      <form action={action} className="space-y-2">
+      <ActionForm action={action} className="space-y-2">
         <input type="hidden" name="gajiPerubahanId" value={g.id} />
         <textarea name="catatan" rows={2} placeholder="Catatan (wajib diisi bila menolak)" className={inputCls} />
         <ErrorMsg msg={state?.error} />
@@ -55,7 +56,7 @@ export function GajiPerubahanCard({ g }: { g: GajiPerubahanData }) {
           <SubmitButton name="aksi" value="kembalikan" className="flex-1 rounded-lg border border-orange-500 px-3 py-2 text-orange-700">Kembalikan</SubmitButton>
           <SubmitButton name="aksi" value="tolak" className="flex-1 rounded-lg border border-red-500 px-3 py-2 text-red-700">Tolak</SubmitButton>
         </div>
-      </form>
+      </ActionForm>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useState, useActionState } from "react";
 import { aksiSimpanJenis } from "@/actions";
 import { ErrorMsg, Field, inputCls } from "@/components/ui";
@@ -14,7 +15,7 @@ export function JenisForm({ initial }: { initial?: J }) {
     ? `Nonaktifkan jenis cuti "${initial.nama}"? Pengajuan baru tidak bisa memakai jenis ini.`
     : undefined;
   return (
-    <form action={action} className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+    <ActionForm action={action} className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
       <input type="hidden" name="id" value={initial?.id ?? ""} />
       <Field label="Nama"><input name="nama" required defaultValue={initial?.nama} className={inputCls} /></Field>
       <Field label="Kuota (hari)"><input name="kuota" type="number" min={0} max={365} required defaultValue={initial?.kuota ?? 12} className={inputCls} /></Field>
@@ -30,6 +31,6 @@ export function JenisForm({ initial }: { initial?: J }) {
         <ErrorMsg msg={state?.error} />
         <SubmitButton confirm={confirmNonaktif} className="w-full rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">{initial ? "Update" : "Tambah"}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
