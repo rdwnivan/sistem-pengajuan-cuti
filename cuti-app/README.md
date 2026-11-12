@@ -17,6 +17,8 @@ Aplikasi pengajuan dan persetujuan cuti karyawan berbasis web. Mobile-first, ber
 
 Next.js dan `eslint-config-next` dipin ke versi eksak yang sama. Pembaruan dilakukan lewat PR dengan lockfile, audit dependensi, typecheck, lint, unit test, build, dan E2E; pin bukan alasan menunda patch keamanan. `npm ci` menjaga instalasi mengikuti lockfile.
 
+Zod dipin eksak ke 4.6.7 untuk GHSA-mrhx-c7xc-m3w5. Override khusus `@vercel/cli-config` memakai `$zod` agar pin transitive 4.1.11 tidak membawa versi rentan melalui Blob/OIDC; versi Blob/OIDC/CLI-config tetap. Hapus override setelah upstream menerima Zod yang ditambal. Verifikasi perubahan rantai ini dengan `npm run test:sdk` (config, token dummy, dan Blob PUT ke endpoint lokal; tanpa kredensial/Blob production) serta audit, unit, build, dan E2E. Batas panjang string form tetap UTF-16 lewat helper `teks()` agar migrasi Zod tidak mengubah password maupun batas input HTML.
+
 ## Fitur
 
 **Karyawan**

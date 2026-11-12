@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:unit": "tsx --test \"unit/*.test.ts\"",
+    "test:sdk": "node --test scripts/vercel-sdk.test.mjs",
     "test:e2e:flows": "playwright test --config=playwright.flows.config.ts"
   },
   "dependencies": {
@@ -26,7 +27,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "web-push": "^3.6.7",
-    "zod": "^3.23.8"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
@@ -46,5 +47,10 @@
     "tailwindcss": "^3.4.7",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
+  },
+  "overrides": {
+    "@vercel/cli-config": {
+      "zod": "$zod"
+    }
   }
 }
