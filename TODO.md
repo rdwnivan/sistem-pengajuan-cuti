@@ -131,8 +131,9 @@ Nice-to-have items.
 * [x] Audit berkala 2026-11-12 + patch kompatibel — `next`/`eslint-config-next` 15.5.27 → 15.5.29, `undici` 6.28.1 → 6.29.1. Audit produksi 9 temuan (1 critical) → 8 (0 critical, 5 high, 3 moderate). Typecheck/lint/build, 97 unit, E2E 54+38+2 lulus tanpa retry. Snapshot dan reachability sisa di `PROJECT_STATUS.md`.
 * [x] Merge/rilis patch keamanan 2026-11-12 — PR #15 squash-merged `3104029`; verify/e2e/preview PR PASS. Deployment production sukses, `/api/version` SHA cocok + env production; smoke read-only PASS (login/aset 200, cron 401, 8 redirect login). Audit ulang lockfile live tetap 8 (0 critical, 5 high, 3 moderate).
 * [x] Evaluasi upstream Zod/Blob 2026-11-12 — Blob terbaru 2.9.0 tetap OIDC ^3.6.1; OIDC 3.x terbaru 3.8.10 → CLI-config 0.3.1 → Zod 4.1.11 terdampak. CLI-config 0.3.8 sudah meminta Zod ^4.6.6 tetapi datang via OIDC 4.0.8 (di luar range Blob). Zod langsung 3.25.76 sudah terakhir 3.x. Tidak ada penutupan kompatibel tanpa override/major; tidak ada churn dependency. Bukti registry dan batas reachability di PROJECT_STATUS.md §15.
-* [~] Migrasi Zod langsung 3→4.6.7 lewat PR tersendiri — 109 unit/typecheck/lint PASS; helper UTF-16 menjaga kontrak string lama yang berubah di Zod 4.6. Build/E2E dan rilis masih berlangsung. Owner: maintainer.
-* [~] Evaluasi override Zod pada CLI-config beserta verifikasi upload/token; user mengizinkan pekerjaan sisa pada sesi lanjutan. Pisahkan commit dari migrasi major; audit ulang sesudah verifikasi. Jangan downgrade Blob/ExcelJS atau `audit fix --force` demi angka nol.
+* [x] Migrasi Zod langsung 3→4.6.7 di PR #17 — pin eksak, helper UTF-16 menjaga batas string/pesan lama. **109 unit + typecheck/lint/build + E2E 54+40+2 PASS**. Perubahan PR #11 pada main sudah ikut diuji.
+* [x] Override Zod khusus CLI-config memakai `$zod`, dalam commit terpisah dari migrasi major (PR #17). **7 uji SDK PASS**, termasuk config/token dummy dan Blob PUT localhost via RW/OIDC. Audit produksi **8 → 4 (0 critical, 1 high, 3 moderate)**; Blob/OIDC/CLI-config tidak diganti, tidak ada force/downgrade. Sisa PostCSS/UUID tetap mengikuti keputusan penerimaan risiko sebelumnya.
+* [ ] Evaluasi penghapusan override CLI-config ketika upstream menerima Zod >=4.6.6; jalankan `npm run test:sdk`, unit/build/E2E, dan audit sebelum menghapus. Owner: maintainer; review minimal bulanan, saat lockfile berubah, dan sebelum rilis.
 
 * [x] Review authentication — token `crypto.randomBytes(32)`, expiry 7 hari, cookie httpOnly + sameSite=lax + secure(prod); bcrypt cost 10; `statusAktif` dicek (`src/lib/auth.ts`)
 * [x] Review authorization — 9/9 halaman `/hr/*` pakai `wajibHR()`; E2E security 8 test redirect non-HR
@@ -200,7 +201,7 @@ Move completed tasks here periodically.
 * [x] Delegasi — atasan→atasan, HR→HR, same-tier only
 * [x] Web Push — VAPID + Service Worker + subscribe endpoint
 * [x] Cron — reminder H+1 + eskalasi H+3 (Vercel cron)
-* [x] E2E tests — 94 Playwright (54 utama + 38 flows + 2 rate-limit, 3 tier config) + 97 unit (`npm run test:unit`)
+* [x] E2E tests — 96 Playwright (54 utama + 40 flows + 2 rate-limit, 3 tier config) + 109 unit (`npm run test:unit`) + 7 SDK (`npm run test:sdk`)
 * [x] CI/CD — GitHub Actions verify + e2e
 * [x] Deploy — Vercel live
 
