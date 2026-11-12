@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useState, useActionState } from "react";
 import { aksiSimpanUser } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
@@ -17,7 +18,7 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
     ? `Nonaktifkan akun ${initial?.nama ?? "karyawan ini"}? Akun tidak bisa login sampai diaktifkan lagi.`
     : undefined;
   return (
-    <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
+    <ActionForm action={action} className="space-y-3 rounded-xl border bg-white p-4">
       {gajiPending && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
           Perubahan gaji menunggu persetujuan atasan. Cek di /persetujuan atau panel HR.
@@ -60,6 +61,6 @@ export function UserForm({ initial, atasans, id, gajiPending }: {
       </label>
       <ErrorMsg msg={state?.error} />
       <SubmitButton confirm={confirmNonaktif} className={btnCls}>Simpan</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

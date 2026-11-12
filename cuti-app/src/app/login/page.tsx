@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useState, useActionState } from "react";
 import { aksiLogin } from "@/actions";
 import { ErrorMsg, inputCls, btnCls, Field } from "@/components/ui";
@@ -33,7 +34,7 @@ export default function LoginPage() {
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-xl font-bold text-emerald-800">Cuti Anime Japan</h1>
         <p className="mb-4 text-sm text-zinc-600">Masuk dengan akun dari HR</p>
-        <form action={action} className="space-y-3">
+        <ActionForm action={action} className="space-y-3">
           <Field label="Email">
             <input name="email" type="email" required className={inputCls} placeholder="nama@anime.id" />
           </Field>
@@ -63,7 +64,7 @@ export default function LoginPage() {
           </div>
           <ErrorMsg msg={state?.error} />
           <SubmitButton className={btnCls}>Masuk</SubmitButton>
-        </form>
+        </ActionForm>
         <p className="mt-3 text-xs text-zinc-500">Demo (password: anime123): hr@anime.id · pimpinan@anime.id · atasan1@anime.id · karyawan1@anime.id</p>
       </div>
     </div>
