@@ -5,7 +5,10 @@
 
 ## Last Updated
 
-* Date: 2026-10-07 (WIB), lanjutan
+* Date: 2026-11-12 (WIB)
+* Session: penutupan verifikasi production + audit bulanan. Upload Blob dan slip demo live PASS; pin Next eksak ditetapkan. Patch Next 15.5.29 + Undici 6.29.1 terverifikasi lokal (97 unit + 94 E2E), belum dirilis. Lihat §15 untuk kondisi terbaru; catatan Oktober di bawah adalah arsip, termasuk angka audit dan SHA deployment lama.
+
+## Arsip snapshot 2026-10-07
 * Session: P1/P2/P3 lanjutan. **Dua koreksi atas pekerjaan saya sendiri di sesi ini** (keduanya
   sudah dibereskan): (1) smoke pasca-deploy saya mula-mula memakai perbandingan **hash chunk antar
   lingkungan** — asumsi itu salah dan menghasilkan MISMATCH palsu; diganti verifikasi **SHA commit**
@@ -290,15 +293,7 @@ Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + bl
 
 ## Current Task
 
-**Tidak ada P0 tertunda.** Alias production mengikuti `main` (dibuktikan `/api/version` → `9ae5f03`
-+ smoke MATCH), jadi dua security LOW PR #6 **live**. Klaim sebelumnya ("alias nyangkut, butuh
-Promote") sudah dicabut — lihat §9 dan §14 item 2b.
-
-Sudah selesai dan merged: upgrade Next 15.5.27 + React 19 live (PR #2/#3/#4), migrasi ESLint CLI
-(PR #5 `3ec54ef`), security PR #6 (`d9ac5e7`), smoke pasca-deploy (PR #7) + koreksi berbasis SHA
-(PR #12 `9ae5f03`), `next/typescript` + dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9),
-dokumentasi (PR #10). Terbuka (butuh user): TODO 97 (keputusan pin `next`), TODO 162 (upload di
-Vercel asli), Web Push di perangkat nyata.
+Verifikasi sisa production selesai 2026-11-12. Patch kompatibel `next` + `eslint-config-next` 15.5.29 dan `undici` 6.29.1 sudah lulus seluruh gate lokal, menunggu rilis via PR. Production masih melayani `05d6d13` pada pemeriksaan sesi ini; patch belum live. Audit lama 0 critical tidak berlaku untuk dependency production yang belum dipatch.
 
 ## Current Status
 
@@ -757,77 +752,10 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 
 # 13. Next Session
 
-## First Task
-
-**Tidak ada P0.** Alias production sudah mengikuti `main` (dibuktikan `/api/version` → `9ae5f03`
-plus smoke MATCH). Yang tersisa adalah pekerjaan yang butuh user, bukan blocker:
-
-1. **TODO 162** — verifikasi upload di production live (login + submit form berisi lampiran).
-   Langkah siap-jalan ada di `TODO.md`.
-2. **TODO 97** — keputusan pin `next` eksak vs `^15.5.27` (rekomendasi: tetap eksak, karena `npm ci`
-   selalu memakai lockfile sehingga range tidak menambah keamanan di gate).
-3. **Web Push di perangkat nyata** — verifikasi manual sisa.
-4. Opsional: pindahkan `@typescript-eslint/no-unused-vars` ke `warn` (sekarang default
-   eslint-config-next = `warn`, jadi belum memerahkan gate).
-
-Cara memverifikasi deploy kapan saja (tanpa dashboard — pakai ini, **jangan** hash chunk):
-
-```powershell
-(Invoke-WebRequest https://cuti-app.vercel.app/api/version -UseBasicParsing).Content
-# sha harus sama dengan: git rev-parse origin/main
-gh workflow run post-deploy-smoke.yml --ref main   # atau tunggu workflow_run otomatis
-```
-
-Kalau smoke melaporkan MISMATCH, itu berarti alias benar-benar melayani commit lain — bukan
-kegagalan smoke-nya.
-
-Urutan sesi sebelumnya (dipakai sebagai handoff). Item 1–4 **selesai di sesi 2026-10-07**:
-
-1. ~~**Koreksi + evaluasi ulang catatan audit**~~ — **SELESAI 2026-10-07**. Temuan: snapshot
-   dokumen "7 vuln" **tidak reproducible** (yang terukur 5 vuln pada lockfile yang sama).
-   `source-map-js` ternyata punya fix non-breaking 1 paket → ditutup (`1.2.1 → 1.2.2`),
-   audit prod kini **4 vuln (1 high, 3 moderate)**; keputusan (a) ditegaskan untuk sisa
-   `postcss` + `uuid`. Jadwal review advisory berkala ditulis di section "Audit Sisa".
-2. ~~**Item security LOW**~~ — **SELESAI 2026-10-07**: `samaAman()` (`src/lib/aman-sama.ts`)
-   dipakai `/api/cron` (constant-time, SHA-256 digest) + rotasi token sesi di `buatSesi`
-   (`src/lib/auth.ts`). Unit baru `unit/aman-sama.test.ts`. **Menunggu Promote** (item P0 di atas).
-3. ~~**Verifikasi yang butuh manusia/production**~~ — **SEBAGIAN**: upload di production live (TODO
-   162) langkahnya sudah disiapkan di TODO.md; konfirmasi slip demo dari aplikasi live + Web Push di
-   perangkat nyata masih terbuka.
-4. ~~**Backlog opsional**~~ — **SELESAI**: smoke pasca-deploy (PR #7), `next/typescript` +
-   dead import (PR #8), sapu `Sesi` kedaluwarsa (PR #9); TODO 120 ditutup karena sudah tercakup.
-   Sisa: keputusan pin `next` eksak vs `^15.5.27` (TODO 97, keputusan user).
-
-Belum tersentuh/terbuka: TODO 97 (keputusan user), TODO 162 (butuh tangan user), TODO 120 (ditutup),
-serta PR #7/#8/#9 yang **belum di-merge** saat dokumen ini ditulis.
-
-Sudah selesai sebelumnya: migrasi `next lint` → ESLint CLI (PR #5, squash `3ec54ef`) — CI
-`verify` + `e2e` hijau (54/37/2, 0 flaky) dan `npm run lint` di `main` 0 problem.
-
-## Files To Inspect
-
-* `AGENTS.md` — project instructions
-* `cuti-app/HANDOVER.md` — deploy/security checklists
-* `cuti-app/prisma/schema.prisma` — database schema
-* `cuti-app/src/lib/auth.ts` — auth guards
-* `cuti-app/package.json` + `cuti-app/eslint.config.mjs` — gate lint (ESLint 9 flat config)
-* `cuti-app/playwright*.config.ts` — 3 tier E2E (wajib dijalankan sebelum rilis dependensi)
-
-## Expected Outcome
-
-N/A — no active task.
-
-## Things To Watch
-
-* Branch fitur **tidak** menjalankan CI bila di-push tanpa PR (`ci.yml`: `push` hanya `main`,
-  plus `pull_request`). Push branch tanpa PR = 0 job; selalu buka PR lalu cek
-  `gh run list --branch <branch>`.
-* Ketiga config E2E memakai `retries: process.env.CI ? 2 : 0` (lokal tanpa retry). Job CI yang
-  hijau **bisa** berarti lulus di percobaan kedua — periksa penanda `flaky` di log bila meragukan.
-  Job `e2e` normalnya ~3 menit; kalau kembali 5–9 menit, curigai ada test yang retry.
-* E2E wajib dari DB bersih (`$env:SEED_FORCE="true"; npx tsx prisma/seed.ts`) dan `.env` lokal
-  wajib tetap `neondb_dev` — jangan pernah diarahkan ke `neondb` production.
-* `cuti-app/HANDOVER.md` bisa basi — verifikasi terhadap kode sebelum dipakai.
+1. Periksa status PR patch 2026-11-12. Setelah CI lulus dan merge/rilis, verifikasi SHA `/api/version` terhadap commit yang benar dan jalankan smoke production. Jangan menganggap verifikasi lokal sebagai deploy.
+2. Lanjutkan evaluasi upstream Zod/Blob (TODO Security), tanpa upgrade major atau override massal yang tidak diuji.
+3. Periksa Web Analytics lewat dashboard Vercel bila akses tersedia; skrip insights masih 404.
+4. Upload production dan slip demo sudah diverifikasi; tidak perlu mengulang atau membuat slip demo duplikat. Web Push perangkat sudah memiliki bukti historis 2026-10-01 di TODO Bugs.
 
 ---
 
@@ -988,66 +916,36 @@ gate upload `lampiran.spec.ts`).
 
 # 15. Current Health
 
-## Build
+## Verifikasi 2026-11-12 (WIB)
 
-PASS (`npm run build` Next 15.5.27, 29/29 halaman; CI `verify` hijau di `main`)
+* Lokal: `next` + `eslint-config-next` **15.5.29** (pin eksak), `undici` **6.29.1**. Pin menjaga perubahan terkontrol; upgrade keamanan tetap lewat PR + lockfile + gate. Rationale ada di `cuti-app/README.md`.
+* PASS: `prisma generate`, `tsc --noEmit`, `npm run lint`, **97/97 unit**, `npm run build` (**29/29 halaman**), E2E produksi lokal **54/54 + 38/38 + 2/2**, tanpa retry/flaky. E2E memakai `CI=1`, `TZ=Asia/Jakarta`, schema terisolasi `codex_verify_20261112_0203` pada `neondb_dev`; schema `public` dev dan production tidak di-reseed. Token layanan eksternal dikosongkan untuk E2E. Schema uji dipertahankan untuk reproduksi; server/browser CLI uji sudah ditutup.
+* Production yang benar-benar diuji: `/api/version` → `05d6d13df087add0154e57fcb10ba9a9ae5bd36d`, env `production`. Patch dependency sesi ini **belum deploy**.
 
-## Tests
+## Upload production
 
-PASS — unit **97/97** (9 file unit, termasuk `unit/sesi.test.ts`), E2E utama **54/54**,
-flows **38/38**, rate-limit **2/2** (3 tier config, **21 file spec**). CI `e2e` hijau **tanpa
-flaky** setelah pindah ke server produksi (job ~3 menit) — lihat
-"Infrastruktur E2E — Server Produksi di CI + Retries".
+* Akun demo Karyawan 1 mengajukan Sakit **23–24 November 2026** dengan PNG asli 1×1, 68 byte. Detail `/cuti/cmwcwflng0001bhop6kdcbey8` menautkan Vercel Blob; GET objek → **200, image/png, 68 byte**.
+* Negatif PASS: dua hari Sakit tanpa file → `Lampiran wajib untuk jenis cuti ini`; HTML ber-ekstensi PDF → `file tidak sesuai jenis yang diklaim`.
+* Pengajuan uji sudah **DIBATALKAN** dari UI dan tidak lagi dalam antrean aktif. Row audit/pengajuan dibatalkan, notifikasi, dan objek PNG tetap ada sesuai perilaku aplikasi (pembatalan tidak menghapus Blob). Objek uji: `lampiran/cmunbb8eu0008f31f83889jg3-1794448712229.png`.
+* Dashboard Storage/Logs tidak dibuka; keberhasilan dibuktikan lewat submit UI, tautan detail, dan GET objek Blob langsung.
 
-Verifikasi 2026-10-07 (branch `security/audit-correction-low-items`): run lokal dengan dev server
-sempat gagal 2 test `performance.spec.ts` + 1 `notifikasi.spec.ts`; ketiganya **hijau saat
-dijalankan ulang** (performance isolasi 9/9, notifikasi isolasi 2/2) → degradasi dev server yang
-sudah terdokumentasi, bukan regresi. Ketiga tier lalu dijalankan ulang dengan `CI=1`
-(`npm run start`, sama seperti CI) dari DB bersih: **54/54 + 37/37 + 2/2, 0 flaky**.
+## Slip demo production
 
-Verifikasi sesi ini (2026-10-07 lanjutan): PR #8 dan PR #9 dijalankan dengan `CI=1` dari DB bersih →
-**54/54 + 38/38 + 2/2**, 0 flaky.
+* Slip **DEMO November 2026**, Karyawan 1, ID `cmwcwmws40001rsb8z7udz2v3`, dibuat lewat UI HR dan dibiarkan **TERBIT** untuk demo. Catatan menyatakan angka contoh, bukan pembayaran gaji riil.
+* Pokok 0 + jabatan 1.000.000 + transport 100.000 + makan 200.000 − PPh21 50.000 = **Rp1.250.000**. Rincian/NIP tampil di detail HR dan akun karyawan.
+* Preview PDF: **200 application/pdf**, `Content-Disposition: inline`; download: **200 attachment**, signature `%PDF-`. Unduhan sebagai pemilik (Karyawan 1) juga 200.
 
-## Lint
+## Audit produksi (snapshot 2026-11-12)
 
-PASS (`npm run lint` = `eslint .`, ESLint 9 flat config, **0 problem**) dengan **`next/typescript`
-AKTIF** sejak PR #8 — lihat §14 item 3. `next lint` sudah dipensiunkan (dihapus di Next 16).
+* Perintah: `npm audit --omit=dev --json`. Sebelum patch: **9 paket terdampak (1 critical, 6 high, 2 moderate)**. Setelah patch: **8 (0 critical, 5 high, 3 moderate)**. Hitungan paket termasuk pembawa transitive, bukan 8 akar masalah independen.
+* Next 15.5.27 ditandai critical [SVG Image Optimization](https://github.com/advisories/GHSA-2464-fhr4-w9xw) dan high [DoS Server Actions](https://github.com/advisories/GHSA-p3m5-59mp-jv5r); patch 15.5.29 menutup keduanya. App memakai Server Actions sehingga DoS relevan. `undici` 6.29.1 menutup advisory 6.28.1 sesuai range dependency Blob; tidak ada `overrides`, downgrade, atau upgrade major.
+* Sisa: **postcss high + next moderate** (Next masih mem-pin PostCSS 8.4.31, CSS first-party/build-time; keputusan historis menerima risiko tetap berlaku), **uuid + exceljs moderate** (ExcelJS hanya `uuidv4()` tanpa buffer, tidak memakai jalur advisory), serta **zod high + @vercel/cli-config/@vercel/oidc/@vercel/blob high** sebagai pembawanya.
+* [Advisory Zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) menyasar validasi array besar. `src/lib/validasi.ts` hanya memakai objek/scalar; tidak ada `z.array` pada aplikasi. CLI-config memvalidasi config lokal berbentuk objek/scalar. Ini analisis batas jalur saat ini, bukan klaim semua penggunaan SDK Blob bebas risiko. Upgrade Zod 3→4 dan rantai upstream perlu perubahan tersendiri; tindak lanjut tercatat di TODO Security (owner: maintainer).
+* Review ulang minimal bulanan, setiap lockfile berubah, dan sebelum rilis. Angka audit Oktober di arsip bukan kondisi terbaru. Patch lokal perlu dirilis agar production mendapat perbaikan.
 
-## Deployment
+## Catatan operasional
 
-PASS — alias production **mengikuti `main`, tidak nyangkut**. Bukti (dari deployment yang menjawab,
-bukan dari tebakan):
-
-```
-GET https://cuti-app.vercel.app/api/version
-→ 200 {"sha":"9ae5f03f38714665a30baac9202eeedc32487186","env":"production"}
-```
-
-Smoke pasca-deploy di `main` juga **MATCH** terhadap commit `9ae5f03` (run `37545856292`). Jadi dua
-security LOW PR #6 (secret cron constant-time + rotasi token sesi) **live** — diperkuat probe
-`/api/cron` yang mengembalikan 401 untuk secret salah/tanpa secret di production.
-
-Catatan koreksi: klaim "alias nyangkut di build lama" (versi dokumen sebelumnya, berbasis
-perbandingan hash chunk) **dicabut** — metodenya tidak sah. Rincian: §9 dan §14 item 2b.
-
-`main` = **`9ae5f03`** (PR #8 `78eeb2e` → PR #9 `9d72e14` → PR #7 `23f5c14` → PR #10 `9e6fa07`
-→ PR #12 `9ae5f03`, semuanya squash). PR #11 (`fix/cuti-form-reset-react19`) berasal dari sesi lain.
-
-Cara memverifikasi kapan saja tanpa dashboard:
-
-```powershell
-(Invoke-WebRequest https://cuti-app.vercel.app/api/version -UseBasicParsing).Content
-# sha harus = git rev-parse origin/main
-```
-
-## Overall State
-
-Stable — **tidak ada blocker**. Alias production mengikuti `main` (`/api/version` melaporkan
-`9ae5f03`), smoke pasca-deploy MATCH, dan dua security LOW dari review 2026-09-29 **live**:
-secret cron constant-time + rotasi token sesi saat login (PR #6 `d9ac5e7`). Housekeeping row `Sesi`
-kedaluwarsa ditutup (PR #9); `next/typescript` aktif dengan `eslint .` 0 problem (PR #8); smoke
-pasca-deploy berbasis SHA commit (PR #7 + koreksi PR #12). Audit produksi **4 vuln (1 high,
-3 moderate), 0 critical** setelah `source-map-js` HIGH ditutup lewat bump non-breaking
-`1.2.1 → 1.2.2` (2026-10-07); sisa `postcss` + `uuid` diterima dengan alasan reachability yang
-didokumentasikan (lihat "Audit Sisa"). Sisa terbuka: TODO 162 (upload di Vercel asli, butuh user),
-TODO 97 (keputusan pin `next`, user), Web Push di perangkat nyata.
+* Web Push: TODO Bugs mencatat bukti FCM + notifikasi diterima perangkat pada **2026-10-01**. Permintaan verifikasi umum di handoff Oktober stale; sesi ini tidak melakukan uji perangkat baru.
+* Browser production memuat `/_vercel/insights/script.js` **404** + MIME error; Web Analytics belum terbukti aktif. Tidak memblokir upload/slip. Perlu pemeriksaan dashboard Vercel, dicatat di TODO.
+* `RTK.md` yang dirujuk instruksi user tidak ditemukan di repository pada sesi ini.
+* Tidak ada perubahan schema aplikasi, auth, API, atau logika bisnis. Rilis melalui PR; jangan mengklaim CI hijau sebelum run PR selesai.
