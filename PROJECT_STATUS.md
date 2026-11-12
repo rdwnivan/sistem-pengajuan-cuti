@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-11-12 (WIB)
-* Session: PR #15 sudah squash-merged menjadi `3104029a51b1185ec5763fb71e08d3eae3095cb6`; patch Next 15.5.29 + Undici 6.29.1 sudah live, SHA production cocok dan smoke read-only PASS. Audit ulang tetap 8 paket terdampak. Akses connector Vercel kini berhasil; API mengonfirmasi Web Analytics belum diaktifkan. Aktivasi masih memerlukan dashboard/CLI terautentikasi. Lihat §15 untuk bukti terbaru; catatan Oktober di bawah adalah arsip.
+* Session: lanjutan pekerjaan sisa. PR #16 sudah merged `12942b8` dan live. User mengaktifkan Analytics; script production kini 200 JavaScript dan query API berhasil (kunjungan belum diverifikasi). Migrasi Zod sedang diuji; lihat §16. §15 menyimpan bukti rilis patch sebelumnya; catatan Oktober adalah arsip.
 
 ## Arsip snapshot 2026-10-07
 * Session: P1/P2/P3 lanjutan. **Dua koreksi atas pekerjaan saya sendiri di sesi ini** (keduanya
@@ -957,3 +957,10 @@ gate upload `lampiran.spec.ts`).
 * **Sisa aktivasi Analytics**: connector yang tersedia menyediakan query kunjungan/event, tetapi tidak menyediakan aksi enable; schema `update_project` juga tidak menerima konfigurasi Web Analytics. [Dokumentasi resmi](https://vercel.com/docs/cli/project) menyediakan `vercel project web-analytics enable cuti-app --scope ridwansyarifudin07-3069s-projects` atau Enable pada dashboard project. CLI lokal **Logged out**, dashboard browser bawaan redirect login; inspeksi Brave dihentikan Computer Use karena URL aktif tidak dapat dipastikan untuk pemeriksaan keamanan. Perlu login dashboard/CLI oleh maintainer untuk aktivasi, lalu cek script 200, ikuti instruksi redeploy bila diminta Vercel, dan pastikan kunjungan tercatat. Tidak ada aktivasi, upgrade paket/billing, atau redeploy baru yang dilakukan untuk Analytics.
 * `RTK.md` yang dirujuk instruksi user tidak ditemukan di repository pada sesi ini.
 * Tidak ada perubahan schema aplikasi, auth, API, atau logika bisnis. Rilis melalui PR; jangan mengklaim CI hijau sebelum run PR selesai.
+
+# 16. Lanjutan migrasi Zod + Analytics (2026-11-12)
+
+* PR dokumentasi #16 squash-merged setelah verify/e2e/preview PASS; SHA `12942b8bf5336a1c0f27f1334188a5abaeee38b0` terkonfirmasi dari `/api/version` production.
+* User menyatakan Analytics sudah diaktifkan. Setelah deployment #16, script `/_vercel/insights/script.js` berubah dari 404 menjadi **200 application/javascript**; query `count_pageviews` kini berhasil (0 pada rentang awal). Verifikasi browser + kunjungan masuk masih berlangsung; blocker izin/enable lama di §15 sudah selesai.
+* Migrasi langsung Zod **4.6.7** dipin eksak. Tes baseline 9/9 pada Zod 3 menangkap regresi panjang emoji setelah upgrade (1 gagal): Zod 4.6 memakai code point. Helper `teks()` mempertahankan batas UTF-16 lama untuk seluruh 30 constraint string dan pesan panjang yang tampil pada form. Zod 4 juga menolak integer di luar rentang aman JavaScript; ditambahkan test eksplisit. **109 unit, typecheck, lint PASS**; build/E2E belum selesai pada checkpoint ini.
+* Override Zod khusus CLI-config akan dievaluasi terpisah dari commit migrasi major; jangan menganggap advisory nested sudah tertutup sampai audit + uji kontrak SDK selesai. Tidak ada perubahan DB/seed/reset production atau dev pengguna.
