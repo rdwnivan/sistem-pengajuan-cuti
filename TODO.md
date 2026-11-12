@@ -161,7 +161,8 @@ Nice-to-have items.
 
 # Deployment
 
-* [!] Cek/aktifkan Vercel Web Analytics setelah akses team disetujui: setelah deploy `3104029`, script tetap 404 `text/html`. Koneksi Vercel kini tersedia tetapi `get_project` ditolak **403 forbidden** pada team `ridwansyarifudin07-3069s-projects`; tautan `authorize_team_access` (10 menit, sekali pakai) diberikan kepada user. Owner: user/maintainer menyetujui akses team, lalu ulangi request koneksi yang sama dan periksa Enable/Disable + script 200 dan event masuk. Fallback: dashboard redirect login, CLI Logged out, inspeksi Brave dihentikan alat karena URL tidak dapat dipastikan. Penyebab 404 belum diketahui; tidak mengubah CSP.
+* [x] Diagnosis Web Analytics 404 lewat connector Vercel — akses team kini berhasil; `get_project` sukses dan `count_pageviews` menjawab **400 `web_analytics_not_enabled`**. Web Analytics memang belum diaktifkan; bukan blocker izin team lagi. Script production tetap 404 `text/html`, komponen Analytics sudah ada; tidak mengubah CSP.
+* [!] Aktifkan Web Analytics melalui dashboard project atau CLI terautentikasi (`vercel project web-analytics enable cuti-app --scope ridwansyarifudin07-3069s-projects`); owner: user/maintainer. Connector saat ini tidak menyediakan enable Analytics; CLI lokal Logged out, dashboard redirect login, inspeksi Brave dihentikan alat karena URL tidak dapat dipastikan. Setelah enable, ikuti instruksi redeploy bila diminta Vercel, cek script 200 + kunjungan tercatat. Jangan mengaktifkan paket berbayar tanpa persetujuan.
 * [x] Rekonsiliasi catatan Web Push — TODO Bugs sudah mencatat FCM menerima dan notifikasi muncul di perangkat user pada 2026-10-01. Handoff lama yang meminta verifikasi umum dinyatakan stale; sesi ini tidak mengklaim uji push perangkat baru.
 
 * [x] Configure production (Vercel + Neon + Blob)
@@ -206,7 +207,7 @@ Move completed tasks here periodically.
 
 Tasks that cannot proceed.
 
-* Vercel Web Analytics: koneksi API ditolak 403 karena izin team belum disetujui; rincian dan langkah berikutnya ada pada Deployment.
+* Aktivasi Vercel Web Analytics: diagnosis API selesai (belum enabled); connector tidak menyediakan enable, dashboard/CLI perlu login. Rincian ada pada Deployment.
 
 ---
 
