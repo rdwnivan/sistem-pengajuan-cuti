@@ -657,6 +657,18 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 
 # 12. Recent Changes
 
+## 2026-10-07 — pertahankan isian form pengajuan cuti setelah ditolak
+
+* `aksiAjukan` mengembalikan nilai form bersama pesan validasi agar React 19 dapat memasangnya
+  kembali sebagai `defaultValue` setelah reset action. `Form.tsx` remount select saat opsi async
+  dimuat supaya pilihan awal dan deep link tetap terpilih.
+* Regresi ada di `tests/cuti-validasi.spec.ts`, termasuk mempertahankan input setelah penolakan
+  dan memilih jenis cuti dari `?jenis=`. CI PR sebelumnya lulus untuk `verify` dan `e2e`.
+* Run `37541258581` mencatat 54 test utama, 39 flows, dan 2 rate-limit test lulus.
+* Catatan operasional saat PR tersebut aktif: tiga percobaan setelah PR dibuka (push dokumentasi,
+  commit kosong, lalu close/reopen) tidak membuat CI run; pemeriksaan dilakukan lewat API Actions.
+  Sebelum merge revisi itu, cocokkan status CI dengan SHA tip. Penyebabnya saat itu belum diketahui.
+
 ## 2026-10-07 (lanjutan) — alias production (koreksi), smoke pasca-deploy, next/typescript, sapu Sesi
 
 * **Dua koreksi atas pekerjaan saya sendiri di sesi ini:**

@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { buatSesi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ajukanSchema, loginSchema, putusanSchema } from "@/lib/validasi";
+import { ajukanSchema, loginSchema, putusanSchema, type NilaiAjukan } from "@/lib/validasi";
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
 import { sniffFile, DI_VERCEL, type FileValid } from "@/lib/upload";
@@ -40,33 +40,42 @@ export async function aksiLogin(_: unknown, fd: FormData) {
 
 export async function aksiAjukan(_: unknown, fd: FormData) {
   const user = await aktor();
+  const nilai: NilaiAjukan = {
+    jenisId: String(fd.get("jenisId") ?? ""),
+    tglMulai: String(fd.get("tglMulai") ?? ""),
+    tglSelesai: String(fd.get("tglSelesai") ?? ""),
+    alasan: String(fd.get("alasan") ?? ""),
+    picPengganti: String(fd.get("picPengganti") ?? ""),
+    kontakSelamaCuti: String(fd.get("kontakSelamaCuti") ?? ""),
+  };
+  const err = (pesan: string) => ({ error: pesan, nilai });
   const v = ajukanSchema.safeParse({
     jenisId: fd.get("jenisId"), tglMulai: fd.get("tglMulai"), tglSelesai: fd.get("tglSelesai"),
     alasan: fd.get("alasan"), picPengganti: fd.get("picPengganti"), kontakSelamaCuti: fd.get("kontakSelamaCuti"),
   });
-  if (!v.success) return { error: v.error.issues[0].message };
+  if (!v.success) return err(v.error.issues[0].message);
   const jenis = await prisma.jenisCuti.findUnique({ where: { id: v.data.jenisId } });
-  if (!jenis || !jenis.aktif) return { error: "Jenis cuti tidak valid" };
+  if (!jenis || !jenis.aktif) return err("Jenis cuti tidak valid");
   const mulai = parseTglInput(v.data.tglMulai);
   const selesai = parseTglInput(v.data.tglSelesai);
-  if (isNaN(mulai.getTime()) || isNaN(selesai.getTime())) return { error: "Tanggal tidak valid" };
-  if (fmtTgl(selesai) < fmtTgl(mulai)) return { error: "Tanggal selesai sebelum tanggal mulai" };
+  if (isNaN(mulai.getTime()) || isNaN(selesai.getTime())) return err("Tanggal tidak valid");
+  if (fmtTgl(selesai) < fmtTgl(mulai)) return err("Tanggal selesai sebelum tanggal mulai");
 
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const selisihHari = Math.round((new Date(fmtTgl(mulai) + "T00:00:00").getTime() - now.getTime()) / 86400000);
   if (selisihHari < jenis.minHariSebelum)
-    return { error: `Minimal pengajuan H-${jenis.minHariSebelum} (kurang ${jenis.minHariSebelum - selisihHari} hari)` };
+    return err(`Minimal pengajuan H-${jenis.minHariSebelum} (kurang ${jenis.minHariSebelum - selisihHari} hari)`);
   if (bulanMasaKerja(user.tglMasuk, now) < jenis.butuhMasaKerjaBulan)
-    return { error: `Jenis cuti ini butuh masa kerja ${jenis.butuhMasaKerjaBulan} bulan` };
+    return err(`Jenis cuti ini butuh masa kerja ${jenis.butuhMasaKerjaBulan} bulan`);
 
   const libur = await prisma.hariLibur.findMany();
   const liburSet = new Set(libur.map((l) => fmtTgl(l.tanggal)));
   const jumlah = hariKerja(mulai, selesai, liburSet);
-  if (jumlah <= 0) return { error: "Rentang tanggal tidak memuat hari kerja" };
+  if (jumlah <= 0) return err("Rentang tanggal tidak memuat hari kerja");
 
   if (jenis.lampiranWajib || (jenis.lampiranWajibJikaLebihDari != null && jumlah > jenis.lampiranWajibJikaLebihDari)) {
     const f = fd.get("lampiran") as File | null;
-    if (!f || f.size === 0) return { error: "Lampiran wajib untuk jenis cuti ini" };
+    if (!f || f.size === 0) return err("Lampiran wajib untuk jenis cuti ini");
   }
 
   const bentrok = await prisma.pengajuan.findFirst({
@@ -75,7 +84,7 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
       tglMulai: { lte: selesai }, tglSelesai: { gte: mulai },
     },
   });
-  if (bentrok) return { error: "Bentrok dengan pengajuan lain milik Anda" };
+  if (bentrok) return err("Bentrok dengan pengajuan lain milik Anda");
 
   const tahun = mulai.getFullYear();
   if (jenis.kuota > 0) {
@@ -83,18 +92,18 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
     if (!k) {
       k = await prisma.kuota.create({ data: { userId: user.id, jenisId: jenis.id, tahun, jatah: jenis.kuota } });
     }
-    if (k.jatah - k.terpakai < jumlah) return { error: `Sisa kuota tidak cukup (sisa ${k.jatah - k.terpakai}, butuh ${jumlah})` };
+    if (k.jatah - k.terpakai < jumlah) return err(`Sisa kuota tidak cukup (sisa ${k.jatah - k.terpakai}, butuh ${jumlah})`);
   }
 
   let lampiranPath: string | undefined;
   const f = fd.get("lampiran") as File | null;
   if (f && f.size > 0) {
-    if (f.size > 2 * 1024 * 1024) return { error: "Lampiran maksimal 2MB" };
+    if (f.size > 2 * 1024 * 1024) return err("Lampiran maksimal 2MB");
     let snapped: FileValid;
     try {
       snapped = await sniffFile(f);
     } catch {
-      return { error: "Lampiran hanya PDF/JPG/PNG (file tidak sesuai jenis yang diklaim)" };
+      return err("Lampiran hanya PDF/JPG/PNG (file tidak sesuai jenis yang diklaim)");
     }
     const { buffer, ext } = snapped;
     const name = `lampiran/${user.id}-${Date.now()}.${ext}`;
@@ -103,7 +112,7 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
       const blob = await put(name, buffer as unknown as File, { access: "public" });
       lampiranPath = blob.url;
     } else if (DI_VERCEL) {
-      return { error: "Upload lampiran belum dikonfigurasi (BLOB_READ_WRITE_TOKEN kosong)" };
+      return err("Upload lampiran belum dikonfigurasi (BLOB_READ_WRITE_TOKEN kosong)");
     } else {
       const { writeFile, mkdir } = await import("fs/promises");
       const { default: path } = await import("path");
