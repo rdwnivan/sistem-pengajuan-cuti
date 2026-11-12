@@ -29,6 +29,21 @@ export const ajukanSchema = z.object({
   kontakSelamaCuti: z.preprocess((v) => (v === "" || v == null ? undefined : v), teks(0, 30).optional()),
 });
 
+/**
+ * Nilai mentah form pengajuan cuti. Dikembalikan bersama `error` oleh `aksiAjukan`
+ * supaya Form bisa memasangnya kembali sebagai `defaultValue` — React 19 mereset
+ * form uncontrolled pada SETIAP submit action, termasuk saat action mengembalikan
+ * error, sehingga tanpa ini isian user hilang dan submit terasa "gagal".
+ */
+export type NilaiAjukan = {
+  jenisId: string;
+  tglMulai: string;
+  tglSelesai: string;
+  alasan: string;
+  picPengganti: string;
+  kontakSelamaCuti: string;
+};
+
 export const putusanSchema = z.object({
   pengajuanId: teks(1),
   aksi: z.enum(["setuju", "tolak", "kembalikan"]),
