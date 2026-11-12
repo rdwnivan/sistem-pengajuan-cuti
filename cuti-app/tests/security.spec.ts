@@ -30,8 +30,8 @@ test.describe("SECURITY — IDOR & otorisasi API", () => {
     const response = await page.request.get("/api/laporan?format=excel");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    const { Workbook } = await import("exceljs");
-    const workbook = new Workbook();
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(Uint8Array.from(await response.body()).buffer);
     const sheet = workbook.getWorksheet("Rekap Cuti");
     expect(sheet).toBeDefined();
