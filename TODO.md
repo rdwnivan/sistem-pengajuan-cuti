@@ -165,7 +165,7 @@ Nice-to-have items.
 # Deployment
 
 * [x] Diagnosis Web Analytics 404 lewat connector Vercel — akses team kini berhasil; `get_project` sukses dan `count_pageviews` menjawab **400 `web_analytics_not_enabled`**. Web Analytics memang belum diaktifkan; bukan blocker izin team lagi. Script production tetap 404 `text/html`, komponen Analytics sudah ada; tidak mengubah CSP.
-* [~] Verifikasi akhir Web Analytics — user sudah mengaktifkan; setelah deploy #16 script **200 application/javascript**, query API berhasil. Verifikasi browser + kunjungan masuk masih berlangsung; tidak perlu login/enable ulang.
+* [x] Verifikasi akhir Web Analytics — user mengaktifkan; setelah deploy #16 script **200 application/javascript**, browser memuat tanpa error Analytics, dan API agregasi per jam membuktikan **1 pengunjung + 1 pageview** setelah kunjungan user pada 2026-11-12. Blocker akses/enable selesai.
 * [x] Rekonsiliasi catatan Web Push — TODO Bugs sudah mencatat FCM menerima dan notifikasi muncul di perangkat user pada 2026-10-01. Handoff lama yang meminta verifikasi umum dinyatakan stale; sesi ini tidak mengklaim uji push perangkat baru.
 
 * [x] Configure production (Vercel + Neon + Blob)
