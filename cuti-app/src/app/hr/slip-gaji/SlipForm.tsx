@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useState, useActionState } from "react";
 import { aksiBuatSlip } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
@@ -44,7 +45,7 @@ export function SlipForm({ karyawan }: { karyawan: K[] }) {
   const resetNilai = () => setNilai({});
 
   return (
-    <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
+    <ActionForm action={action} className="space-y-3 rounded-xl border bg-white p-4">
       <Field label="Karyawan">
         <select name="userId" required value={userId} onChange={(e) => { setUserId(e.target.value); resetNilai(); }} className={inputCls}>
           <option value="">-- pilih karyawan --</option>
@@ -103,6 +104,6 @@ export function SlipForm({ karyawan }: { karyawan: K[] }) {
       <Field label="Catatan (opsional)"><textarea name="catatan" rows={2} className={inputCls} placeholder="Misal: bonus proyek lapangan" /></Field>
       <ErrorMsg msg={state?.error} />
       <SubmitButton className={btnCls}>Terbitkan Slip</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

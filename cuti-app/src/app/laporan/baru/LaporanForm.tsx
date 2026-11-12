@@ -1,4 +1,5 @@
 "use client";
+import { ActionForm } from "@/components/ActionForm";
 import { useEffect, useState, useActionState } from "react";
 import { aksiBuatLaporan, aksiRevisiLaporan } from "@/actions";
 import { ErrorMsg, Field, btnCls, inputCls } from "@/components/ui";
@@ -43,7 +44,7 @@ export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; in
   };
 
   return (
-    <form action={action} className="space-y-3 rounded-xl border bg-white p-4">
+    <ActionForm action={action} className="space-y-3 rounded-xl border bg-white p-4">
       {editId && <input type="hidden" name="id" value={editId} />}
       <Field label="Tanggal laporan">
         <input name="tglLaporan" type="date" required defaultValue={initial?.tglLaporan ?? new Date().toISOString().slice(0, 10)} className={inputCls} />
@@ -118,6 +119,6 @@ export function LaporanForm({ editId, initial, dariDraf }: { editId?: string; in
       <SubmitButton className={btnCls}>
         {!editId ? "Simpan Laporan" : dariDraf ? "Simpan Perubahan" : "Simpan & Kirim Ulang"}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

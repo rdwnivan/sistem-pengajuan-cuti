@@ -13,8 +13,7 @@ test.describe.configure({ mode: "serial", timeout: 120000 });
 test("brute force diblokir setelah 5 percobaan gagal", async ({ page }) => {
   await page.goto("/login");
   const email = `rate-${Date.now()}@test.id`;
-  // React 19 mereset form (uncontrolled) setelah tiap server action, jadi email
-  // wajib diisi ulang tiap iterasi — kalau tidak, `required` memblokir submit.
+  // ActionForm mempertahankan isian, termasuk setelah error rate limit.
   for (let i = 0; i < 6; i++) {
     await page.locator("input[name=email]").fill(email);
     await page.locator("#password").fill(`salah-${i}`);
@@ -28,12 +27,10 @@ test("brute force diblokir setelah 5 percobaan gagal", async ({ page }) => {
       page.getByRole("button", { name: /Masuk|Memproses/ }).click(),
     ]);
     expect(resp.status()).toBeLessThan(500);
-    // Barrier antar-iterasi: tunggu React selesai mereset form supaya isian
-    // iterasi berikutnya tidak terhapus di tengah jalan. Iterasi terakhir tidak
-    // perlu (loop sudah berakhir) dan action-nya memang diblokir rate limit.
-    if (i < 5) {
-      await expect(page.locator("input[name=email]")).toHaveValue("", { timeout: 30000 });
-    }
+    // Tunggu Action selesai, bukan reset form yang kini memang dicegah.
+    await expect(page.locator("form").first()).toHaveAttribute("aria-busy", "false", { timeout: 30000 });
+    await expect(page.locator("input[name=email]")).toHaveValue(email);
+    await expect(page.locator("#password")).toHaveValue(`salah-${i}`);
   }
   // setelah 5× gagal, error rate limit harus muncul
   await expect(page.getByText("Terlalu banyak percobaan")).toBeVisible({ timeout: 8000 });

@@ -23,6 +23,8 @@ PostCSS dipin **8.5.28**, versi yang sudah dipakai pipeline Tailwind, dan overri
 
 ## Fitur
 
+Form client dengan `useActionState` memakai `ActionForm` agar isian (termasuk pilihan file) tidak direset setelah error bisnis React 19. Komponen mempertahankan native action untuk submit sebelum hydration; setelah hydration ia mengirim `FormData` beserta tombol submit dalam transition tanpa auto-reset. Action tetap mengotorisasi/menvalidasi di server dan redirect saat berhasil; password/file tidak dikembalikan sebagai state server. Form cuti mempertahankan perbaikan `NilaiAjukan`/`defaultValue` yang sudah ada. Uji regresi: `tests/form-isian.spec.ts` (tier flows) dan rate-limit.
+
 **Karyawan**
 
 - Ajukan cuti dengan validasi server: hari kerja (Senin–Jumat minus libur), kuota, anti-bentrok tanggal, minimal H- pengajuan, syarat masa kerja, lampiran wajib (PDF/JPG/PNG maks 2 MB)
