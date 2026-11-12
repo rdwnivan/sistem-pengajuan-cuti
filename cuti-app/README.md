@@ -6,7 +6,7 @@ Aplikasi pengajuan dan persetujuan cuti karyawan berbasis web. Mobile-first, ber
 
 ## Tech Stack
 
-- **Framework:** Next.js 15.5.27 (App Router) + React 19 + TypeScript
+- **Framework:** Next.js 15 (App Router; versi eksak di `package.json`) + React 19 + TypeScript
 - **Styling:** Tailwind CSS
 - **Database:** Prisma ORM — PostgreSQL (dev & produksi)
 - **Validasi:** Zod
@@ -14,6 +14,8 @@ Aplikasi pengajuan dan persetujuan cuti karyawan berbasis web. Mobile-first, ber
 - **Ekspor:** ExcelJS (`.xlsx`), pdf-lib (PDF formulir, slip gaji, rekap, laporan)
 - **Notifikasi:** In-app + Web Push (VAPID) + WA via Fonnte (opsional, fallback ke log)
 - **Monitoring:** Vercel Analytics + Speed Insights
+
+Next.js dan `eslint-config-next` dipin ke versi eksak yang sama. Pembaruan dilakukan lewat PR dengan lockfile, audit dependensi, typecheck, lint, unit test, build, dan E2E; pin bukan alasan menunda patch keamanan. `npm ci` menjaga instalasi mengikuti lockfile.
 
 ## Fitur
 

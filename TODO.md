@@ -29,7 +29,7 @@ Tasks that block development, production, security, or core functionality.
 * [x] Multi-foto + keterangan per foto
 * [x] Master Blok (endpoint + halaman HR + seed) — DIBATALKAN 2026-09-30: user putuskan HR tidak kelola blok; blok jadi teks bebas di form
 * [x] Rekap laporan lapangan HR (filter + Excel/PDF) — DIBATALKAN 2026-09-30: acc murni atasan↔karyawan; HR tidak butuh akses laporan
-* [x] Reseed database production + buat ulang slip demo — DB production (`neondb`) sudah reseeded bersih (9 user, 0 slip); dev dipisah ke `neondb_dev` (lihat bawah). Sisa: buat 1 slip demo dari aplikasi live untuk verifikasi akhir.
+* [x] Reseed database production + buat ulang slip demo — DB production (`neondb`) sudah reseeded bersih (9 user, 0 slip); dev dipisah ke `neondb_dev` (lihat bawah). Verifikasi akhir selesai 2026-11-12: slip DEMO November 2026 untuk Karyawan 1 terbit dari UI production; tampil pada akun karyawan, preview/unduh PDF 200 (lihat PROJECT_STATUS.md).
 * [x] Pisahkan DB dev dari production — `neondb_dev` dibuat via SQL; `.env` lokal menunjuk ke sana (schema push + seed OK). Production `neondb` tidak tersentuh test/E2E lagi. ATURAN: jangan arahkan `.env` lokal kembali ke `neondb`; seed production hanya via URL eksplisit bila darurat.
 
 Tasks that should be completed next.
@@ -95,7 +95,7 @@ Nice-to-have items.
 * [x] `cuti-app/dev-server3.log` — ternyata tidak ter-track di git (hanya di disk, sudah di `.gitignore`); hapus dari disk lokal
 * [x] Aktifkan `next/typescript` di `cuti-app/eslint.config.mjs` — **SELESAI 2026-10-07** (PR #8). Temuan diukur dulu: mengaktifkan aturan = **228 problem** (226 `no-unused-vars`, 1 `prefer-const` yang merupakan ERROR di `src/app/persetujuan/page.tsx`, 1 dari file config) → semuanya dibersihkan. Sesudah: `eslint .` **0 problem** dengan `next/typescript` aktif, `tsc` 0, `build` 29/29, E2E 54+37+2. Jebakan yang dicatat: parameter fixture Playwright **wajib** object-destructuring.
 * [x] Bersihkan dead import di `src/actions/*.ts` — **SELESAI 2026-10-07** (PR #8, bersama TODO 96): `buatSesi`, `keluarSesi`, `hashPassword`, `isAtasan` dan seluruh schema/helper lain yang tidak terpakai dibuang per file (211 temuan di `src/actions`). Bukti tidak ada yang kelebihan dibuang: `tsc --noEmit` 0 error + E2E 3 tier hijau. Fixture `loggedIn` di `tests/helpers.ts` ternyata dead code dan dihapus.
-* [ ] Putuskan pin `next` eksak (`"15.5.27"`) vs `"^15.5.27"` di `cuti-app/package.json` — kalau tetap eksak, catat alasannya. **KEPUTUSAN USER, bukan kode** (belum diputuskan).
+* [x] Tetapkan pin `next` eksak — diselesaikan 2026-11-12 setelah user meminta menjalankan rekomendasi. `next` + `eslint-config-next` tetap eksak dan disamakan ke `15.5.29`; alasan dan proses upgrade tercatat di `cuti-app/README.md`.
 * [x] Bersihkan row `Sesi` yang kedaluwarsa — **SELESAI 2026-10-07** (PR #9): `sesiKedaluwarsa()` di `src/lib/auth.ts` jadi **satu sumber kebenaran** yang dipakai penolakan `userDariSesi` DAN sapu `sapuSesiKedaluwarsa()` (`src/lib/cron.ts`, dipanggil awal cron harian `/api/cron`); jumlah terhapus dikembalikan sebagai `sesiDibersihkan`. Unit `unit/sesi.test.ts` (7/7) + E2E `tests/sesi-kedaluwarsa.spec.ts` (tier flows): cookie kedaluwarsa ditolak → row dihapus cron → sesi yang masih valid **tidak** ikut terhapus. Batas: kedaluwarsa hanya bila `expiresAt < now` (tepat di `expiresAt` masih valid).
 
 ---
@@ -124,6 +124,10 @@ Nice-to-have items.
 ---
 
 # Security
+
+* [x] Audit berkala 2026-11-12 + patch kompatibel — `next`/`eslint-config-next` 15.5.27 → 15.5.29, `undici` 6.28.1 → 6.29.1. Audit produksi 9 temuan (1 critical) → 8 (0 critical, 5 high, 3 moderate). Typecheck/lint/build, 97 unit, E2E 54+38+2 lulus tanpa retry. Snapshot dan reachability sisa di `PROJECT_STATUS.md`.
+* [ ] Merge/rilis patch keamanan 2026-11-12 setelah CI PR lulus, lalu cek `/api/version` + smoke production. Hasil lokal 0 critical belum berarti patch sudah live.
+* [ ] Tinjau upstream Zod 4 dan rantai `@vercel/blob` → `@vercel/oidc` → `@vercel/cli-config` untuk sisa advisory Zod. Owner: maintainer. Schema aplikasi saat ini hanya objek/scalar, tidak memakai `z.array`; jangan downgrade Blob/ExcelJS atau memakai `audit fix --force` demi angka nol.
 
 * [x] Review authentication — token `crypto.randomBytes(32)`, expiry 7 hari, cookie httpOnly + sameSite=lax + secure(prod); bcrypt cost 10; `statusAktif` dicek (`src/lib/auth.ts`)
 * [x] Review authorization — 9/9 halaman `/hr/*` pakai `wajibHR()`; E2E security 8 test redirect non-HR
@@ -155,6 +159,9 @@ Nice-to-have items.
 
 # Deployment
 
+* [ ] Aktifkan/cek Vercel Web Analytics di dashboard project: production `/_vercel/insights/script.js` 404 pada 2026-11-12. App tetap berfungsi; memerlukan akses dashboard, bukan perubahan CSP.
+* [x] Rekonsiliasi catatan Web Push — TODO Bugs sudah mencatat FCM menerima dan notifikasi muncul di perangkat user pada 2026-10-01. Handoff lama yang meminta verifikasi umum dinyatakan stale; sesi ini tidak mengklaim uji push perangkat baru.
+
 * [x] Configure production (Vercel + Neon + Blob)
 * [x] Add CI/CD (GitHub Actions: verify + e2e)
 * [x] Verify environment variables (`.env.example` documented)
@@ -170,15 +177,7 @@ Nice-to-have items.
   `main` terbaru, dan `VERCEL_GIT_COMMIT_SHA` hanya bisa datang dari deployment yang benar-benar
   melayani request. Smoke `main` juga MATCH. Jadi dua security LOW PR #6 **live**. Tidak perlu
   Promote. Rincian + timeline di `PROJECT_STATUS.md` §9 dan §14 item 2b.
-* [ ] Verifikasi upload di production **live** (login + submit form asli → menulis DB/Blob production) — gate `DI_VERCEL` sudah behavior-preserving, tapi jalur ini belum pernah dibuktikan end-to-end. **Langkah siap dijalankan user (TODO 162):**
-  1. Buka https://cuti-app.vercel.app/login, login `karyawan1@anime.id` / `anime123` (akun demo).
-  2. Menu **Cuti → Ajukan**, pilih jenis yang **wajib lampiran** (mis. "Sakit (wajib surat)" bila ada), isi tanggal + alasan.
-  3. Lampirkan file **PNG atau PDF asli** (≤ 2 MB) → klik **Kirim Pengajuan**.
-  4. Harapan: redirect ke detail pengajuan, lampiran tampil sebagai tautan/gambar, dan **tidak** muncul "Upload lampiran belum dikonfigurasi" (pesan itu = `BLOB_READ_WRITE_TOKEN` tidak terbaca di Vercel).
-  5. Cek bukti di dashboard Vercel: **Storage → Blob** ada objek baru, dan **Logs** function tidak memuat error upload.
-  6. Uji negatif (opsional, cepat): unggah file HTML yang di-rename `.pdf` → harus **ditolak** (sniffing magic bytes).
-  7. Catat hasilnya (berhasil/gagal + pesan) ke `PROJECT_STATUS.md` §14; kalau gagal, cek `BLOB_READ_WRITE_TOKEN` di Vercel env (Production).
-  8. Setelah selesai, batalkan pengajuan uji itu dari UI agar DB production tetap bersih.
+* [x] Verifikasi upload production live — **PASS 2026-11-12**: akun demo Karyawan 1 mengajukan Sakit 23–24 November dengan PNG asli; detail menautkan objek Vercel Blob yang merespons 200 `image/png` (68 byte). Pengajuan `cmwcwflng0001bhop6kdcbey8` sudah DIBATALKAN dari UI. Tanpa lampiran dan HTML ber-ekstensi PDF ditolak. Dashboard Storage/Logs tidak dibuka; bukti fungsional memakai objek Blob langsung. Rincian dan sisa objek uji ada di `PROJECT_STATUS.md`.
 * [x] Smoke otomatis pasca-deploy ke production supaya verifikasi deploy tidak manual — **SELESAI & MERGED 2026-10-07** (PR #7 `23f5c14`, **dikoreksi PR #12 `9ae5f03`**): `.github/workflows/post-deploy-smoke.yml` (`workflow_dispatch` manual + `workflow_run` setelah CI sukses di `main`, **tanpa `on: push`**) memverifikasi **SHA commit** yang dilaporkan `GET /api/version` deployment yang melayani alias vs commit yang diharapkan → MATCH/MISMATCH, plus fail-fast "HTML `/login` harus menunjuk chunk yang benar-benar 200" dan probe read-only (`/login` 200, `/api/cron` secret salah & tanpa secret 401, 8 rute terproteksi 307 → `/login`). MISMATCH = run merah. **Koreksi penting**: versi pertama (PR #7) membandingkan **hash isi chunk antar lingkungan** — asumsi itu SALAH dan menghasilkan MISMATCH palsu (build commit sama bisa berisi chunk berbeda: 3482 vs 3864 byte pada nama chunk yang sama). Artifact `ci.yml` ikut diganti `chunk-fingerprint` → `build-identity` (berisi `commit-sha.txt`), dan langkah inline-nya dipindah ke `cuti-app/scripts/fingerprint.mjs`. Verifikasi: actionlint bersih, `tsc`/`eslint` 0, endpoint diuji di server produksi lokal (dengan/tanpa `VERCEL_GIT_COMMIT_SHA`), skrip smoke dijalankan nyata untuk 3 cabang (404 → gagal, MATCH → lulus, MISMATCH → gagal); CI PR #7 & #12 hijau, dan smoke di `main` **sukses MATCH** terhadap `/api/version` = `9ae5f03`. Jalankan manual: `gh workflow run post-deploy-smoke.yml --ref main`.
 
 ---
