@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Shared across serverless instances; keys are SHA-256, never raw emails.
+model LoginRateLimit {
+  key           String   @id
+  gagal         Int
+  terakhir      DateTime
+  blokirSampai  DateTime
+  @@index([terakhir])
+}
+
 model User {
   id           String   @id @default(cuid())
   nama         String

@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { keluar as keluarSesi, hashPassword } from "@/lib/auth";
+import { keluar as keluarSesi, hashPassword, gantiPasswordDanSesi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { aktor } from "./shared";
 
@@ -11,15 +11,16 @@ export async function aksiKeluar() {
 
 export async function aksiUbahPassword(_: unknown, fd: FormData) {
   const user = await aktor();
-  const lama = ((fd.get("lama") as string) || "");
-  const baru = ((fd.get("baru") as string) || "");
+  const lama = fd.get("lama");
+  const baru = fd.get("baru");
+  if (typeof lama !== "string" || typeof baru !== "string") return { error: "Password tidak valid" };
   if (baru.length < 6) return { error: "Password baru minimal 6 karakter" };
   const { default: bcrypt } = await import("bcryptjs");
   const db = await prisma.user.findUnique({ where: { id: user.id } });
   if (!db) return { error: "Akun tidak ditemukan" };
   const ok = await bcrypt.compare(lama, db.passwordHash);
   if (!ok) return { error: "Password lama salah" };
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(baru) } });
+  if (!await gantiPasswordDanSesi(user.id, db.passwordHash, await hashPassword(baru))) return { error: "Akun berubah. Silakan masuk kembali." };
   redirect("/profil?ok=1");
 }
 

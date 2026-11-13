@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-11-13 (WIB)
-* Session: Hierarki dashboard dan interaksi UI live dari PR #23, 105 E2E CI PASS, production SHA MATCH + desktop/mobile diperiksa (§24). Review override sebelumnya tetap berlaku (§22); audit baru lengkap/produksi 0.
+* Session: Rollout keamanan berlangsung di `codex/security-production-rollout` (§27). Paket §26 dipertahankan; 144 unit + 16 compatibility, typecheck/lint diverifikasi ulang. Private store Production sudah terhubung; schema/deploy/migrasi/revokasi belum selesai. SEC-02 live tetap terbuka.
 
 ## Arsip snapshot 2026-10-07
 * Session: P1/P2/P3 lanjutan. **Dua koreksi atas pekerjaan saya sendiri di sesi ini** (keduanya
@@ -281,7 +281,7 @@ Aplikasi web pengajuan dan persetujuan cuti karyawan dengan alur berlapis (Atasa
 
 ## Current Stage
 
-Production — live at https://cuti-app.vercel.app/ (Next 15.5.27, React 19)
+Production — live at https://cuti-app.vercel.app/ (Next 15.5.29, React 19)
 
 ---
 
@@ -289,11 +289,11 @@ Production — live at https://cuti-app.vercel.app/ (Next 15.5.27, React 19)
 
 ## Active Feature
 
-Prototype standar (hasil grilling): slip rincian + NIP + TTD, laporan kebun + blok + rekap.
+Pemeliharaan dan audit keamanan aplikasi; fitur prototype standar dan interaksi dashboard sudah dirilis.
 
 ## Current Task
 
-Verifikasi sisa production selesai 2026-11-12. Patch kompatibel `next` + `eslint-config-next` 15.5.29 dan `undici` 6.29.1 sudah lulus seluruh gate lokal, menunggu rilis via PR. Production masih melayani `05d6d13` pada pemeriksaan sesi ini; patch belum live. Audit lama 0 critical tidak berlaku untuk dependency production yang belum dipatch.
+Perbaikan kode audit sudah diverifikasi: 285 tes lokal PASS, typecheck/lint/build PASS, audit penuh/produksi 0. Semua perbaikan runtime, UI dan CI ada di working tree; belum commit/PR/deploy. Tahap berikutnya rilis sesuai `cuti-app/SECURITY_ROLLOUT.md`: private Blob/env, additive db push LoginRateLimit, kode kompatibel, migrasi seluruh konsumen, pencabutan dan verifikasi URL public lama. Production belum menerima perubahan ini; jangan menyamakan verifikasi lokal dengan penutupan SEC-02 live.
 
 ## Current Status
 
@@ -312,7 +312,7 @@ Verifikasi sisa production selesai 2026-11-12. Patch kompatibel `next` + `eslint
 > Syarat bila suatu hari coba lagi: branch baru → CI hijau penuh → baru merge.
 > Jangan verifikasi Suspense hanya via dev lokal yang flaky.
 
-Semua P0 security selesai:
+Perbaikan P0 historis berikut selesai; audit baru §25 menemukan risiko aplikasi yang masih terbuka:
 - **Cookie `secure`** — `buatSesi` kini set `secure: true` saat `NODE_ENV === "production"` (tetap HTTP di dev agar login lokal tidak rusak).
 - **Rate limiting login** — `src/lib/rate-limit.ts` (in-memory): maks 5 gagal per 15 menit per akun, blokir 15 menit. Key = **email saja** (bukan IP+email) — `x-forwarded-for` tidak stabil di dev Playwright (`::1`/`127.0.0.1`/null berganti antar request virtual), membuat counter terpecah. Rate limit per akun juga sudah tepat sasaran karena brute force menarget satu akun. Test brute-force dipisah ke `tests/rate-limit.spec.ts` (serial, timeout 120s, worker 1) karena 6× bcrypt cost 10 membuat Next dev single-process macet saat suite penuh berjalan paralel.
 - **Content sniffing upload** — `src/lib/upload.ts` `sniffFile`: magic bytes PDF/PNG/JPG, ekstensi dari konten aktual, bukan `File.type` client. Spoof HTML/JS/SVG ditolak. Terintegrasi di `shared.ts` (`unggahFoto`) dan `cutiActions.ts` (`aksiAjukan`).
@@ -541,7 +541,7 @@ Suite E2E (kini 94 test; flows 38) melampaui kapasitas dev server lokal: run pan
 
 # 9. Current Blockers
 
-**Tidak ada.** (Dikoreksi 2026-10-07 malam.)
+Tidak ada blocker kode/pengujian lokal. Rollout production belum dilakukan; metadata env production belum memiliki BLOB_PRIVATE_READ_WRITE_TOKEN dan pencabutan URL public lama belum diverifikasi. SEC-02 live tetap terbuka sampai syarat §26/panduan rollout terpenuhi. Catatan koreksi deployment di bawah adalah arsip Oktober.
 
 Sebelumnya sesi ini mencatat "alias production nyangkut di build lama" — **itu keliru dan sudah
 dicabut.** Bukti pembalik yang definitif:
@@ -580,9 +580,7 @@ Tidak ada blocker lain.
 
 # 10. Known Bugs
 
-| ID | Bug | Severity | Status |
-| --- | --- | --- | --- |
-| (none) | | | |
+Temuan audit SEC-01/03/04/UI-01 serta rate limiter dan form ganda telah diperbaiki dan diuji lokal (§26). SEC-02 memiliki kode/migrator yang sudah lulus regresi, tetapi URL public lama di production belum dicabut dan rollout belum dilakukan. Risiko live lain tetap ada sampai perubahan dirilis. Snapshot sebelum perbaikan ada di TEST_REPORT_2026-11-13.md; hasil baru SECURITY_FIXES_2026-11-13.md.
 
 ---
 
@@ -764,10 +762,10 @@ diuji: kedaluwarsa hanya bila `expiresAt < now`; tepat di `expiresAt` sesi masih
 
 # 13. Next Session
 
-1. Periksa status PR patch 2026-11-12. Setelah CI lulus dan merge/rilis, verifikasi SHA `/api/version` terhadap commit yang benar dan jalankan smoke production. Jangan menganggap verifikasi lokal sebagai deploy.
-2. Lanjutkan evaluasi upstream Zod/Blob (TODO Security), tanpa upgrade major atau override massal yang tidak diuji.
-3. Periksa Web Analytics lewat dashboard Vercel bila akses tersedia; skrip insights masih 404.
-4. Upload production dan slip demo sudah diverifikasi; tidak perlu mengulang atau membuat slip demo duplikat. Web Push perangkat sudah memiliki bukti historis 2026-10-01 di TODO Bugs.
+1. Baca SECURITY_FIXES_2026-11-13.md dan cuti-app/SECURITY_ROLLOUT.md; kode/regresi selesai, langkah production/private Blob/revokasi URL belum dilakukan.
+2. Review working tree dan rilis via PR/gate sebenarnya; jangan menyebut CI/deploy sukses sebelum run dan SHA live terbukti. Tambahan LoginRateLimit harus tersedia sebelum kode melayani login; jangan seed/reset data live.
+3. Pertahankan empat override sampai upstream aman; jadwal review paling lambat 2026-12-13 (§22). Analytics sudah aktif (§16), blocker 404 lama sudah selesai.
+4. Gunakan database/schema uji; jangan reseed public dev/production atau membuat demo production duplikat. Bukti upload/slip/Web Push perangkat historis tetap berlaku, bukan pengujian layanan eksternal baru.
 
 ---
 
@@ -1068,3 +1066,34 @@ gate upload `lampiran.spec.ts`).
 * Vercel project cuti-app `prj_thCQSO1rBwOdOCg2rNBJufuAotCO` pada team ridwansyarifudin07-3069s-projects: deployment production **dpl_9xhEdQKnwEMFxszkKcaTyjbpUBy1 READY**, metadata SHA sesuai hasil merge. Probe baru `/api/version` 200, SHA **508c7fe10552e6fa6f0ab4a471697dc1aed1bab3**, env production. Delapan halaman terproteksi tetap 307 /login tanpa sesi.
 * Pemeriksaan browser production HR PASS pada desktop 1365×900/mobile 390×844: satu CTA, judul/kuota/riwayat/akses cepat tampil, menu Beranda aktif, klik Slip Gaji memperbarui penanda, tanpa overflow, reduced motion tanpa transform. Screenshot ditinjau; banner antrean production tampil dengan data yang sudah ada, tidak diproses. Hanya sesi login smoke baru dibuat lalu ditutup lewat Keluar; tidak membuat/mengubah/menghapus data bisnis. Browser sudah ditutup. [CI main](https://github.com/rdwnivan/sistem-pengajuan-cuti/actions/runs/43370799899) dan post-deploy smoke otomatis menjadi bukti tambahan; lihat status run untuk hasil terbarunya.
 * Perubahan penutupan setelah rilis hanya PROJECT_STATUS.md/TODO.md, tanpa runtime surface. SHA production berikutnya mengikuti merge dokumentasi; kode UI yang diperiksa tetap berasal dari PR #23. Tidak ada blocker UI atau pekerjaan fitur baru yang dibuka. Review dependency berkala berikutnya tetap paling lambat 2026-12-13.
+
+# 25. Audit aplikasi dan security testing (2026-11-13 WIB)
+
+* Baseline `3ca45ced11f45ecbfb958e97ab109b977c8694aa`. Laporan lengkap: `TEST_REPORT_2026-11-13.md`. **238 automated tests PASS**: unit 109, SDK 7, dependency 4, tooling 3, E2E **56+57+2 = 115**; JSON reporter skipped/unexpected/flaky seluruhnya 0, CLI `--retries=0`. Prisma generate/typecheck/lint/build 29 halaman PASS; audit lengkap dan omit=dev 0.
+* Tambahan permanen **10 tes IDOR objek nyata** (`tests/security-real-objects.spec.ts`) pada tier flows; pemilik mendapat PDF sah, akun/tim lain 403/404, upaya putusan ilegal tidak mengubah status. Perubahan runtime/dependency/schema aplikasi tidak dilakukan; test/config test/dokumentasi masih lokal, belum commit/PR/deploy.
+* **Temuan terbuka:** SEC-01 High: endpoint push buatan pengguna memicu 1 koneksi TCP/TLS loopback melalui approval API 200 (bukan klaim metadata/RCE/eksploitasi jaringan Vercel); SEC-02 High untuk dokumen rahasia: lampiran uji nyata dapat diambil anonim 200/PNG/72 byte dengan URL diketahui, jalur Blob memakai public dari kode; SEC-03 Medium: sesi perangkat lama tetap 200 setelah password berubah; SEC-04 Low: endpoint berupa objek pada payload push menghasilkan 500. Prioritas perbaikan ada di TODO; temuan ini tidak dianggap PASS hanya karena suite regresi hijau.
+* UI-01: `/laporan` mobile 390 px memiliki scrollWidth 419 px karena baris status tanpa wrap/scroll lokal; 13 dari 14 kombinasi halaman/ukuran lain tidak overflow. Screenshot diperiksa. Shell juga menggandakan children desktop/mobile (2 form password dalam DOM, 1 terlihat); penautan ulang endpoint push antar akun adalah perilaku perangkat bersama yang perlu dipertimbangkan saat hardening, bukan klaim pencurian notifikasi yang terbukti.
+* Kontrol tambahan PASS: cookie HttpOnly/Secure/Lax; sesi akun nonaktif 401; token sebelum login ulang 401 dan baru 200; logout 401; Server Action lintas Origin ditolak; satu payload stored-XSS tampil sebagai teks; tiga file sensitif dan source map satu aset nyata 404. Probe API ringan 20 request/concurrency 5, error 0, p50 183/p95 241 ms; bukan benchmark kapasitas production. UI laporan mobile tidak menghasilkan pageerror dan field tanggal punya label; bukan audit WCAG lengkap.
+* E2E memakai **schema baru `codex_security_20261113_a` di neondb_test**; namespace diverifikasi belum ada sebelum seed. Token layanan eksternal dikosongkan. Test fixture khusus audit dibersihkan; password/status akun seed dipulihkan. Schema/data sisa suite, sesi uji dan upload lokal dipertahankan untuk reproduksi. Server/browser/receiver loopback sudah berhenti; public dev/production/schema uji lama tidak di-reset. Bukti JSON/log/screenshot dan harness ada pada direktori visualisasi chat di luar repo yang dirujuk laporan.
+* Production hanya probe tanpa login: version 200/env production/SHA **MATCH `3ca45ce`**, login 200 + header keamanan, cron tanpa/salah secret 401, delapan halaman terproteksi 307 /login. Tidak menulis bisnis/Blob production. Review workflow menemukan checkout/setup-node belum SHA-pinned, default persist-credentials CI dan izin read-all dapat dipersempit; **unit suite belum digate CI**. Tidak ada klaim CI baru hijau, pentest cloud, pengiriman WA/FCM asli, multi-instance rate-limit, stress produksi, browser selain Chromium atau coverage kode penuh.
+
+# 26. Perbaikan audit dan verifikasi akhir (2026-11-13 WIB)
+
+* **285 tes PASS lokal**: 144 unit, SDK 9, dependency 4, tooling 3, E2E **56+66+3 = 125**, tanpa retry/skipped/unexpected/flaky. Prisma generate/typecheck/lint/build PASS; route lampiran + middleware dibangun. Audit penuh dan omit=dev tetap 0. Detail/batas klaim: `SECURITY_FIXES_2026-11-13.md`; audit §25 adalah snapshot sebelum perbaikan.
+* Push: validasi body/key/endpoint, allowlist FCM/Mozilla/Apple/Microsoft WNS, IP publik dan DNS dipin, batas DNS 3s/HTTPS 5s, log aman termasuk cleanup gagal. Request invalid 400, tanpa sesi 401; relink perangkat dengan key sama tetap diizinkan secara atomik. Regresi subscription internal tersimpan, dengan VAPID dummy **aktif**, approval 200/receiver TCP **0 koneksi**.
+* Lampiran baru memakai private Blob (`BLOB_PRIVATE_READ_WRITE_TOKEN`) atau `.private/uploads/`; hanya lewat `/api/lampiran/{jenis}/{id}` berotorisasi/no-store. UI/JSON/PDF memakai handler. `/uploads` termasuk variasi encoded/case yang diuji ditutup; owner/direct approver tetap dapat membaca file lama via handler. Migrator dry-run/copy/hash/transaksi/resume tersedia, pencabutan dan orphan opt-in dengan pemeriksaan exclusive-storage; copy rusak dan file schema lain terlindungi pada uji CLI.
+* Password: update/revoke/replace sesi atomik, reset HR/nonaktif mencabut target, login mengunci User dan memeriksa ulang hash/status agar upaya dengan hash stale tidak menerbitkan sesi sesudah reset. Rate limit sekarang tabel additive **LoginRateLimit**, UPSERT atomik/jam DB/hash akun/cleanup cron; lima gagal bersamaan tepat lima dan blokir terbaca subprocess baru. Raw SQL memakai `tabelPrisma` untuk schema eksplisit. **Db push tabel baru wajib sebelum deploy kode**; bukan seed/reset.
+* UI: tab laporan wrap, konten Shell hanya satu render. Verifikasi screenshot desktop/mobile 1365/390 px, scrollWidth sama dengan viewport, tab terakhir terlihat, satu form password, tanpa pageerror pada probe. CI SHA-pinned checkout v4.3.1/setup-node v4.4.0, credential tidak dipersist, izin minimal, unit gate, dan VAPID dummy E2E. YAML valid; belum ada run GitHub Actions perubahan lokal ini.
+* Verifikasi akhir memakai schema baru **codex_security_fixes_20261113_c** pada neondb_test; setup DDL direct dan runtime pooler, tanpa token Blob/Fonnte asli. Schema B parsial (setup pooler gagal constraint already exists, tidak di-seed) dan A dipertahankan. Satu run perantara 63/64 gagal pada test cron raw UPDATE tanpa schema; diperbaiki menjadi qualified + affected-row assertion + cleanup lalu ulang bersih C lulus semua. Tidak mengklaim akar internal kegagalan DDL pooler sudah tuntas diselidiki. Fixture khusus bersih, seed account dipulihkan, server/browser/receiver berhenti; state normal suite/private uploads/sandbox migrasi dipertahankan untuk reproduksi.
+* Review independen dua sumbu: Standards 5 temuan diperbaiki/0 blocker kode tersisa; Spec 3 diperbaiki/0 blocker kode tersisa. Tambahan race sesi, deadline DNS, cleanup push, batas storage bersama dan WNS dibenahi. Verifier sempat menjalankan subset 34 unit, follow-up terakhir berupa inspeksi sumber. Bukti lengkap/log/JSON/screenshot di direktori visualisasi chat `security-final/` sesuai laporan.
+* **Sisa operasional:** metadata Vercel production dibaca dengan decrypt=false, hanya nama/target; BLOB_PRIVATE_READ_WRITE_TOKEN belum ada. Nilai secret tidak dibaca. Private store/env, db push live, PR/CI/deploy, migrasi setiap konsumen, pencabutan URL/token public lama dan GET non-200 harus mengikuti `cuti-app/SECURITY_ROLLOUT.md`. SEC-02 tetap [~]; jangan mengklaim risiko live tertutup dari kode lokal. Tidak ada perubahan environment/store/data bisnis production, commit, push, PR, merge atau deploy baru pada sesi ini.
+
+# 27. Rollout keamanan production (2026-11-13 WIB, berlangsung)
+
+* Baseline aktual HEAD/origin/main `3ca45ced11f45ecbfb958e97ab109b977c8694aa`; seluruh perubahan lokal §25–26 ditinjau dan dipertahankan. Branch `codex/security-production-rollout`. RTK.md tidak ditemukan. Verifikasi baru: unit 144/144, SDK 9/9, dependency 4/4, tooling 3/3, typecheck/lint PASS; E2E 125 pada §26 belum disebut sebagai run CI baru.
+* Team Vercel `team_FBvgrFHH7FLnaXBu2qCXuomo`, project `prj_thCQSO1rBwOdOCg2rNBJufuAotCO`. Store `cuti-attachments-private` (`store_A0COWbkAYdHdbJXC`), access Private, sin1 dibuat melalui connector dan dihubungkan melalui dashboard setelah konfirmasi khusus user. Prefix `BLOB_PRIVATE`, hanya Production, token Sensitive. Metadata decrypt=false membuktikan BLOB_PRIVATE_READ_WRITE_TOKEN tersedia; ID variabel token publik lama tetap `KG6b7mXs6zXP8w5d`. Tidak mengambil nilai secret. Vercel CLI belum login; alur login dihentikan.
+* Inspeksi SQL baca-saja melalui koneksi langsung cluster Neon: `neondb/public` 14 tabel, 3 referensi public Blob, belum ada LoginRateLimit. `neondb_dev` 2 schema/28 tabel/2 referensi lokal, 0 public Blob; `neondb_test` 6 schema/87 tabel/3 referensi (1 lokal), 0 public Blob. Database `postgres` masih perlu diperiksa. Inventaris detail privat di `cuti-app/.private/release/`; tidak dipublikasikan. Store public `cuti-uploads` (`store_g7LzyzMKnGUNh2xq`) metadata tidak mempunyai koneksi project terdaftar, tetapi token manual Production masih ada; jangan menyimpulkan store eksklusif dari metadata itu.
+* [PR #25](https://github.com/rdwnivan/sistem-pengajuan-cuti/pull/25), commit awal `90635cb`. CI pertama [43425061656](https://github.com/rdwnivan/sistem-pengajuan-cuti/actions/runs/43425061656) gagal sebelum unit berjalan: Node20/Linux menerima glob berpetik secara literal (`Could not find .../unit/*.test.ts`). Command diperbaiki menjadi `tsx --test unit/*.test.ts`; Windows/Node24 tetap 144/144 PASS. Gate CI berikutnya wajib ditunggu.
+* Backup privat 14 tabel/182 baris di `.private/release/production-before-rate-limit.json` (SHA-256 `8bf57a28fb4e4b6e79d1e96161abb81708ad98fa820f798167fc4a7926f22191`). Diff live hanya CREATE TABLE LoginRateLimit + indeks terakhir, tanpa drop/alter tabel bisnis. `prisma db push --skip-generate` melalui host direct ke `neondb/public` exit 0; empat kolom NOT NULL diverifikasi dan jumlah baris semua tabel lama tidak berubah. Tidak seed/reset. Metadata env project portofolio pada team yang sama kosong.
+* Belum deploy/migrasi/revokasi. Tiga URL lama masih harus dibuktikan sebelum/sesudah pencabutan; database postgres, inventaris konsumen lengkap dan smoke owner/approver masih perlu diperiksa.
+* Database `postgres` sudah diperiksa baca-saja: hanya health_check, lakebase_attributes, neon_migration.migration_id; tidak ada tabel domain lampiran. User belum mengetahui konsumen luar, sehingga tidak ada attestation eksklusif global. Runner `scripts/release-attachments.mjs` menambahkan eksekusi dry-run/copy/revoke dengan secret tetap pada platform, inventaris seluruh cluster, manifest hash awal serta journal privat lintas build; file tanpa referensi tetap dipertahankan. Syntax/lint runner PASS, environment guard lokal menolak eksekusi tanpa Production; jalur positif masih wajib dibuktikan pada platform.

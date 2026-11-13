@@ -82,7 +82,7 @@ src/app/api/cron/route.ts # reminder + eskalasi
 ## Checklist Deploy ke Produksi
 
 1. **Database** — Neon / Supabase / Railway, salin connection string ke `DATABASE_URL`
-2. **Blob Store** — Vercel Dashboard > Storage > Blob > salin token ke `BLOB_READ_WRITE_TOKEN`
+2. **Private Blob Store** — simpan token private store ke `BLOB_PRIVATE_READ_WRITE_TOKEN`; token public lama hanya untuk migrasi. Jalankan db push untuk `LoginRateLimit` sebelum rilis kode keamanan, tanpa seed/reset data. Urutan dan pencabutan URL lama: `SECURITY_ROLLOUT.md`.
 3. **Env Vars** — atur di Vercel Project Settings > Environment Variables:
    - `DATABASE_URL` (wajib, Postgres)
    - `CRON_SECRET` (wajib, acak 32+ char)

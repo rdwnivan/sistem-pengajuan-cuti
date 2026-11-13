@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { fmtTgl } from "@/lib/cuti";
 import { kirimWAkeUser, notifApp } from "@/lib/notif";
 import { sesiKedaluwarsa } from "@/lib/auth";
+import { sapuRateLimit } from "@/lib/rate-limit";
 
 const HARI_MS = 86400000;
 
@@ -31,6 +32,7 @@ export async function jalankanReminderEskalasi(): Promise<HasilCron> {
   // sapuSesiKedaluwarsa(). Dijalankan paling awal supaya hitungannya tidak
   // bergantung pada hasil reminder/eskalasi di bawah.
   const sesiDibersihkan = await sapuSesiKedaluwarsa();
+  await sapuRateLimit();
   if (sesiDibersihkan > 0) detail.push(`sesi kedaluwarsa dibersihkan: ${sesiDibersihkan}`);
   const now = new Date();
 

@@ -42,6 +42,8 @@ Tasks that should be completed next.
 
 ## Bugs
 
+* [x] UI-01: tab laporan membungkus; viewport/dokumen 390/390 px dan 1365/1365 px, tab terakhir terlihat. Shell konten/form dirender sekali. Regresi + screenshot + typecheck/lint/build PASS lokal; belum dirilis. Bukti SECURITY_FIXES_2026-11-13.md.
+
 * [x] Vercel Analytics + SpeedInsights blocked by CSP — tambah `https://va.vercel-scripts.com` ke `script-src` + `connect-src` di `next.config.mjs` (verified via header production asli)
 * [x] Notifikasi Web Push bocor antar akun di browser yang sama — `LogoutButton` unsubscribe + hapus row DB saat Keluar; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription
 * [x] Banner notifikasi muncul lagi setelah refresh walau sudah diaktifkan — `enable()` menyembunyikan banner langsung setelah izin granted, sebelum subscribe sukses; kegagalan subscribe/POST diam-diam (cuma console). Kini banner hilang hanya bila seluruh alur sukses + pesan error tampil ke user bila gagal. Lanjutan: error mentah browser dipetakan ke panduan ramah (`pesanGalatPush`, unit 5/5) + tombol "Nanti saja" (snooze 7 hari via localStorage) agar banner tidak nagih bila push memang tak bisa jalan; test E2E di smoke. Lanjutan 2: akun sama login ulang tidak ditanya lagi — logout kini HANYA hapus row DB (subscription browser dipertahankan), login menautkan ulang diam-diam ke sesi aktif sekali per login (`sudahTaut` + `resetTautanPush`); tanpa identitas client karena server tahu user dari cookie sesi **TERVERIFIKASI PRODUKSI 2026-10-01**: pair VAPID baru valid kriptografis, subscribe tersimpan (1 row FCM), kirim percobaan diterima FCM + muncul di perangkat user.
@@ -107,6 +109,10 @@ Nice-to-have items.
 
 # Testing
 
+* [x] Audit aplikasi 2026-11-13: 109 unit + 14 compatibility + 115 E2E PASS tanpa retry; tambah 10 E2E IDOR objek nyata pada tier flows. Typecheck/lint/build PASS; dependency audit penuh/produksi 0. Temuan eksploratif belum ditutup; lihat TEST_REPORT_2026-11-13.md dan PROJECT_STATUS.md §25.
+* [x] Tambahkan `npm run test:unit` pada job CI verify; 144 unit PASS lokal, YAML/command gate diperiksa. Eksekusi GitHub Actions perubahan ini belum dilakukan.
+* [x] Verifikasi perbaikan audit: 144 unit + 16 compatibility + 125 E2E (56+66+3) PASS, tanpa retry/flaky; typecheck/lint/build + kedua audit dependency 0. Uji migration CLI copy-rusak/resume/storage bersama, reset HR, stale login, dan receiver push internal lulus. SECURITY_FIXES_2026-11-13.md.
+
 * [x] E2E HR CRUD (jenis cuti tambah, hari libur tambah/hapus, karyawan buat/edit/nonaktif) — `tests/hr-crud.spec.ts` (tier flows, serial)
 * [x] E2E validasi bisnis cuti (min H-, masa kerja, anti-bentrok, kuota tidak cukup) — `tests/cuti-validasi.spec.ts` (tier flows, serial)
 * [x] E2E ganti password (negatif + positif pakai user sekali-pakai) — `tests/profil.spec.ts`
@@ -129,6 +135,15 @@ Nice-to-have items.
 ---
 
 # Security
+
+* [~] Rilis paket keamanan §26 melalui PR/CI/preview, backup + db push LoginRateLimit direct, deploy/SHA dan smoke production. Private store Production terhubung (§27); migrasi/revokasi SEC-02 dan inventaris storage bersama belum selesai.
+
+* [x] SEC-01 kode: allowlist FCM/Mozilla/Apple/Microsoft, validasi key, DNS publik dipin, DNS 3s/HTTPS 5s dan logging aman. Receiver internal tidak dihubungi meski subscription lama tersimpan dan VAPID aktif. Unit + E2E PASS lokal; live mengikuti rollout.
+* [~] SEC-02: kode private Blob/local + API berotorisasi + penutupan `/uploads` dan migrator resumable sudah PASS lokal (owner/approver 200, anon/non-owner ditolak, salinan/file bersama aman). **Sisa production:** private store dan `BLOB_PRIVATE_READ_WRITE_TOKEN` belum tersedia pada metadata env yang diperiksa; rollout kode/db push, migrasi seluruh konsumen, pencabutan URL public lama dan GET non-200 belum dilakukan. Ikuti cuti-app/SECURITY_ROLLOUT.md. Owner: maintainer; jangan tutup hanya dari tautan UI/kode lokal.
+* [x] SEC-03 kode: perubahan password + pencabutan + sesi baru satu transaksi; reset HR mencabut target, login mengunci User dan memeriksa ulang hash/status. Regresi dua context, stale hash dan reset HR PASS lokal; belum dirilis.
+* [x] SEC-04 kode: POST/DELETE push memakai schema runtime dan body <=8 KiB, invalid 400/tanpa sesi 401. Penautan ulang perangkat membutuhkan key subscription sama, update bersyarat atomik. Regresi PASS lokal.
+* [x] CI hardening kode: SHA terverifikasi checkout v4.3.1/setup-node v4.4.0, persist-credentials false, contents:read (smoke juga actions:read), unit gate dan VAPID dummy E2E. YAML parse/inspection dan gate lokal PASS; run CI baru belum diklaim.
+* [x] Ganti rate limiter in-memory menjadi PostgreSQL LoginRateLimit: atomic UPSERT, hash akun, jam DB, cleanup cron. Lima gagal paralel tepat lima dan blokir terbaca subprocess baru; 3 E2E rate-limit PASS. Schema perlu db push sebelum kode baru dirilis.
 
 * [x] Audit berkala 2026-11-12 + patch kompatibel — `next`/`eslint-config-next` 15.5.27 → 15.5.29, `undici` 6.28.1 → 6.29.1. Audit produksi 9 temuan (1 critical) → 8 (0 critical, 5 high, 3 moderate). Typecheck/lint/build, 97 unit, E2E 54+38+2 lulus tanpa retry. Snapshot dan reachability sisa di `PROJECT_STATUS.md`.
 * [x] Merge/rilis patch keamanan 2026-11-12 — PR #15 squash-merged `3104029`; verify/e2e/preview PR PASS. Deployment production sukses, `/api/version` SHA cocok + env production; smoke read-only PASS (login/aset 200, cron 401, 8 redirect login). Audit ulang lockfile live tetap 8 (0 critical, 5 high, 3 moderate).

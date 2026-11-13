@@ -39,7 +39,7 @@ test("jenis wajib lampiran tanpa file ditolak", async ({ page }) => {
   await expect(page).toHaveURL(/\/cuti\/baru/);
 });
 
-test("file valid (PNG) diterima dan tampil di detail", async ({ page }) => {
+test("file valid (PNG) diterima, privat dan tampil di detail", async ({ page, browser }) => {
   await login(page, "karyawan");
   const r = seninSetelah(5); // 2 hari kerja → Sakit butuh lampiran (>1 hari)
   await bukaForm(page, "Sakit (min H-0)", r.mulai, r.selesai);
@@ -47,6 +47,19 @@ test("file valid (PNG) diterima dan tampil di detail", async ({ page }) => {
   await page.getByRole("button", { name: "Kirim Pengajuan" }).click();
   await page.waitForURL(/\/cuti\/[a-zA-Z0-9]{20,}$/, { timeout: 20000 });
   await expect(page.getByRole("link", { name: "Lihat lampiran" }).first()).toBeVisible();
+  const href = await page.getByRole("link", { name: "Lihat lampiran" }).getAttribute("href");
+  expect(href).toMatch(/^\/api\/lampiran\/cuti\//);
+  const absolute = new URL(href!, page.url()).toString();
+  const ownerResponse = await page.request.get(absolute);
+  expect(ownerResponse.status()).toBe(200);
+  expect(await ownerResponse.body()).toEqual(PNG_VALID);
+  expect(ownerResponse.headers()["cache-control"]).toContain("no-store");
+  const stranger = await browser.newContext({ baseURL: new URL(page.url()).origin });
+  try {
+    expect((await stranger.request.get(absolute)).status()).toBe(401);
+    await login(await stranger.newPage(), "karyawan2");
+    expect((await stranger.request.get(absolute)).status()).toBe(404);
+  } finally { await stranger.close(); }
 
   // Cleanup
   page.once("dialog", (d) => d.accept());

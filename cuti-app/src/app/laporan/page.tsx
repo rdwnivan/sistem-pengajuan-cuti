@@ -51,7 +51,7 @@ export default async function LaporanSaya({ searchParams }: { searchParams: Prom
         <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-bold text-white">Filter</button>
         {(dari || sampai) && <Link href={`/laporan?stat=${stat}`} className="rounded-lg border px-3 py-1.5 text-xs font-bold text-zinc-700">Reset</Link>}
       </form>
-      <div className="flex gap-1 text-xs font-semibold">
+      <div className="flex flex-wrap gap-1 text-xs font-semibold">
         {[
           { href: `/laporan?stat=semua${qsTanggal}`, label: "Semua" },
           { href: `/laporan?stat=DRAFT${qsTanggal}`, label: "Draf" },

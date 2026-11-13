@@ -18,13 +18,12 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
       <div className="mb-4">
         <NotificationPermission />
       </div>
-      <div className="hidden gap-6 md:flex">
-        <nav className="w-52 shrink-0 space-y-1">
+      <div className="md:flex md:gap-6">
+        <nav className="hidden w-52 shrink-0 space-y-1 md:block">
           <NavLinks role={role} isAtasan={isAtasan} />
         </nav>
         <main className="min-w-0 flex-1 space-y-4">{children}</main>
       </div>
-      <main className="space-y-4 md:hidden">{children}</main>
       <nav className="fixed inset-x-0 bottom-0 border-t bg-white px-2 py-2 md:hidden">
         <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto">
           <NavLinks role={role} isAtasan={isAtasan} mobile />

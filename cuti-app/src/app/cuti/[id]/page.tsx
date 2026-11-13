@@ -8,6 +8,7 @@ import { aksiBatal } from "@/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { delegasiAktifUntuk } from "@/lib/cron";
 import { PutusanForm } from "./PutusanForm";
+import { urlLampiran } from "@/lib/lampiran";
 
 export default async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,7 +51,7 @@ export default async function Detail({ params }: { params: Promise<{ id: string 
           {p.picPengganti && <Row k="PIC" v={p.picPengganti} />}
           {p.kontakSelamaCuti && <Row k="Kontak" v={p.kontakSelamaCuti} />}
           {p.lampiranPath && (
-            <div className="flex gap-2"><dt className="w-32 shrink-0 text-zinc-500">Lampiran</dt><dd className="font-medium"><a className="text-emerald-700 underline" href={p.lampiranPath} target="_blank">Lihat lampiran</a></dd></div>
+            <div className="flex gap-2"><dt className="w-32 shrink-0 text-zinc-500">Lampiran</dt><dd className="font-medium"><a className="text-emerald-700 underline" href={urlLampiran("cuti", p.id)} target="_blank" rel="noopener">Lihat lampiran</a></dd></div>
           )}
           {p.catatanApprover && <Row k="Catatan approver" v={p.catatanApprover} />}
         </dl>

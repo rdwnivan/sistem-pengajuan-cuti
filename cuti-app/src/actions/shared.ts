@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { userDariSesi } from "@/lib/auth";
 import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
-import { sniffFile, DI_VERCEL } from "@/lib/upload";
+import { sniffFile } from "@/lib/upload";
+import { simpanLampiranPrivat } from "@/lib/lampiran";
 
 export const STATUS_AKTIF = ["MENUNGGU_ATASAN", "MENUNGGU_HR", "DISETUJUI"];
 
@@ -16,7 +16,7 @@ export async function aktor() {
   return u;
 }
 
-export async function unggahFoto(fd: FormData, prefix: string): Promise<string | null> {
+export async function unggahFoto(fd: FormData): Promise<string | null> {
   const f = fd.get("lampiran") as File | null;
   if (!f || f.size === 0) return null;
   if (f.size > 2 * 1024 * 1024) return "__GAGAL__:Lampiran maksimal 2MB";
@@ -26,26 +26,16 @@ export async function unggahFoto(fd: FormData, prefix: string): Promise<string |
   } catch {
     return "__GAGAL__:Lampiran hanya PDF/JPG/PNG (file tidak sesuai jenis yang diklaim)";
   }
-  const { buffer, ext } = snapped;
-  const name = `${prefix}/${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(name, buffer as unknown as File, { access: "public" });
-    return blob.url;
+  try { return await simpanLampiranPrivat(snapped); }
+  catch {
+    console.error("[LAMPIRAN-SIMPAN-GAGAL]");
+    return "__GAGAL__:Upload lampiran gagal. Periksa konfigurasi penyimpanan privat.";
   }
-  if (DI_VERCEL) return "__GAGAL__:Upload belum dikonfigurasi";
-  const { writeFile, mkdir } = await import("fs/promises");
-  const { default: path } = await import("path");
-  const dir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  const fileName = name.split("/").pop()!;
-  await writeFile(path.join(dir, fileName), buffer);
-  return `/uploads/${fileName}`;
 }
 
 export type FotoTerunggah = { path: string; keterangan: string | null };
 
-export async function unggahBanyakFoto(fd: FormData, prefix: string): Promise<FotoTerunggah[] | { gagal: string }> {
+export async function unggahBanyakFoto(fd: FormData): Promise<FotoTerunggah[] | { gagal: string }> {
   const files = (fd.getAll("fotos") as File[]).filter((f) => f && f.size > 0).slice(0, 5);
   const keterangans = fd.getAll("fotoKeterangan") as string[];
   if (files.length === 0) return [];
@@ -59,23 +49,12 @@ export async function unggahBanyakFoto(fd: FormData, prefix: string): Promise<Fo
     } catch {
       return { gagal: `Foto ke-${i + 1} hanya boleh JPG/PNG (isi file tidak valid)` };
     }
-    const { buffer, ext } = snapped;
+    const { ext } = snapped;
     if (ext === "pdf") return { gagal: `Foto ke-${i + 1} harus gambar (JPG/PNG), bukan PDF` };
-    const name = `${prefix}/${Date.now()}-${i}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const { put } = await import("@vercel/blob");
-      const blob = await put(name, buffer as unknown as File, { access: "public" });
-      hasil.push({ path: blob.url, keterangan: (keterangans[i] || "").trim() || null });
-    } else if (DI_VERCEL) {
-      return { gagal: "Upload belum dikonfigurasi" };
-    } else {
-      const { writeFile, mkdir } = await import("fs/promises");
-      const { default: path } = await import("path");
-      const dir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(dir, { recursive: true });
-      const fileName = name.split("/").pop()!;
-      await writeFile(path.join(dir, fileName), buffer);
-      hasil.push({ path: `/uploads/${fileName}`, keterangan: (keterangans[i] || "").trim() || null });
+    try { hasil.push({ path: await simpanLampiranPrivat(snapped), keterangan: (keterangans[i] || "").trim() || null }); }
+    catch {
+      console.error("[FOTO-SIMPAN-GAGAL]", { index: i });
+      return { gagal: "Upload foto gagal. Periksa konfigurasi penyimpanan privat." };
     }
   }
   return hasil;

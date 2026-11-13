@@ -10,6 +10,7 @@ async function main() {
     return;
   }
   // Urutan delete mengikuti dependensi foreign key (Cascade/Restrict/SetNull)
+  await prisma.loginRateLimit.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.notifikasi.deleteMany();
   await prisma.kuota.deleteMany();

@@ -7,6 +7,7 @@ build/
 *.db
 *.db-journal
 public/uploads/
+.private/
 *.log
 *.tsbuildinfo
 next-env.d.ts

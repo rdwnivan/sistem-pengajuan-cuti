@@ -8,6 +8,7 @@ import { test, expect, login, seninDepan } from "./helpers";
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { tabelPrisma } from "../src/lib/prisma";
 
 function cronSecret(): string {
   if (process.env.CRON_SECRET) return process.env.CRON_SECRET;
@@ -85,7 +86,7 @@ test.describe("Cron — reminder & eskalasi", () => {
     const prisma = new PrismaClient({ datasources: { db: { url: dbUrl() } } });
     try {
       // 2. Simulasikan umur H+1: updatedAt 2 hari lalu, belum pernah di-reminder
-      await prisma.$executeRaw`UPDATE "Pengajuan" SET "updatedAt" = NOW() - INTERVAL '2 days', "lastReminderAt" = NULL, "reminderCount" = 0 WHERE id = ${id}`;
+      expect(await prisma.$executeRaw`UPDATE ${tabelPrisma("Pengajuan")} SET "updatedAt" = NOW() - INTERVAL '2 days', "lastReminderAt" = NULL, "reminderCount" = 0 WHERE id = ${id}`).toBe(1);
       let r = await request.get(`/api/cron?secret=${encodeURIComponent(secret)}`);
       expect(r.status()).toBe(200);
       let j = await r.json();
@@ -104,7 +105,7 @@ test.describe("Cron — reminder & eskalasi", () => {
       console.log("OK|reminder tidak dobel dalam hari yang sama");
 
       // 3. Simulasikan umur H+3: updatedAt 4 hari lalu, belum dieskalasi
-      await prisma.$executeRaw`UPDATE "Pengajuan" SET "updatedAt" = NOW() - INTERVAL '4 days', "dieskalasi" = false, "eskalasiKeId" = NULL WHERE id = ${id}`;
+      expect(await prisma.$executeRaw`UPDATE ${tabelPrisma("Pengajuan")} SET "updatedAt" = NOW() - INTERVAL '4 days', "dieskalasi" = false, "eskalasiKeId" = NULL WHERE id = ${id}`).toBe(1);
       const sebelum = await prisma.pengajuan.findUnique({ where: { id }, select: { approverId: true } });
       r = await request.get(`/api/cron?secret=${encodeURIComponent(secret)}`);
       expect(r.status()).toBe(200);
@@ -115,14 +116,10 @@ test.describe("Cron — reminder & eskalasi", () => {
       expect(sesudah?.approverId).not.toBe(sebelum?.approverId);
       console.log("OK|umur H+3 memicu eskalasi + approver pindah");
     } finally {
+      // Clean even a failed assertion so a rerun does not hit date overlap/quota.
+      await prisma.pengajuan.updateMany({ where: { id, status: { in: ["MENUNGGU_ATASAN", "MENUNGGU_HR"] } }, data: { status: "DIBATALKAN" } });
       await prisma.$disconnect();
     }
 
-    // 4. Cleanup: batalkan agar antrean kembali kosong
-    await page.goto(`/cuti/${id}`);
-    await expect(page.getByRole("heading", { name: "Detail Pengajuan" })).toBeVisible({ timeout: 15_000 });
-    page.on("dialog", (d) => d.accept());
-    await page.getByRole("button", { name: "Batalkan Pengajuan" }).click();
-    await page.waitForURL("/", { timeout: 15_000 });
   });
 });

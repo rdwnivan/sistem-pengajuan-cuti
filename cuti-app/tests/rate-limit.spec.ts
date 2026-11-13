@@ -1,4 +1,10 @@
 import { test, expect, AKUN } from "./helpers";
+import { PrismaClient } from "@prisma/client";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { catatGagal, kunciLogin, reset } from "../src/lib/rate-limit";
 
 /**
  * Test brute force dipisah ke file sendiri karena BERAT:
@@ -34,6 +40,14 @@ test("brute force diblokir setelah 5 percobaan gagal", async ({ page }) => {
   }
   // setelah 5× gagal, error rate limit harus muncul
   await expect(page.getByText("Terlalu banyak percobaan")).toBeVisible({ timeout: 8000 });
+  // An independent database client sees the block; it survives process restarts.
+  const db = new PrismaClient();
+  try {
+    const key = createHash("sha256").update(`login:${email}`).digest("hex");
+    const state = await db.loginRateLimit.findUniqueOrThrow({ where: { key } });
+    expect(state.gagal).toBe(5);
+    expect(state.blokirSampai.getTime()).toBeGreaterThan(Date.now());
+  } finally { await db.$disconnect(); }
 });
 
 test("login valid tetap berfungsi setelah rate limit aktif untuk akun lain", async ({ page }) => {
@@ -43,4 +57,22 @@ test("login valid tetap berfungsi setelah rate limit aktif untuk akun lain", asy
   await page.getByRole("button", { name: "Masuk" }).click();
   await page.waitForURL((url) => url.pathname !== "/login", { timeout: 15000 });
   expect(page.url()).not.toContain("/login");
+});
+
+test("lima kegagalan bersamaan tidak hilang dan blokir terbaca proses baru", async () => {
+  const key = `distributed-${Date.now()}@test.id`;
+  const db = new PrismaClient();
+  try {
+    await Promise.all(Array.from({ length: 5 }, () => catatGagal(key)));
+    expect((await db.loginRateLimit.findUniqueOrThrow({ where: { key: kunciLogin(key) } })).gagal).toBe(5);
+    const req = createRequire(path.join(process.cwd(), "package.json"));
+    const result = spawnSync(process.execPath, [req.resolve("tsx/cli"), "-e",
+      `import { cekRateLimit } from './src/lib/rate-limit'; import { prisma } from './src/lib/prisma'; cekRateLimit(${JSON.stringify(key)}).then(r => console.log(JSON.stringify(r))).finally(() => prisma.$disconnect());`,
+    ], { cwd: process.cwd(), env: process.env, encoding: "utf8", timeout: 20000 });
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ ok: false });
+  } finally {
+    await reset(key);
+    await db.$disconnect();
+  }
 });

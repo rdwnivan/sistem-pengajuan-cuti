@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ajukanSchema, loginSchema, putusanSchema, type NilaiAjukan } from "@/lib/validasi";
 import { bulanMasaKerja, fmtTgl, hariKerja, parseTglInput } from "@/lib/cuti";
 import { notifyHRMenungguHR, notifyKeputusan, notifyPengajuanBaru, notifApp } from "@/lib/notif";
-import { sniffFile, DI_VERCEL, type FileValid } from "@/lib/upload";
+import { sniffFile, type FileValid } from "@/lib/upload";
+import { simpanLampiranPrivat } from "@/lib/lampiran";
 import { delegasiAktifUntuk } from "@/lib/cron";
 import { STATUS_AKTIF, aktor } from "./shared";
 import { cekRateLimit, catatGagal, reset as resetRateLimit } from "@/lib/rate-limit";
@@ -17,23 +18,26 @@ export async function aksiLogin(_: unknown, fd: FormData) {
   // counter terpecah dan limit tidak pernah tercapai. Rate limit per akun juga
   // sudah tepat sasaran: brute force menarget satu akun, IP attacker bisa berganti.
   const key = `login:${String(fd.get("email") ?? "").toLowerCase().trim()}`;
-  const rate = cekRateLimit(key);
+  const rate = await cekRateLimit(key);
   if (!rate.ok) return { error: `Terlalu banyak percobaan. Coba lagi dalam ${rate.cobaLagiDalam} detik.` };
   const v = loginSchema.safeParse({ email: fd.get("email"), password: fd.get("password") });
   if (!v.success) return { error: v.error.issues[0].message };
   const { default: bcrypt } = await import("bcryptjs");
   const user = await prisma.user.findUnique({ where: { email: v.data.email.toLowerCase().trim() } });
   if (!user || !user.statusAktif) {
-    catatGagal(key);
+    await catatGagal(key);
     return { error: "Email atau password salah" };
   }
   const ok = await bcrypt.compare(v.data.password, user.passwordHash);
   if (!ok) {
-    catatGagal(key);
+    await catatGagal(key);
     return { error: "Email atau password salah" };
   }
-  resetRateLimit(key);
-  await buatSesi(user.id);
+  if (!await buatSesi(user.id, user.passwordHash)) {
+    await catatGagal(key);
+    return { error: "Email atau password salah" };
+  }
+  await resetRateLimit(key);
   redirect("/");
 }
 
@@ -105,21 +109,10 @@ export async function aksiAjukan(_: unknown, fd: FormData) {
     } catch {
       return err("Lampiran hanya PDF/JPG/PNG (file tidak sesuai jenis yang diklaim)");
     }
-    const { buffer, ext } = snapped;
-    const name = `lampiran/${user.id}-${Date.now()}.${ext}`;
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const { put } = await import("@vercel/blob");
-      const blob = await put(name, buffer as unknown as File, { access: "public" });
-      lampiranPath = blob.url;
-    } else if (DI_VERCEL) {
-      return err("Upload lampiran belum dikonfigurasi (BLOB_READ_WRITE_TOKEN kosong)");
-    } else {
-      const { writeFile, mkdir } = await import("fs/promises");
-      const { default: path } = await import("path");
-      const dir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, name.split("/").pop()!), buffer);
-      lampiranPath = `/uploads/${name.split("/").pop()}`;
+    try { lampiranPath = await simpanLampiranPrivat(snapped); }
+    catch {
+      console.error("[CUTI-LAMPIRAN-GAGAL]");
+      return err("Upload lampiran gagal. Periksa konfigurasi penyimpanan privat.");
     }
   }
 
