@@ -26,9 +26,9 @@ export async function aksiBuatLaporan(_: unknown, fd: FormData) {
     if (a.role === "HR_ADMIN") return { error: "Laporan lapangan tidak dapat di-approve HR" };
     if (!(await isAtasan(approverId))) return { error: "Approver laporan wajib atasan" };
   }
-  const lampiranResult = await unggahFoto(fd, "laporan");
+  const lampiranResult = await unggahFoto(fd);
   if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
-  const fotosResult = await unggahBanyakFoto(fd, "laporan-foto");
+  const fotosResult = await unggahBanyakFoto(fd);
   if (!Array.isArray(fotosResult)) return { error: fotosResult.gagal };
   const l = await prisma.laporanLapangan.create({
     data: {
@@ -103,9 +103,9 @@ export async function aksiRevisiLaporan(_: unknown, fd: FormData) {
   if (!a || !a.statusAktif) return { error: "Approver tidak valid" };
   if (a.role === "HR_ADMIN") return { error: "Laporan lapangan tidak dapat di-approve HR" };
   if (!(await isAtasan(approverId))) return { error: "Approver laporan wajib atasan" };
-  const lampiranResult = await unggahFoto(fd, "laporan");
+  const lampiranResult = await unggahFoto(fd);
   if (lampiranResult && lampiranResult.startsWith("__GAGAL__:")) return { error: lampiranResult.slice(10) };
-  const fotosResult = await unggahBanyakFoto(fd, "laporan-foto");
+  const fotosResult = await unggahBanyakFoto(fd);
   if (!Array.isArray(fotosResult)) return { error: fotosResult.gagal };
   // Edit draf tetap DRAFT (belum dikirim). Revisi setelah ditolak/dikembalikan langsung MENUNGGU.
   const statusBaru = dariDraf ? "DRAFT" : "MENUNGGU";

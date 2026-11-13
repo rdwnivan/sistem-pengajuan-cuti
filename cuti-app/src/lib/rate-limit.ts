@@ -1,53 +1,38 @@
-/**
- * Rate limiter sederhana untuk login (brute-force protection).
- * State in-memory per proses server.
- *
- * CATATAN PENTING: di Vercel serverless, state ini hilang saat cold start
- * dan tidak dibagikan antar instance. Ini tetap memblokir brute force
- * dalam satu instance/warm window. Untuk perlindungan penuh di production,
- * pertimbangkan backend berbasis DB atau Upstash Redis.
- */
+import { createHash } from "node:crypto";
+import { prisma, tabelPrisma } from "./prisma";
 
-type Catatan = { gagal: number; terakhir: number; blokirSampai: number };
-
-const windowMs = 15 * 60 * 1000; // 15 menit
-const maksGagal = 5;             // maksimal 5 kali gagal
-const blokirMs = 15 * 60 * 1000; // blokir 15 menit setelah melebihi
-const TTL = windowMs + blokirMs;  // berapa lama entri disimpan
-
-const store = new Map<string, Catatan>();
-
-// Bersihkan entri kedaluwarsa sesekali agar Map tidak membesar
-function bersihkan() {
-  const sekarang = Date.now();
-  store.forEach((v, k) => {
-    if (sekarang - v.terakhir > TTL && sekarang > v.blokirSampai) store.delete(k);
-  });
+export type HasilBatas = { ok: true } | { ok: false; cobaLagiDalam: number };
+export function hasilBatas(sisaDetik: number): HasilBatas {
+  return sisaDetik > 0 ? { ok: false, cobaLagiDalam: Math.ceil(sisaDetik) } : { ok: true };
+}
+export function kunciLogin(key: string): string {
+  return createHash("sha256").update(key.toLowerCase().trim()).digest("hex");
 }
 
-export function cekRateLimit(key: string): { ok: true } | { ok: false; cobaLagiDalam: number } {
-  bersihkan();
-  const sekarang = Date.now();
-  const c = store.get(key);
-  if (c && sekarang < c.blokirSampai) {
-    return { ok: false, cobaLagiDalam: Math.ceil((c.blokirSampai - sekarang) / 1000) };
-  }
-  return { ok: true };
+// Database clock + atomic UPSERT share five failures/15 min across instances.
+// Database failures propagate: login must never silently bypass this gate.
+export async function cekRateLimit(key: string): Promise<HasilBatas> {
+  const rows = await prisma.$queryRaw<{ seconds: number }[]>`
+    SELECT EXTRACT(EPOCH FROM ("blokirSampai" - CURRENT_TIMESTAMP))::float8 AS seconds
+    FROM ${tabelPrisma("LoginRateLimit")} WHERE key = ${kunciLogin(key)}`;
+  return hasilBatas(rows.length ? rows[0].seconds : 0);
 }
-
-export function catatGagal(key: string) {
-  const sekarang = Date.now();
-  const c = store.get(key);
-  if (!c || sekarang - c.terakhir > windowMs) {
-    store.set(key, { gagal: 1, terakhir: sekarang, blokirSampai: 0 });
-    return;
-  }
-  c.gagal += 1;
-  c.terakhir = sekarang;
-  if (c.gagal >= maksGagal) c.blokirSampai = sekarang + blokirMs;
-  store.set(key, c);
+export async function catatGagal(key: string): Promise<void> {
+  await prisma.$executeRaw`
+    INSERT INTO ${tabelPrisma("LoginRateLimit")} AS batas (key, gagal, terakhir, "blokirSampai")
+    VALUES (${kunciLogin(key)}, 1, CURRENT_TIMESTAMP, TIMESTAMP '1970-01-01')
+    ON CONFLICT (key) DO UPDATE SET
+      gagal = CASE WHEN batas.terakhir < CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+        THEN 1 ELSE batas.gagal + 1 END,
+      "blokirSampai" = CASE
+        WHEN batas.terakhir < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN TIMESTAMP '1970-01-01'
+        WHEN batas.gagal + 1 >= 5 THEN CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+        ELSE batas."blokirSampai" END,
+      terakhir = CURRENT_TIMESTAMP`;
 }
-
-export function reset(key: string) {
-  store.delete(key);
+export async function reset(key: string): Promise<void> {
+  await prisma.loginRateLimit.deleteMany({ where: { key: kunciLogin(key) } });
+}
+export async function sapuRateLimit(): Promise<void> {
+  await prisma.$executeRaw`DELETE FROM ${tabelPrisma("LoginRateLimit")} WHERE terakhir < CURRENT_TIMESTAMP - INTERVAL '30 minutes' AND "blokirSampai" < CURRENT_TIMESTAMP`;
 }

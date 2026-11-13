@@ -3,6 +3,7 @@ import { userDariSesi } from "@/lib/auth";
 import { teksAman } from "@/lib/pdf";
 import { notifApp } from "@/lib/notif";
 import { kirimWebPush } from "@/lib/web-push";
+import { urlLampiran } from "@/lib/lampiran";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,7 +53,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       y -= 4; T("Foto bukti lapangan:", 11, bold);
       for (const f of l.fotos) {
         if (y < 60) { page = doc.addPage([595, 842]); y = 780; }
-        T(`- ${f.path}${f.keterangan ? ` (${f.keterangan})` : ""}`);
+        T(`- ${urlLampiran("foto", f.id)}${f.keterangan ? ` (${f.keterangan})` : ""}`);
       }
     }
     y -= 10;
@@ -67,8 +68,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     id: l.id, judul: l.judul, isi: l.isi, tglLaporan: l.tglLaporan.toISOString().slice(0, 10),
     lokasi: l.lokasi, blok: l.blok, kegiatan: l.kegiatan, jumlahTenagaKerja: l.jumlahTenagaKerja,
     hasil: l.hasil, cuaca: l.cuaca, lat: l.lat, lng: l.lng,
-    shift: l.shift, status: l.status, lampiranPath: l.lampiranPath,
-    fotos: l.fotos.map((f) => ({ path: f.path, keterangan: f.keterangan })),
+    shift: l.shift, status: l.status, lampiranPath: l.lampiranPath ? urlLampiran("laporan", l.id) : null,
+    fotos: l.fotos.map((f) => ({ path: urlLampiran("foto", f.id), keterangan: f.keterangan })),
     catatanApprover: l.catatanApprover,
     pembuat: { nama: l.pembuat.nama, email: l.pembuat.email },
     approver: l.approver ? { nama: l.approver.nama } : null,

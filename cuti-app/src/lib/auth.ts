@@ -3,21 +3,42 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "./prisma";
+import { terbitkanSesi } from "./sesi-store";
 
 const COOKIE = "sesi-cuti";
 const EXPIRE_DAYS = 7;
 
-export async function buatSesi(userId: string) {
+async function simpanCookieSesi(token: string, expiresAt: Date) {
+  (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
+}
+
+export async function buatSesi(userId: string, hashTerverifikasi: string): Promise<boolean> {
   const jar = await cookies();
   const tokenLama = jar.get(COOKIE)?.value;
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + EXPIRE_DAYS * 86400 * 1000);
-  await prisma.sesi.create({ data: { token, userId, expiresAt } });
+  const issued = await terbitkanSesi(userId, hashTerverifikasi, token, expiresAt, tokenLama);
+  if (!issued) return false;
   // Rotasi token: login ulang (mis. di perangkat bersama) tidak boleh meninggalkan
   // row Sesi lama yang tetap valid 7 hari. Token baru dibuat lebih dulu supaya tidak
   // pernah ada jendela tanpa sesi valid bila pembuatan gagal.
-  if (tokenLama) await prisma.sesi.deleteMany({ where: { token: tokenLama } });
-  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt, secure: process.env.NODE_ENV === "production" });
+  await simpanCookieSesi(token, expiresAt);
+  return true;
+}
+
+/** Password update, revocation of every old session and replacement are atomic. */
+export async function gantiPasswordDanSesi(userId: string, hashLama: string, hashBaru: string): Promise<boolean> {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + EXPIRE_DAYS * 86400000);
+  const changed = await prisma.$transaction(async (tx) => {
+    const result = await tx.user.updateMany({ where: { id: userId, passwordHash: hashLama, statusAktif: true }, data: { passwordHash: hashBaru } });
+    if (result.count !== 1) return false;
+    await tx.sesi.deleteMany({ where: { userId } });
+    await tx.sesi.create({ data: { token, userId, expiresAt } });
+    return true;
+  });
+  if (changed) await simpanCookieSesi(token, expiresAt);
+  return changed;
 }
 
 export async function userDariSesi() {

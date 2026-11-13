@@ -182,7 +182,9 @@ Isi `.env`:
 ```env
 # --- Wajib ---
 DATABASE_URL="postgresql://user:pass@host:5432/cuti?sslmode=require"
-BLOB_READ_WRITE_TOKEN="dari-vercel-blob-store"
+BLOB_PRIVATE_READ_WRITE_TOKEN="dari-vercel-private-blob-store"
+# Hanya saat migrasi file public lama:
+BLOB_READ_WRITE_TOKEN=""
 CRON_SECRET="isi-string-acak-min-32-karakter"
 
 # --- Web Push (opsional, tapi butuh keduanya agar aktif) ---
@@ -293,9 +295,9 @@ Schema sudah `provider = "postgresql"`.
 ## Deploy ke Vercel
 
 1. Buat database Postgres (Neon / Supabase / Railway), salin connection string → `DATABASE_URL`.
-2. Buat Blob Store di dashboard Vercel → salin token → `BLOB_READ_WRITE_TOKEN`.
+2. Buat Blob Store dengan access **Private** → simpan token sebagai `BLOB_PRIVATE_READ_WRITE_TOKEN`.
 3. Import repo GitHub ke Vercel, set environment variables:
-   `DATABASE_URL`, `CRON_SECRET`, `FONNTE_TOKEN` (opsional), `BLOB_READ_WRITE_TOKEN`,
+   `DATABASE_URL`, `CRON_SECRET`, `FONNTE_TOKEN` (opsional), `BLOB_PRIVATE_READ_WRITE_TOKEN`,
    `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (opsional, tapi butuh keduanya), `SEED_FORCE`.
 4. Build command otomatis (`prisma generate && next build`, lihat `vercel.json`).
 5. Setelah deploy pertama, siapkan tabel + seed:
@@ -307,15 +309,21 @@ DATABASE_URL="postgresql://..." SEED_FORCE=true npm run db:seed
 
 6. Cron reminder/eskalasi harian otomatis via `vercel.json` (`/api/cron`, auth query `?secret=CRON_SECRET`).
 
-Catatan: tanpa `BLOB_READ_WRITE_TOKEN`, upload lampiran gagal di Vercel (filesystem read-only).
+Catatan: tanpa `BLOB_PRIVATE_READ_WRITE_TOKEN`, upload lampiran gagal tertutup di Vercel (filesystem read-only). Lokal/CI menggunakan `.private/uploads/`, bukan `public/uploads/`. File hanya dilayani `/api/lampiran/{cuti|laporan|foto}/{id}` setelah otorisasi; respons `private, no-store`. Untuk rilis hardening 2026-11-13, jalankan `prisma db push` **sebelum** kode baru melayani login: tabel `LoginRateLimit` baru wajib tersedia. Jangan seed/reset database yang sudah berisi data.
+
+### Migrasi lampiran public lama
+
+Lihat [SECURITY_ROLLOUT.md](SECURITY_ROLLOUT.md) untuk urutan rilis dan verifikasi. `npm run migrate:attachments` default hanya dry-run. `-- --apply` menyalin, memverifikasi SHA-256 dan memperbarui referensi pada database/schema terpilih; sumber lama tetap ada. `-- --apply --revoke-old --exclusive-storage` baru mencabut sumber, setelah memastikan semua database/environment yang memakai storage tersebut sudah dimigrasikan. Inventory file tanpa referensi tidak boleh dianggap orphan secara global; arsipnya perlu tambahan `--include-unreferenced` dan pemeriksaan cakupan tersendiri. Journal resumable berada di `.private/lampiran-migration.json`; simpan aman hingga semua URL lama diverifikasi tidak lagi 200.
 
 ## Keamanan
 
-- Jangan commit `.env`, `*.db`, `public/uploads/`, atau `*.log` (sudah di `.gitignore`).
+- Jangan commit `.env`, `*.db`, `.private/`, `public/uploads/`, atau `*.log` (sudah di `.gitignore`).
 - `CRON_SECRET` wajib acak dan berbeda antara dev/produksi (min. 32 karakter).
 - `SEED_FORCE` harus diset agar `db:seed` tidak menghapus data produksi secara tidak sengaja.
 - Header keamanan aktif di `next.config.mjs`: HSTS, CSP, X-Frame-Options, Referrer-Policy.
-- Lampiran tersimpan di Vercel Blob — batasi akses reverse-proxy jika berisi dokumen sensitif.
+- Lampiran baru memakai private Blob dan pemeriksaan owner/HR/approver pada API. URL public lama tetap berisiko sampai migrasi dan pencabutan selesai; mengubah tautan UI saja tidak cukup.
+- Ganti password mencabut semua sesi lama dan memberi sesi baru pada perangkat saat ini; reset oleh HR mencabut sesi target. Penerbitan sesi memeriksa ulang hash/status di bawah lock User untuk menutup login yang berlomba dengan reset.
+- Rate limit login memakai PostgreSQL (`LoginRateLimit`), 5 gagal/15 menit per akun, sehingga lintas proses/cold start tetap memakai catatan yang sama. Cron menyapu catatan lama; kegagalan storage tidak melewati gate login.
 - Akun demo hanya untuk pengembangan; nonaktifkan atau ganti password di produksi.
 
 ## Lisensi

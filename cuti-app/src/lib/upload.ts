@@ -3,8 +3,8 @@
  *
  * Alasan: `File.type` datang dari client dan bisa dipalsukan — file
  * berbahaya yang diklaim sebagai "application/pdf" akan lolos validasi
- * tipe. File di-host di Vercel Blob dengan `access: "public"`, sehingga
- * file berbahaya bisa disajikan dari origin yang sama.
+ * tipe. Lampiran disajikan melalui API privat; kontennya tetap harus
+ * divalidasi sebelum disimpan dan dikirim ke browser.
  *
  * Solusi: baca signature (magic bytes) file di server dan tentukan
  * ekstensi dari konten AKTUAL, bukan dari klaim client.
@@ -21,12 +21,12 @@ export type FileValid = { buffer: Buffer; ext: string; mime: string };
 
 /**
  * True bila proses berjalan di Vercel. FS Vercel **read-only**, jadi di sana
- * upload lokal tidak mungkin — wajib lewat Vercel Blob (`BLOB_READ_WRITE_TOKEN`).
+ * upload lokal tidak mungkin — wajib lewat private Blob (`BLOB_PRIVATE_READ_WRITE_TOKEN`).
  *
  * Sengaja TIDAK memakai `NODE_ENV === "production"`: build produksi yang
  * dijalankan lokal (mis. E2E `next start` di CI) masih bisa menulis ke
- * `public/uploads/`, sedangkan di Vercel tidak. Dipakai di 3 tempat agar
- * kondisinya satu sumber (cutiActions + shared unggahFoto/unggahBanyakFoto).
+ * `.private/uploads/`, sedangkan di Vercel tidak. Gate ini dipakai oleh
+ * storage lampiran agar kondisinya tetap satu sumber.
  */
 export const DI_VERCEL = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 

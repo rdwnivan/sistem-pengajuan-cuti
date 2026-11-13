@@ -8,6 +8,7 @@ import { fmtTgl } from "@/lib/cuti";
 import { aksiKirimLaporan, aksiBatalLaporan } from "@/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PutusanLaporanForm } from "./PutusanLaporanForm";
+import { urlLampiran } from "@/lib/lampiran";
 
 export default async function LaporanDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -54,13 +55,13 @@ export default async function LaporanDetail({ params }: { params: Promise<{ id: 
         </dl>
         <div className="mt-3 whitespace-pre-wrap rounded-lg border bg-zinc-50 p-3 text-sm">{l.isi}</div>
         {l.lampiranPath && (
-          <a href={l.lampiranPath} target="_blank" className="mt-2 inline-block text-sm font-semibold text-emerald-700 underline">Lihat lampiran</a>
+          <a href={urlLampiran("laporan", l.id)} target="_blank" rel="noopener" className="mt-2 inline-block text-sm font-semibold text-emerald-700 underline">Lihat lampiran</a>
         )}
         {l.fotos.length > 0 && (
           <div className="mt-3 space-y-2">
             <h3 className="text-sm font-bold">Foto bukti lapangan ({l.fotos.length})</h3>
             {l.fotos.map((f) => (
-              <a key={f.id} href={f.path} target="_blank" className="block rounded-lg border bg-zinc-50 p-2 text-sm">
+              <a key={f.id} href={urlLampiran("foto", f.id)} target="_blank" rel="noopener" className="block rounded-lg border bg-zinc-50 p-2 text-sm">
                 <span className="font-semibold text-emerald-700 underline">Lihat foto</span>
                 {f.keterangan && <span className="text-zinc-600"> — {f.keterangan}</span>}
               </a>

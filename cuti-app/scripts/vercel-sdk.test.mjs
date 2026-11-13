@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { createServer } from "node:http";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 // Uji integrasi khusus override: resolusi mengikuti SDK yang terpasang,
 // bukan menambahkan CLI-config/OIDC sebagai dependency aplikasi.
@@ -79,4 +79,28 @@ test("Blob put mengirim OIDC dan store ID dummy ke endpoint lokal", async t => {
   const headers = await mockBlob(t, { oidcToken: "test-only-oidc-token", storeId: "store_teststore" });
   assert.equal(headers.authorization, "Bearer test-only-oidc-token");
   assert.equal(headers["x-vercel-blob-store-id"], "teststore");
+});
+
+test("Blob put private mempertahankan access private pada request SDK", async t => {
+  const headers = await mockBlob(t, { token: "vercel_blob_rw_teststore_testonly", access: "private" });
+  assert.equal(headers["x-vercel-blob-access"], "private");
+});
+
+test("Blob get private mengirim bearer dan membaca byte tanpa jaringan luar", async t => {
+  const { MockAgent, setGlobalDispatcher, getGlobalDispatcher } = blobRequire("undici");
+  const previous = getGlobalDispatcher();
+  const mock = new MockAgent();
+  mock.disableNetConnect();
+  setGlobalDispatcher(mock);
+  t.after(async () => { setGlobalDispatcher(previous); await mock.close(); });
+  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  mock.get("https://teststore.private.blob.vercel-storage.com").intercept({
+    path: "/test.png?cache=0", method: "GET", headers: { authorization: "Bearer vercel_blob_rw_teststore_testonly" },
+  }).reply(200, bytes, { headers: { "content-type": "image/png", "content-length": String(bytes.length) } });
+  const result = await get("https://teststore.private.blob.vercel-storage.com/test.png", {
+    access: "private", token: "vercel_blob_rw_teststore_testonly", useCache: false,
+  });
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(Buffer.from(await new Response(result.stream).arrayBuffer()), bytes);
+  mock.assertNoPendingInterceptors();
 });

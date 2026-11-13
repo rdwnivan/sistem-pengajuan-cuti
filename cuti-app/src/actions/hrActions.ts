@@ -47,13 +47,18 @@ export async function aksiSimpanUser(_: unknown, fd: FormData) {
         });
         if (res.error) return res;
       }
-      await prisma.user.update({ where: { id }, data });
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id }, data });
+        if (v.data.password || !data.statusAktif) await tx.sesi.deleteMany({ where: { userId: id } });
+      });
     } else {
       if (!v.data.password) return { error: "Password wajib untuk akun baru" };
       await prisma.user.create({ data: { ...data, gajiPokok: v.data.gajiPokok, tunjanganTetap: v.data.tunjanganTetap, passwordHash: data.passwordHash as string } as Parameters<typeof prisma.user.create>[0]["data"] });
     }
-  } catch {
-    return { error: "Email sudah dipakai" };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "P2002") return { error: "Email atau NIP sudah dipakai" };
+    console.error("[KARYAWAN-SIMPAN-GAGAL]", { code: error instanceof Error && "code" in error ? error.code : "unknown" });
+    return { error: "Penyimpanan karyawan gagal. Silakan coba lagi." };
   }
   redirect("/hr/karyawan");
 }
