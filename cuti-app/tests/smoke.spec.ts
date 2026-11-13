@@ -40,8 +40,23 @@ test.describe("Smoke — navigasi", () => {
   });
 
   test("dashboard memuat link slip gaji dan laporan", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Beranda", exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "+ Ajukan Cuti", exact: true }).filter({ visible: true })).toHaveAttribute("href", "/cuti/baru");
     await expect(page.getByRole("link", { name: "Slip Gaji" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Laporan Lapangan" }).first()).toBeVisible();
+  });
+
+  test("menu aktif mengikuti perpindahan halaman di desktop dan mobile", async ({ page }) => {
+    for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/");
+      const nav = page.getByRole("navigation").filter({ visible: true });
+      await expect(nav.locator('[aria-current="page"]')).toHaveText("Beranda");
+      await nav.getByRole("link", { name: "Slip Gaji", exact: true }).click();
+      await expect(page).toHaveURL("/slip-gaji");
+      await expect(nav.locator('[aria-current="page"]')).toHaveText("Slip Gaji");
+      await expect(nav.getByRole("link", { name: "Beranda", exact: true })).not.toHaveAttribute("aria-current", "page");
+    }
   });
 
   test("halaman slip gaji terbuka", async ({ page }) => {

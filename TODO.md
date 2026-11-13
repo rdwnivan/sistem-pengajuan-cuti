@@ -36,7 +36,9 @@ Tasks that should be completed next.
 
 ## Current Feature
 
-(none — all major features complete)
+* [~] Rapikan hierarki dashboard, verifikasi desktop/mobile/peran, lalu rilis bersama interaksi UI lewat PR + CI + deployment smoke (disetujui 2026-11-13).
+
+* [x] Penyempurnaan interaksi UI (2026-11-13): menu aktif desktop/mobile termasuk subhalaman, respons tekan tombol/tautan dashboard 120ms, transisi validasi 160ms, fokus keyboard, dan reduced motion. Typecheck/lint + verifikasi Chromium lokal PASS; belum deploy. Detail di PROJECT_STATUS.md §23.
 
 ## Bugs
 
