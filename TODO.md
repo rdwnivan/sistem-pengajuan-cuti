@@ -36,9 +36,9 @@ Tasks that should be completed next.
 
 ## Current Feature
 
-* [~] Rapikan hierarki dashboard, verifikasi desktop/mobile/peran, lalu rilis bersama interaksi UI lewat PR + CI + deployment smoke (disetujui 2026-11-13).
+* [x] Rapikan hierarki dashboard dan rilis interaksi UI — PR #23 MERGED 508c7fe; CI PR 105/105 E2E PASS (56+47+2), typecheck/lint/build/compatibility PASS. Production SHA MATCH, dashboard desktop/mobile, navigasi dan reduced motion diperiksa langsung (2026-11-13); bukti di PROJECT_STATUS.md §24.
 
-* [x] Penyempurnaan interaksi UI (2026-11-13): menu aktif desktop/mobile termasuk subhalaman, respons tekan tombol/tautan dashboard 120ms, transisi validasi 160ms, fokus keyboard, dan reduced motion. Typecheck/lint + verifikasi Chromium lokal PASS; belum deploy. Detail di PROJECT_STATUS.md §23.
+* [x] Penyempurnaan interaksi UI (2026-11-13): menu aktif desktop/mobile termasuk subhalaman, respons tekan tombol/tautan dashboard 120ms, transisi validasi 160ms, fokus keyboard, dan reduced motion. Typecheck/lint + verifikasi Chromium lokal PASS; sudah live bersama PR #23 (§24). Detail implementasi di PROJECT_STATUS.md §23.
 
 ## Bugs
 
