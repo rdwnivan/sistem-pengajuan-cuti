@@ -37,6 +37,12 @@ Journal `.private/lampiran-migration.json` memuat referensi sumber/tujuan dan di
 
 Untuk store yang dipakai beberapa database, lakukan fase copy pada seluruh konsumen dahulu. **Jangan menyatakan `--exclusive-storage` sebelum inventaris tersebut lengkap.** Salinan privat bisa berbeda untuk setiap DB, tetapi sumber lama baru boleh dicabut ketika tidak ada konsumen yang masih memerlukannya. File Blob berukuran lebih dari 2 MB atau signature tidak valid dihentikan untuk pemeriksaan manual, tidak dibuang.
 
+### Runner dengan secret tetap di Vercel
+
+`node scripts/release-attachments.mjs dry-run|copy|revoke` adalah runner operasional, tidak dipanggil aplikasi/cron. Runner hanya menerima environment Production dengan database `neondb` serta kedua token storage tersedia. Jalankan melalui deployment connector dengan install command sementara `npm ci && npx prisma generate && node scripts/release-attachments.mjs dry-run` (ganti fase secara eksplisit); build aplikasi tetap memakai vercel.json. Tunggu tiap deployment selesai dan periksa log sebelum fase berikutnya. Kembalikan install command ke nilai semula setelahnya; jangan menjadikan migrasi langkah build permanen.
+
+Runner membaca katalog seluruh database/schema pada cluster melalui koneksi langsung. Referensi Blob publik di database lain atau kolom path pada model tak dikenal menghentikan proses untuk review. Manifest sumber yang benar-benar 200 dan SHA-256, journal per production, serta hasil per fase disimpan privat di prefix `security-rollout/2026-11-13/`; log hanya angka/digest. Setiap fase memulihkan journal dan menyimpannya kembali meskipun migrator gagal. `revoke` menolak bila sumber manifest masih dirujuk database mana pun pada cluster; hasil diperiksa ulang terhadap digest sumber awal dan GET sumber lama. File tanpa referensi tetap dipertahankan. Konsumen di cluster/aplikasi luar tetap perlu inventaris operator, bukan ditebak dari katalog cluster ini.
+
 ## Penerimaan rilis
 
 * Header file `Cache-Control: private, no-store`; owner dan approver sah mendapat file asli, anon/non-owner ditolak. Tidak ada URL storage mentah di UI/JSON laporan/PDF.
