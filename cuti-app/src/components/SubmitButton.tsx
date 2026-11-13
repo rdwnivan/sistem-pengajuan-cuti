@@ -32,7 +32,7 @@ export function SubmitButton({ children, className, active = true, confirm, onCl
     <button
       type="submit"
       aria-busy={show}
-      className={className}
+      className={`ui-press ${className ?? ""}`}
       onClick={(e) => {
         // Cek konfirmasi DULU sebelum setPending — kalau user batal,
         // preventDefault menghentikan submit dan tombol tetap normal.

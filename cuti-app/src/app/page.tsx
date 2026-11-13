@@ -30,56 +30,85 @@ export default async function Dashboard() {
 
   return (
     <Shell nama={user.nama} role={user.role} isAtasan={atasan}>
+      <div className="flex flex-wrap items-center justify-between gap-4 py-2">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Beranda</h1>
+          <p className="mt-1 text-sm text-zinc-600">Kuota cuti dan pengajuan terbaru Anda.</p>
+        </div>
+        <Link href="/cuti/baru" prefetch className="ui-press inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white">+ Ajukan Cuti</Link>
+      </div>
       <Banner />
       {(menungguSaya > 0) && (
-        <Link href="/persetujuan" prefetch className="block rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-center text-sm font-bold text-amber-800 transition active:scale-[0.99]">
-          {menungguSaya} pengajuan menunggu persetujuan Anda — ketuk untuk proses
+        <Link href="/persetujuan" prefetch className="ui-press flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <span>{menungguSaya} pengajuan menunggu persetujuan Anda</span>
+          <span className="inline-flex items-center gap-2">Proses pengajuan <Panah /></span>
         </Link>
       )}
-      <section className="rounded-xl border bg-white p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bold">Sisa Kuota {tahun}</h2>
-          <Link href="/cuti/baru" prefetch className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-bold text-white transition active:scale-[0.97]">+ Ajukan</Link>
+      <section aria-label={`Sisa Kuota ${tahun}`} className="rounded-xl border border-zinc-200 bg-white px-4 py-5 sm:px-5">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-bold">Sisa Kuota {tahun}</h2>
+          <span className="text-xs text-zinc-600">Dalam hari kerja</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <dl className="grid grid-cols-2 gap-x-4 sm:gap-x-6">
           {jenis.filter((j) => j.kuota > 0).map((j) => {
             const k = petaKuota.get(j.id);
             const sisa = (k?.jatah ?? j.kuota) - (k?.terpakai ?? 0);
             return (
-              <div key={j.id} className="rounded-lg border p-2 text-center">
-                <div className="text-xs text-zinc-500">{j.nama}</div>
-                <div className="text-xl font-bold text-emerald-700">{sisa}</div>
+              <div key={j.id} className="flex min-w-0 items-baseline justify-between gap-3 border-b border-zinc-100 py-3">
+                <dt className="min-w-0 break-words text-sm text-zinc-700">{j.nama}</dt>
+                <dd className="shrink-0 text-lg font-bold tabular-nums text-emerald-800">{sisa}</dd>
               </div>
             );
           })}
-        </div>
+        </dl>
       </section>
-      <section className="rounded-xl border bg-white p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bold">Pengajuan Terakhir</h2>
-          <Link href="/riwayat" prefetch className="text-sm font-semibold text-emerald-700">Lihat semua</Link>
+      <section aria-label="Pengajuan Terakhir" className="rounded-xl border border-zinc-200 bg-white px-4 py-5 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-bold">Pengajuan Terakhir</h2>
+          <Link href="/riwayat" prefetch className="dashboard-text-link inline-flex min-h-11 items-center gap-1.5 rounded text-sm font-semibold text-emerald-800">Lihat semua <Panah /></Link>
         </div>
-        <div className="space-y-2">
-          {riwayat.length === 0 && <p className="text-sm text-zinc-500">Belum ada pengajuan.</p>}
+        <div className="divide-y divide-zinc-100">
+          {riwayat.length === 0 && (
+            <div className="py-5">
+              <p className="text-sm font-medium text-zinc-700">Belum ada pengajuan.</p>
+              <p className="mt-1 text-sm text-zinc-600">Pengajuan cuti Anda akan tampil di sini.</p>
+            </div>
+          )}
           {riwayat.map((p) => (
-            <Link key={p.id} href={`/cuti/${p.id}`} prefetch className="flex items-center justify-between rounded-lg border px-3 py-2 transition active:scale-[0.99]">
-              <div className="text-sm">
-                <div className="font-semibold">{p.jenis.nama} · {p.jumlahHariKerja} hari</div>
-                <div className="text-xs text-zinc-500">{fmtTgl(p.tglMulai)} → {fmtTgl(p.tglSelesai)}</div>
+            <Link key={p.id} href={`/cuti/${p.id}`} prefetch className="dashboard-row ui-press flex flex-wrap items-center justify-between gap-3 rounded-lg py-3">
+              <div className="min-w-0 text-sm">
+                <div className="break-words font-semibold">{p.jenis.nama} · {p.jumlahHariKerja} hari</div>
+                <div className="mt-1 text-xs text-zinc-600">{fmtTgl(p.tglMulai)} → {fmtTgl(p.tglSelesai)}</div>
               </div>
               <Badge status={p.status} />
             </Link>
           ))}
         </div>
       </section>
-      <section className="grid grid-cols-2 gap-2">
-        <Link href="/cuti/baru" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700 transition active:scale-[0.97]">+ Ajukan Cuti</Link>
-        <Link href="/slip-gaji" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700 transition active:scale-[0.97]">Slip Gaji</Link>
-        {!atasan && <Link href="/laporan" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-amber-700 transition active:scale-[0.97]">Laporan Lapangan</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/persetujuan" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-blue-700 transition active:scale-[0.97]">Verifikasi HR ({antreanHR})</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/hr/slip-gaji" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-purple-700 transition active:scale-[0.97]">Kelola Slip Gaji</Link>}
-        {user.role === "HR_ADMIN" && <Link href="/hr" prefetch className="rounded-xl border bg-white p-3 text-center text-sm font-bold text-emerald-700 transition active:scale-[0.97]">Kelola HR</Link>}
+      <section aria-label="Akses cepat" className="pt-2">
+        <h2 className="mb-2 text-sm font-semibold text-zinc-600">Akses cepat</h2>
+        <div className="grid gap-x-6 sm:grid-cols-2">
+          <AksesCepat href="/slip-gaji">Slip Gaji</AksesCepat>
+          {!atasan && <AksesCepat href="/laporan">Laporan Lapangan</AksesCepat>}
+          {user.role === "HR_ADMIN" && <>
+            <AksesCepat href="/persetujuan">Verifikasi HR ({antreanHR})</AksesCepat>
+            <AksesCepat href="/hr/slip-gaji">Kelola Slip Gaji</AksesCepat>
+            <AksesCepat href="/hr">Kelola HR</AksesCepat>
+          </>}
+        </div>
       </section>
     </Shell>
+  );
+}
+
+function Panah() {
+  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>;
+}
+
+function AksesCepat({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} prefetch className="dashboard-row ui-press flex min-h-12 items-center justify-between gap-3 rounded-lg border-b border-zinc-200 py-3 text-sm font-semibold text-emerald-800">
+      {children}<Panah />
+    </Link>
   );
 }

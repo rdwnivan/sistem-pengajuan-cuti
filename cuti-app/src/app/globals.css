@@ -5,3 +5,87 @@
 body {
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ui-press {
+  transition: transform 120ms var(--ease-out);
+}
+
+.ui-press:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(0.98);
+}
+
+.ui-press:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ui-press:focus-visible,
+.app-nav-link:focus-visible,
+.dashboard-text-link:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 3px;
+}
+
+.app-nav-link[aria-current="page"] {
+  color: #ffffff;
+  background-color: #047857;
+}
+
+.app-nav-link:active:not([aria-current="page"]) {
+  background-color: #d1fae5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-nav-link:hover:not([aria-current="page"]) {
+    background-color: #ecfdf5;
+  }
+
+  .dashboard-row:hover {
+    background-color: #ecfdf5;
+  }
+
+  .dashboard-text-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.validation-message {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .validation-message {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-press,
+  .ui-press:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: none;
+    transition: opacity 120ms var(--ease-out);
+  }
+
+  .ui-press:active:not(:disabled):not([aria-disabled="true"]) {
+    opacity: 0.85;
+  }
+
+  .validation-message {
+    transform: none;
+    transition: opacity 120ms var(--ease-out);
+  }
+
+  @starting-style {
+    .validation-message {
+      transform: none;
+    }
+  }
+}

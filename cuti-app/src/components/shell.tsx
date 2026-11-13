@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NavLink } from "@/components/NavLink";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { userDariSesi, isAtasan } from "@/lib/auth";
@@ -22,7 +22,7 @@ export function Shell({ nama, role, isAtasan, children }: { nama: string; role: 
         <nav className="w-52 shrink-0 space-y-1">
           <NavLinks role={role} isAtasan={isAtasan} />
         </nav>
-        <main className="flex-1 space-y-4">{children}</main>
+        <main className="min-w-0 flex-1 space-y-4">{children}</main>
       </div>
       <main className="space-y-4 md:hidden">{children}</main>
       <nav className="fixed inset-x-0 bottom-0 border-t bg-white px-2 py-2 md:hidden">
@@ -47,27 +47,27 @@ function NavLinks({ role, isAtasan, mobile }: { role: string; isAtasan: boolean;
     { href: "/profil", label: "Profil" },
   ];
   const cls = mobile
-    ? "relative shrink-0 rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50 active:bg-emerald-100"
-    : "block rounded-lg px-3 py-2 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-50 active:bg-emerald-100";
+    ? "relative shrink-0 rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-emerald-800"
+    : "block rounded-lg px-3 py-2 text-sm font-semibold text-emerald-900";
   return (
     <>
       {items.map((i) =>
         i.href === "/persetujuan" ? (
-          <Link key={i.href} href={i.href} prefetch className={cls}>
+          <NavLink key={i.href} href={i.href} className={cls}>
             {i.label}
             <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
               <PersetujuanBadge mobile={mobile} />
             </Suspense>
-          </Link>
+          </NavLink>
         ) : i.href === "/notifikasi" ? (
-          <Link key={i.href} href={i.href} prefetch className={cls}>
+          <NavLink key={i.href} href={i.href} className={cls}>
             {i.label}
             <Suspense fallback={<BadgeSkeleton mobile={mobile} />}>
               <NotifBadge mobile={mobile} />
             </Suspense>
-          </Link>
+          </NavLink>
         ) : (
-          <Link key={i.href} href={i.href} prefetch className={cls}>{i.label}</Link>
+          <NavLink key={i.href} href={i.href} className={cls}>{i.label}</NavLink>
         )
       )}
     </>

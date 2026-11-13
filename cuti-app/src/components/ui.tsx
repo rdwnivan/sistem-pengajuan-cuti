@@ -15,7 +15,7 @@ export function Banner() {
 
 export function ErrorMsg({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{msg}</div>;
+  return <div role="alert" className="validation-message rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{msg}</div>;
 }
 
 export function Field({ label, children, id }: { label: string; children: React.ReactNode; id?: string }) {
@@ -28,4 +28,4 @@ export function Field({ label, children, id }: { label: string; children: React.
 }
 
 export const inputCls = "w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-base focus:border-emerald-600 focus:outline-none";
-export const btnCls = "w-full rounded-xl bg-emerald-700 px-4 py-3 text-base font-bold text-white active:bg-emerald-800";
+export const btnCls = "ui-press w-full rounded-xl bg-emerald-700 px-4 py-3 text-base font-bold text-white active:bg-emerald-800";
