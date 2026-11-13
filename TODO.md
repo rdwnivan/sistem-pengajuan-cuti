@@ -136,9 +136,9 @@ Nice-to-have items.
 * [x] Review ulang dependency produksi 2026-11-12: audit **4 paket (0 critical, 1 high, 3 moderate)**; lima advisory PostCSS/UUID dan reachability diperiksa ulang, belum ada fix dalam range upstream. SDK **7/7**, Git/PR/CI dan smoke production read-only **PASS**, SHA main/live `ca6118a`. Dependency/lockfile tidak berubah; bukti dan keputusan di `PROJECT_STATUS.md` §17.
 * [x] Tutup sisa PostCSS/UUID melalui override teruji sesuai permintaan user di **PR #18**: PostCSS 8.5.28 + UUID 11.1.1 khusus ExcelJS. Audit produksi **0**; instalasi bersih, 109 unit + 7 SDK + 4 dependency, typecheck/lint/build PASS; CI kode koreksi `4ecc175` **97 E2E (55+40+2) PASS tanpa retry/flaky**, preview sukses. Belum merge/deploy; lihat `PROJECT_STATUS.md` §18.
 * [x] Rilis PR #18: squash `1536799`, CI main sukses, Vercel READY, `/api/version` cocok env production, smoke otomatis MATCH. Audit produksi 0 sudah live; tidak membuat ulang demo/seed/reset data. Bukti di PROJECT_STATUS.md §19.
-* [~] Tutup 7 moderate tooling dev — selector parser 6.1.6 dalam range + override Minimatch 11.0.1 khusus typescript-estree; commit patch/major terpisah. Audit lengkap dan produksi **0**, instalasi bersih dan 3 tes tooling PASS; verifikasi gabungan/PR masih berjalan. Detail di PROJECT_STATUS.md §20.
-* [ ] Review berikutnya paling lambat **2026-12-12**, saat lockfile berubah, dan sebelum rilis: cek backport Next 15 dengan PostCSS >=8.5.23 serta ExcelJS stabil dengan UUID >=11.1.1 untuk menghapus override setelah verifikasi; evaluasi segera bila advisory/severity/reachability berubah. Owner: maintainer.
-* [ ] Evaluasi penghapusan override CLI-config ketika rantai Blob/OIDC menerima Zod >=4.6.6. Review 2026-11-12: Blob latest 2.9.0 masih OIDC ^3.6.1 → OIDC 3.x latest 3.8.10 → CLI-config 0.3.1 → Zod 4.1.11; override **tetap diperlukan**. Cek resolusi `npm ls zod`, audit, SDK + unit/typecheck/lint/build/E2E sebelum menghapus lewat PR fokus. Owner: maintainer; jadwal sama dengan review dependency di atas.
+* [x] Tutup 7 moderate tooling dev — **PR #20 merged/live e109822**: selector parser 6.1.6 dalam range + override Minimatch 11.0.1 khusus typescript-estree; commit patch/major terpisah. Audit lengkap dan produksi **0**, instalasi bersih, 109 unit + 3 tooling + 7 SDK + 4 dependency + typecheck/lint/build + **104 E2E** PASS. Bukti rilis di PROJECT_STATUS.md §20–21.
+* [ ] Review dependency berikutnya paling lambat **2026-12-12**, saat lockfile berubah, dan sebelum rilis: pantau backport Next 15 dengan PostCSS ditambal, ExcelJS dengan UUID >=11.1.1, typescript-estree dengan Minimatch >=11.0.1, dan rantai Blob/OIDC dengan Zod >=4.6.6. Hapus override hanya lewat PR fokus setelah resolusi/audit aman dan semua gate lulus; evaluasi segera bila advisory/severity/reachability berubah. Owner: maintainer.
+* [x] Evaluasi penghapusan override CLI-config 2026-11-12 — **belum aman dihapus**: Blob latest 2.9.0 masih OIDC ^3.6.1 → OIDC 3.x latest 3.8.10 → CLI-config 0.3.1 → Zod 4.1.11. Override mempertahankan Zod 4.6.7; tunggu perubahan upstream melalui jadwal review di atas. Bukti registry dan SDK di PROJECT_STATUS.md §17/20–21.
 
 * [x] Review authentication — token `crypto.randomBytes(32)`, expiry 7 hari, cookie httpOnly + sameSite=lax + secure(prod); bcrypt cost 10; `statusAktif` dicek (`src/lib/auth.ts`)
 * [x] Review authorization — 9/9 halaman `/hr/*` pakai `wajibHR()`; E2E security 8 test redirect non-HR
@@ -206,7 +206,7 @@ Move completed tasks here periodically.
 * [x] Delegasi — atasan→atasan, HR→HR, same-tier only
 * [x] Web Push — VAPID + Service Worker + subscribe endpoint
 * [x] Cron — reminder H+1 + eskalasi H+3 (Vercel cron)
-* [x] E2E tests — 104 Playwright (55 utama + 47 flows + 2 rate-limit, 3 tier config) + 109 unit (`npm run test:unit`) + 7 SDK (`npm run test:sdk`) + 4 dependency (`npm run test:dependencies`); 3 tooling baru sedang digate pada PR terpisah.
+* [x] E2E tests — 104 Playwright (55 utama + 47 flows + 2 rate-limit, 3 tier config) + 109 unit (`npm run test:unit`) + 7 SDK (`npm run test:sdk`) + 4 dependency (`npm run test:dependencies`) + 3 tooling (`npm run test:tooling`).
 * [x] CI/CD — GitHub Actions verify + e2e
 * [x] Deploy — Vercel live
 
