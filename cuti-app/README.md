@@ -23,6 +23,20 @@ PostCSS dipin **8.5.28**, versi yang sudah dipakai pipeline Tailwind, dan overri
 
 Tooling dev memakai `postcss-selector-parser` **6.1.6** dalam range Tailwind/PostCSS-nested dan override Minimatch **11.0.1** khusus `@typescript-eslint/typescript-estree` untuk advisory CPU exhaustion. Minimatch tetap menyediakan named API CommonJS yang dipakai project service (`minimatch(path, pattern, { dot: true })`), mendukung Node 20 CI/24 lokal, dan membawa satu helper dev berlisensi permisif BlueOak (lisensi sama dengan Minimatch). Minimatch 3/5 milik konsumen lain tidak diubah. `npm run test:tooling` menguji resolusi konsumen, default-project TypeScript dan selector CSS; lint/build/E2E tetap gate kompatibilitas. Hapus override ketika typescript-estree menerima Minimatch >=11.0.1 secara native, setelah audit dan seluruh gate lulus.
 
+Review upstream **13 November 2026**: keempat override **dipertahankan**, versi dan lockfile tidak berubah. Penghapusan satu per satu pada salinan lockfile terpisah mengembalikan vulnerability. Manifest registry tetap menunjukkan:
+
+| Override | Jalur upstream tanpa override | Syarat penghapusan |
+| --- | --- | --- |
+| PostCSS `$postcss` | Next 15 terbaru 15.5.29 mem-pin 8.4.31; percobaan resolve kembali ke 8.4.31 | Backport Next 15 membawa PostCSS >=8.5.23 yang lolos advisory saat review; Next dan eslint-config-next tetap pin eksak selaras. Next 16 adalah evaluasi major tersendiri. |
+| ExcelJS UUID 11.1.1 | ExcelJS latest 4.4.0 meminta ^8.3.0; resolve 8.3.2 | ExcelJS stabil dalam range menerima UUID ditambal dengan export CommonJS v4() tanpa argumen; 11.1.1 adalah minimum jalur 11, versi major lain wajib diperiksa advisories/API/engine. |
+| typescript-estree Minimatch 11.0.1 | Latest 8.72.2 masih meminta ^10.2.2; resolve 10.2.6 rentan | Rantai ESLint menerima Minimatch aman secara native (saat ini >=11.0.1), named CommonJS API dan engine kompatibel Node20 CI/24 lokal. Minimatch 3/5 konsumen lain tetap dievaluasi menurut range advisory masing-masing. |
+| CLI-config Zod `$zod` | Blob 2.9.0 → OIDC ^3.6.1 → latest 3.8.10 → CLI-config 0.3.1 → pin Zod 4.1.11 | Blob/OIDC dalam range menjangkau CLI-config dengan Zod >=4.6.6; CLI-config latest 0.4.0 sendiri tidak menggantikan pin OIDC. Helper teks() UTF-16 tetap dipertahankan. |
+
+Rilis upstream yang dicek: [Next 15.5.29](https://github.com/vercel/next.js/releases/tag/v15.5.29), [ExcelJS 4.4.0](https://github.com/exceljs/exceljs/releases/tag/v4.4.0), [typescript-eslint 8.72.2](https://github.com/typescript-eslint/typescript-eslint/releases/tag/v8.72.2). Advisory utama: [PostCSS](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp), [UUID](https://github.com/advisories/GHSA-w5hq-g745-h8pq), [Minimatch](https://github.com/advisories/GHSA-g3hv-75wg-m249), [Zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+
+Setiap penghapusan memerlukan lockfile tanpa override, instalasi bersih + prisma generate, npm ls valid, audit lengkap/produksi, unit/SDK/dependency/tooling, typecheck/lint/build, dan seluruh tiga tier E2E CI PR. Audit nol saja belum membuktikan kompatibilitas. Review minimal bulanan (berikutnya paling lambat **13 Desember 2026**), setiap lockfile berubah, dan sebelum rilis. Bukti pemeriksaan terbaru ada di PROJECT_STATUS.md §22.
+
+
 ## Fitur
 
 Form client dengan `useActionState` memakai `ActionForm` agar isian (termasuk pilihan file) tidak direset setelah error bisnis React 19. Komponen mempertahankan native action untuk submit sebelum hydration; setelah hydration ia mengirim `FormData` beserta tombol submit dalam transition tanpa auto-reset. Action tetap mengotorisasi/menvalidasi di server dan redirect saat berhasil; password/file tidak dikembalikan sebagai state server. Form cuti mempertahankan perbaikan `NilaiAjukan`/`defaultValue` yang sudah ada. Uji regresi: `tests/form-isian.spec.ts` (tier flows) dan rate-limit.
