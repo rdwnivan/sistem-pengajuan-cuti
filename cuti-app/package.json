@@ -12,7 +12,7 @@
     "migrate:attachments": "tsx scripts/migrate-attachments.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:unit": "tsx --test \"unit/*.test.ts\"",
+    "test:unit": "tsx --test unit/*.test.ts",
     "test:sdk": "node --test scripts/vercel-sdk.test.mjs",
     "test:dependencies": "node --test scripts/dependency-compat.test.mjs",
     "test:tooling": "node --test scripts/tooling-compat.test.mjs",
