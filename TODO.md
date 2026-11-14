@@ -109,6 +109,8 @@ Nice-to-have items.
 
 # Testing
 
+* [~] Uji ulang Web Push perangkat fisik setelah rilis keamanan (2026-11-14): laptop Windows/Brave, sesi Karyawan 1. SHA production cf4f7bc cocok; metadata pasangan VAPID ada, sw.js cocok sumber, GET subscription anonim401. Menunggu user mengaktifkan izin; registrasi akun/perangkat, respons provider, penerimaan fisik, jumlah/isi, klik /notifikasi dan kondisi tab tertutup belum diverifikasi. Fixture belum dibuat (§29).
+
 * [x] Audit aplikasi 2026-11-13: 109 unit + 14 compatibility + 115 E2E PASS tanpa retry; tambah 10 E2E IDOR objek nyata pada tier flows. Typecheck/lint/build PASS; dependency audit penuh/produksi 0. Temuan eksploratif belum ditutup; lihat TEST_REPORT_2026-11-13.md dan PROJECT_STATUS.md §25.
 * [x] Tambahkan `npm run test:unit` pada job CI verify; command glob diperbaiki untuk Node20/Linux dan Windows/Node24. 144 unit PASS pada CI PR #25 dan main (§28).
 * [x] Verifikasi perbaikan audit: 144 unit + 16 compatibility + 125 E2E (56+66+3) PASS, tanpa retry/flaky; typecheck/lint/build + kedua audit dependency 0. Uji migration CLI copy-rusak/resume/storage bersama, reset HR, stale login, dan receiver push internal lulus. SECURITY_FIXES_2026-11-13.md.
