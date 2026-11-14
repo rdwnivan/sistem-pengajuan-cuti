@@ -6,7 +6,7 @@
 ## Last Updated
 
 * Date: 2026-11-14 (WIB)
-* Session: Rilis keamanan production terverifikasi (§28), PR #25 MERGED/CI hijau, SHA kode `2e366a55ce83fc452e852054aed34ad61a2069c8` cocok. Private Blob + LoginRateLimit aktif; 3 file lama tersalin/hash cocok, 3 URL asli 404, journal pendingRevocation=0, token publik lama ditolak. Upload baru dan owner/approver/anon/non-owner PASS. SEC-02 live ditutup; dokumentasi bukti sedang difinalisasi.
+* Session: Rilis keamanan production terverifikasi (§28), PR #25 MERGED/CI hijau, SHA kode `2e366a55ce83fc452e852054aed34ad61a2069c8` cocok. Private Blob + LoginRateLimit aktif; 3 file lama tersalin/hash cocok, 3 URL asli 404, journal pendingRevocation=0, token publik lama ditolak. Upload baru dan owner/approver/anon/non-owner PASS. SEC-02 live ditutup; bukti dan batas inventaris tercatat di §28. Merge dokumentasi berikutnya memperbarui SHA build, bukan kode keamanan yang diuji.
 
 ## Arsip snapshot 2026-10-07
 * Session: P1/P2/P3 lanjutan. **Dua koreksi atas pekerjaan saya sendiri di sesi ini** (keduanya
