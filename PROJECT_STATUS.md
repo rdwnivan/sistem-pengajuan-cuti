@@ -3,6 +3,15 @@
 > Living memory of the current state of the project.
 > Keep this file concise, factual, and up to date.
 
+# 29. Uji Web Push perangkat fisik setelah rilis (2026-11-14 WIB, berlangsung)
+
+* Baseline working tree bersih, HEAD/origin/main `cf4f7bca675398b9ea05b7a628e295e4ffec96c7`. GET production `/api/version` 200 SHA sama/env production. RTK.md tidak ditemukan. AGENTS/status/TODO/security fixes/rollout dibaca.
+* Perangkat dipilih dari browser fisik yang tersedia: laptop Windows, Brave (versi belum dicatat), akun `karyawan1@anime.id`/Karyawan 1. User mengonfirmasi izin diberikan dan banner hilang; UI memperlihatkan banner hilang. Query baca-saja terarah neondb/public membuktikan 4 subscription FCM pada akun tersebut; user mengonfirmasi keempatnya boleh menerima fixture. Belum membuktikan subscription spesifik browser lewat pencocokan endpoint.
+* Metadata Vercel decrypt=false menunjukkan VAPID_PUBLIC_KEY dan VAPID_PRIVATE_KEY bertarget Production, tanpa membuka nilai. Ini bukti keberadaan metadata, bukan validitas pasangan kriptografis. sw.js production sama dengan sumber (normalisasi newline), GET subscription anonim401. Log PUSH- baseline 15 menit kosong.
+* Sender memvalidasi subscription/allowlist/DNS publik dan mem-pin IP; timeout DNS3s/HTTPS5s tetap. Caller slip hanya menargetkan karyawan terpilih dan default klik `/notifikasi`. Rencana fixture berlabel UJI WEB PUSH pada periode kosong, melalui aksi aplikasi; belum membuat data atau mengirim push. Pembuatan slip UI mengambil gaji pokok dari master; nilai fixture final harus diperiksa sebelum submit, tanpa mengubah master.
+* Observabilitas: sender sebelumnya hanya mencatat kegagalan. Branch `codex/push-provider-delivery-evidence` menambahkan log sukses berisi ID internal/status HTTP saja; tidak mencetak endpoint/key/body provider/payload. Typecheck/lint/unit fokus serta PR/CI/rilis harus diverifikasi sebelum pengiriman. Tidak mengubah allowlist/auth/SSRF/VAPID/storage.
+* Provider: belum dikirim. Penerimaan fisik, judul/isi/jumlah, klik dan kondisi aplikasi tertutup: belum diverifikasi. Fixture/sesi tambahan belum dibuat; sesi Brave milik user sudah ada sebelum pemeriksaan. Status tetap berlangsung, bukan PASS.
+
 ## Last Updated
 
 * Date: 2026-11-14 (WIB)

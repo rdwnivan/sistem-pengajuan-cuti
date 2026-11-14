@@ -30,11 +30,13 @@ export async function kirimWebPush(
         const parsed = subscriptionSchema.safeParse({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } });
         if (!parsed.success) { console.warn("[PUSH-DITOLAK] Subscription tersimpan tidak valid", { id: sub.id }); return; }
         agent = await agenPushAman(sub.endpoint);
-        await webPush.sendNotification(
+        const response = await webPush.sendNotification(
           parsed.data,
           payload,
           { timeout: 5000, agent },
         );
+        // Provider acceptance is separate from display on a physical device.
+        console.info("[PUSH-DITERIMA] Provider menerima pengiriman", { id: sub.id, status: response.statusCode });
       } catch (e) {
         // Gagal = subscription expired/invalid, hapus
         if (e instanceof Error && (e as { statusCode?: number }).statusCode === 410) {
