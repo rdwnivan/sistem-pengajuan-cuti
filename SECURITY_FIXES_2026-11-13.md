@@ -1,6 +1,6 @@
 # Perbaikan hasil audit — 13 November 2026 WIB
 
-Perbaikan kode selesai dan diverifikasi lokal: **285 tes PASS**, tanpa retry/flaky. Perubahan belum di-commit/PR/deploy. **SEC-02 belum ditutup di production**: private Blob belum dikonfigurasi dan URL public lama belum dicabut.
+Perbaikan kode diverifikasi lokal: **285 tes PASS**, tanpa retry/flaky. **Pembaruan rilis 2026-11-14:** PR #25 merged, CI PR/main dan smoke otomatis PASS; SHA kode production `2e366a55ce83fc452e852054aed34ad61a2069c8` cocok. Tiga lampiran lama sudah privat/hash cocok, URL asli404, journal revokasi lengkap, dan token publik lama ditolak. **SEC-02 live ditutup** setelah smoke owner/approver dan upload baru PASS. Bukti lengkap serta batas inventaris di PROJECT_STATUS.md §28. Bagian berikut adalah snapshot verifikasi lokal sebelum rilis.
 
 ## Perubahan
 

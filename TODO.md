@@ -42,7 +42,7 @@ Tasks that should be completed next.
 
 ## Bugs
 
-* [x] UI-01: tab laporan membungkus; viewport/dokumen 390/390 px dan 1365/1365 px, tab terakhir terlihat. Shell konten/form dirender sekali. Regresi + screenshot + typecheck/lint/build PASS lokal; belum dirilis. Bukti SECURITY_FIXES_2026-11-13.md.
+* [x] UI-01: tab laporan membungkus, Shell merender konten/form sekali. Regresi + screenshot + typecheck/lint/build/CI PASS; production 390px tanpa overflow dan satu form password diverifikasi setelah PR #25 (§28).
 
 * [x] Vercel Analytics + SpeedInsights blocked by CSP — tambah `https://va.vercel-scripts.com` ke `script-src` + `connect-src` di `next.config.mjs` (verified via header production asli)
 * [x] Notifikasi Web Push bocor antar akun di browser yang sama — `LogoutButton` unsubscribe + hapus row DB saat Keluar; banner Aktifkan muncul lagi bila permission granted tapi belum ada subscription
@@ -110,7 +110,7 @@ Nice-to-have items.
 # Testing
 
 * [x] Audit aplikasi 2026-11-13: 109 unit + 14 compatibility + 115 E2E PASS tanpa retry; tambah 10 E2E IDOR objek nyata pada tier flows. Typecheck/lint/build PASS; dependency audit penuh/produksi 0. Temuan eksploratif belum ditutup; lihat TEST_REPORT_2026-11-13.md dan PROJECT_STATUS.md §25.
-* [x] Tambahkan `npm run test:unit` pada job CI verify; 144 unit PASS lokal, YAML/command gate diperiksa. Eksekusi GitHub Actions perubahan ini belum dilakukan.
+* [x] Tambahkan `npm run test:unit` pada job CI verify; command glob diperbaiki untuk Node20/Linux dan Windows/Node24. 144 unit PASS pada CI PR #25 dan main (§28).
 * [x] Verifikasi perbaikan audit: 144 unit + 16 compatibility + 125 E2E (56+66+3) PASS, tanpa retry/flaky; typecheck/lint/build + kedua audit dependency 0. Uji migration CLI copy-rusak/resume/storage bersama, reset HR, stale login, dan receiver push internal lulus. SECURITY_FIXES_2026-11-13.md.
 
 * [x] E2E HR CRUD (jenis cuti tambah, hari libur tambah/hapus, karyawan buat/edit/nonaktif) — `tests/hr-crud.spec.ts` (tier flows, serial)
@@ -136,14 +136,14 @@ Nice-to-have items.
 
 # Security
 
-* [~] Rilis paket keamanan §26 melalui PR/CI/preview, backup + db push LoginRateLimit direct, deploy/SHA dan smoke production. Private store Production terhubung (§27); migrasi/revokasi SEC-02 dan inventaris storage bersama belum selesai.
+* [x] Rilis keamanan production (§28): PR #25 MERGED, CI PR/main + preview + smoke PASS; backup/db push direct/deploy SHA cocok, migrasi3file/hash/3URL404/journal done, token legacy ditolak, upload baru dan otorisasi production PASS. Backup/journal privat dipertahankan, tanpa seed/reset live.
 
-* [x] SEC-01 kode: allowlist FCM/Mozilla/Apple/Microsoft, validasi key, DNS publik dipin, DNS 3s/HTTPS 5s dan logging aman. Receiver internal tidak dihubungi meski subscription lama tersimpan dan VAPID aktif. Unit + E2E PASS lokal; live mengikuti rollout.
-* [~] SEC-02: kode private Blob/local + API berotorisasi + penutupan `/uploads` dan migrator resumable sudah PASS lokal (owner/approver 200, anon/non-owner ditolak, salinan/file bersama aman). **Sisa production:** private store dan `BLOB_PRIVATE_READ_WRITE_TOKEN` belum tersedia pada metadata env yang diperiksa; rollout kode/db push, migrasi seluruh konsumen, pencabutan URL public lama dan GET non-200 belum dilakukan. Ikuti cuti-app/SECURITY_ROLLOUT.md. Owner: maintainer; jangan tutup hanya dari tautan UI/kode lokal.
-* [x] SEC-03 kode: perubahan password + pencabutan + sesi baru satu transaksi; reset HR mencabut target, login mengunci User dan memeriksa ulang hash/status. Regresi dua context, stale hash dan reset HR PASS lokal; belum dirilis.
+* [x] SEC-01: allowlist FCM/Mozilla/Apple/Microsoft, validasi key, DNS publik dipin, DNS 3s/HTTPS 5s dan logging aman. Receiver internal0koneksi dengan VAPID aktif pada E2E; CI PR/main PASS. Dirilis PR #25; payload internal/invalid400 juga diverifikasi production (§28).
+* [x] SEC-02 live ditutup (2026-11-14): katalog empat database/seluruh schema dan dua project Vercel diperiksa; inventory store tepat3file tanpa orphan. Copy/hash/update/revoke resumable selesai, journal pendingRevocation0, ketiga URL asli yang dahulu200 kini404 dan store public kosong. Owner/approver tetap200 dengan hash asli; anon401/non-owner404. Upload baru private langsung403/API sah200; token public lama sudah ditolak. Bukti PROJECT_STATUS.md §28.
+* [x] SEC-03: perubahan password + pencabutan + sesi baru satu transaksi; reset HR mencabut target, login mengunci User dan memeriksa ulang hash/status. Regresi dua context/stale hash/reset HR PASS lokal dan CI; dirilis PR #25. Login/logout production PASS; password akun bisnis live tidak diubah (§28).
 * [x] SEC-04 kode: POST/DELETE push memakai schema runtime dan body <=8 KiB, invalid 400/tanpa sesi 401. Penautan ulang perangkat membutuhkan key subscription sama, update bersyarat atomik. Regresi PASS lokal.
-* [x] CI hardening kode: SHA terverifikasi checkout v4.3.1/setup-node v4.4.0, persist-credentials false, contents:read (smoke juga actions:read), unit gate dan VAPID dummy E2E. YAML parse/inspection dan gate lokal PASS; run CI baru belum diklaim.
-* [x] Ganti rate limiter in-memory menjadi PostgreSQL LoginRateLimit: atomic UPSERT, hash akun, jam DB, cleanup cron. Lima gagal paralel tepat lima dan blokir terbaca subprocess baru; 3 E2E rate-limit PASS. Schema perlu db push sebelum kode baru dirilis.
+* [x] CI hardening: checkout v4.3.1/setup-node v4.4.0 SHA-pinned, persist-credentials false, izin minimal, unit gate dan VAPID dummy E2E. CI PR #25/main serta post-deploy smoke PASS (§28).
+* [x] Ganti rate limiter in-memory menjadi PostgreSQL LoginRateLimit: atomic UPSERT/hash akun/jam DB/cleanup cron. Lima gagal paralel tepat lima dan blokir terbaca subprocess baru; 3 E2E rate-limit PASS lokal dan CI. Tabel additive production sudah db push direct sebelum deploy, tanpa seed/reset (§28).
 
 * [x] Audit berkala 2026-11-12 + patch kompatibel — `next`/`eslint-config-next` 15.5.27 → 15.5.29, `undici` 6.28.1 → 6.29.1. Audit produksi 9 temuan (1 critical) → 8 (0 critical, 5 high, 3 moderate). Typecheck/lint/build, 97 unit, E2E 54+38+2 lulus tanpa retry. Snapshot dan reachability sisa di `PROJECT_STATUS.md`.
 * [x] Merge/rilis patch keamanan 2026-11-12 — PR #15 squash-merged `3104029`; verify/e2e/preview PR PASS. Deployment production sukses, `/api/version` SHA cocok + env production; smoke read-only PASS (login/aset 200, cron 401, 8 redirect login). Audit ulang lockfile live tetap 8 (0 critical, 5 high, 3 moderate).

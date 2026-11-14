@@ -1,5 +1,7 @@
 # Rilis perbaikan keamanan 13 November 2026
 
+Hasil pelaksanaan 14 November 2026: PR #25 merged, SHA kode production `2e366a55ce83fc452e852054aed34ad61a2069c8`; CI PR/main dan smoke PASS. Private store/env dan LoginRateLimit aktif. Inventory lengkap yang ditemukan tepat3file public, seluruhnya disalin/hash diverifikasi/pointer dipindah/dicabut; tiga URL asli404, journal pendingRevocation0, store public kosong. Owner/approver mendapat byte asli melalui API, anonim/non-owner ditolak; upload baru private dan token public lama ditolak. Bukti/batas di PROJECT_STATUS.md §28; backup/journal tetap privat. Setelah credential lama dipensiunkan, jangan menjalankan ulang fase yang memerlukan token tersebut; gunakan bukti journal untuk audit.
+
 Kode ini melindungi upload baru, akses lampiran, sesi, push dan rate limit. **URL Blob public yang sudah ada tidak menjadi privat hanya karena kode/tautan UI berubah.** SEC-02 belum selesai di production sampai migrasi dan pencabutan URL lama dibuktikan.
 
 ## Prasyarat dan urutan

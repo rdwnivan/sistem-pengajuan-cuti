@@ -33,6 +33,9 @@ test.describe("Cuti — alur penuh karyawan → atasan → HR", () => {
     const url = await ajukanCuti(page, {
       jenis: "Tahunan (min H-3)",
       alasan: "Cuti tahunan keluarga ke luar kota keperluan mendesak",
+      // Senin terdekat hanya H-1/H-2 bila test berjalan pada akhir pekan.
+      // Pisahkan juga dari fixture Menikah minggu +1 agar tidak bentrok.
+      plusMinggu: 2,
     });
     await expect(page.getByText("Menunggu Atasan").first()).toBeVisible({ timeout: 15_000 });
 
