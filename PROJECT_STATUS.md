@@ -3,7 +3,15 @@
 > Living memory of the current state of the project.
 > Keep this file concise, factual, and up to date.
 
-# 29. Uji Web Push perangkat fisik setelah rilis (2026-11-14 WIB, menunggu konfirmasi fisik)
+# 29. Uji Web Push perangkat fisik setelah rilis (2026-11-14 WIB, PASS)
+
+* **Hasil akhir dikonfirmasi user:** Windows 11/Brave, akun Karyawan 1; subscription terdaftar, FCM menerima pengiriman, satu notifikasi benar-benar tampil, judul/isi benar, dan klik membuka `/notifikasi`. PASS untuk aplikasi terbuka dan tab aplikasi tertutup dengan Brave tetap berjalan. Tidak mengklaim uji saat seluruh proses Brave berhenti atau untuk OS/browser lain.
+* Uji ulang penerbitan November 2099 pukul 10:00:09 WIB: FCM201 untuk subscription lama, tetapi user menyatakan tidak ada notifikasi di layar. Diagnosis native berhenti karena Computer Use tidak dapat memverifikasi URL dengan aman. Setelahnya jumlah subscription akun bertambah dari1 menjadi2; tidak mengklaim akar penyebab kegagalan awal telah dibuktikan atau mengasumsikan siapa yang mengubah pengaturan.
+* Atas permintaan user, pembatalan hanya fixture November2099 `cmwftigvb0001652pqv5xssrc` lewat UI memicu `Slip gaji dibatalkan HR`. Log `2026-11-14T03:03:41.739Z/809Z` (10:03:41 WIB), request `7pvd4-1794625418440-72afa2c12c05`: **dua FCM201**. User mengonfirmasi **satu notifikasi**, isi `Slip November 2099 dibatalkan. Hubungi HR bila ini tidak sesuai.`, klik benar, aplikasi terbuka. Klik operator sempat timeout; status/log diperiksa sebelum tindakan berikutnya dan tidak disubmit ulang.
+* Uji tab tertutup dilakukan setelah user mengonfirmasi tab production ditutup tanpa logout dan Brave berjalan. Fixture Oktober2099 `cmwftpgbg00016hfkwshfobhv`, catatan `UJI WEB PUSH LATAR 2026-11-14 — FIXTURE TESTING`, seluruh nominal0. Log `2026-11-14T03:05:35.368Z/385Z` (10:05:35 WIB), request `tl7nl-1794625532420-6c1c6b5e35ff`: **dua FCM201**. User mengonfirmasi **tepat satu** `Slip gaji terbit`, isi `Slip Oktober 2099 diterbitkan. Gaji bersih: 0.`, klik membuka `/notifikasi` saat tab sebelumnya tertutup.
+* Cleanup akhir: Oktober2099 diubah TERBIT→DIBATALKAN dalam transaksi dengan guard id/owner/periode/catatan/status/gaji0; matched1/changed1 dan audit cleanup dibuat, tanpa push tambahan. Query akhir membuktikan ketiga fixture Oktober/November/Desember2099 DIBATALKAN/Rp0. Record/notifikasi uji dipertahankan untuk bukti; tidak menyentuh master/data bisnis lama, storage lampiran, VAPID, allowlist, validasi DNS/IP atau autentikasi. Rangkaian ini memakai kode production87e6bb3 tanpa perubahan runtime tambahan.
+
+## Riwayat pengiriman awal (sebelum konfirmasi PASS di atas)
 
 * Verifikasi akhir baca-saja: tepat1 notifikasi in-app dengan judul/isi/periode uji pada rentang pengiriman; fixture tetap DIBATALKAN/Rp0. [Smoke main 43539684345](https://github.com/rdwnivan/sistem-pengajuan-cuti/actions/runs/43539684345) PASS pada SHA87e6bb3. Bukti ini terpisah dari jumlah notifikasi yang benar-benar tampil di perangkat.
 
@@ -19,7 +27,7 @@
 ## Last Updated
 
 * Date: 2026-11-14 (WIB)
-* Active task: Web Push pascarilis (§29). Production87e6bb3/CI/smoke PASS, provider FCM201; fixture sudah dibatalkan dan sesi HR logout. Konfirmasi tampilan fisik/jumlah/klik masih menunggu user, sehingga uji perangkat belum PASS.
+* Active task: Web Push pascarilis (§29) selesai diverifikasi pada Windows11/Brave. User mengonfirmasi satu notifikasi dengan isi/klik benar saat tab terbuka maupun tertutup; FCM201 tercatat. Tiga fixture2099 sudah dibatalkan, sesi operator terbaru logout. Tidak mengklaim dukungan browser/OS lain atau Brave berhenti total.
 * Session: Rilis keamanan production terverifikasi (§28), PR #25 MERGED/CI hijau, SHA kode `2e366a55ce83fc452e852054aed34ad61a2069c8` cocok. Private Blob + LoginRateLimit aktif; 3 file lama tersalin/hash cocok, 3 URL asli 404, journal pendingRevocation=0, token publik lama ditolak. Upload baru dan owner/approver/anon/non-owner PASS. SEC-02 live ditutup; bukti dan batas inventaris tercatat di §28. Merge dokumentasi berikutnya memperbarui SHA build, bukan kode keamanan yang diuji.
 
 ## Arsip snapshot 2026-10-07
