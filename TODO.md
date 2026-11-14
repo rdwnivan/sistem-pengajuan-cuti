@@ -109,7 +109,7 @@ Nice-to-have items.
 
 # Testing
 
-* [~] Uji ulang Web Push perangkat fisik setelah rilis keamanan (2026-11-14): laptop Windows/Brave, sesi Karyawan 1. SHA production cf4f7bc cocok; metadata pasangan VAPID ada, sw.js cocok sumber, GET subscription anonim401. Menunggu user mengaktifkan izin; registrasi akun/perangkat, respons provider, penerimaan fisik, jumlah/isi, klik /notifikasi dan kondisi tab tertutup belum diverifikasi. Fixture belum dibuat (§29).
+* [x] Verifikasi fisik Web Push pascarilis (2026-11-14, §29): Windows11/Brave ProductVersion157.1.99.57, Karyawan1. User mengonfirmasi tepat satu notifikasi, judul/isi benar dan klik /notifikasi saat tab terbuka maupun tertutup (Brave berjalan). Dua subscription menerima FCM201 pada masing-masing uji terakhir. Ketiga fixture2099/Rp0 DIBATALKAN, sesi HR terbaru logout; tanpa seed/reset/rotasi key/perubahan storage. Kegagalan awal dan batas platform tetap dicatat; tidak mengklaim akar masalah awal sudah terbukti.
 
 * [x] Audit aplikasi 2026-11-13: 109 unit + 14 compatibility + 115 E2E PASS tanpa retry; tambah 10 E2E IDOR objek nyata pada tier flows. Typecheck/lint/build PASS; dependency audit penuh/produksi 0. Temuan eksploratif belum ditutup; lihat TEST_REPORT_2026-11-13.md dan PROJECT_STATUS.md §25.
 * [x] Tambahkan `npm run test:unit` pada job CI verify; command glob diperbaiki untuk Node20/Linux dan Windows/Node24. 144 unit PASS pada CI PR #25 dan main (§28).
