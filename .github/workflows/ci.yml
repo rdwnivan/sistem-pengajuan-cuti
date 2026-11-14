@@ -104,6 +104,8 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const keys = require('web-push').generateVAPIDKeys();
+          console.log(`::add-mask::${keys.publicKey}`);
+          console.log(`::add-mask::${keys.privateKey}`);
           fs.appendFileSync(process.env.GITHUB_ENV, `VAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\n`);
           NODE
       - name: Build
