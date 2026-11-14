@@ -268,3 +268,6 @@ When a meaningful task is completed:
 1. Mark it `[x]`.
 2. Add the next concrete task.
 3. Update `PROJECT_STATUS.md`.
+# Pembersihan lokal 2026-11-14
+
+* [x] Hapus cache build/Prisma, laporan tes, log sementara, dan cache TypeScript atas permintaan user; verifikasi 10 target tidak ada dan berkas penting tetap ada (sekitar 440,6 MiB ukuran logis).

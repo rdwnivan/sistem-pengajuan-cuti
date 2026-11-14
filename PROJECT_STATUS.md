@@ -1,5 +1,11 @@
 # PROJECT STATUS
 
+## Pembersihan lokal (2026-11-14 WIB)
+
+* Atas permintaan user, menghapus `.next/cache`, `node_modules/.cache`, `playwright-report`, `test-results`, lima log sementara, dan `tsconfig.tsbuildinfo` di `cuti-app/` (total ukuran logis sebelumnya sekitar 440,6 MiB). Tidak ada proses Node proyek terdeteksi sebelum penghapusan.
+* Verifikasi filesystem: seluruh 10 target tidak ada; `node_modules`, `.private`, `src`, `.env`, dan lockfile tetap ada. Git bersih setelah pembersihan sebelum pembaruan dokumentasi. Tidak mengubah kode atau menjalankan build/tes yang akan membuat cache kembali.
+* Atas permintaan user, `git rm` file ter-track yang tidak dirujuk: 5 ikon template `cuti-app/public/{file,globe,next,vercel,window}.svg`, script sekali pakai `cuti-app/scripts/create-test-db.mts`, dan `HANDOFF-2026-10-07.md` (digantikan file ini). Grep ulang: tidak ada referensi tersisa. `public/uploads/` sengaja dipertahankan (inventaris `migrate-attachments.ts`). Ditambahkan `CLAUDE.md` yang mengimpor `AGENTS.md`. Belum di-commit.
+
 > Living memory of the current state of the project.
 > Keep this file concise, factual, and up to date.
 
